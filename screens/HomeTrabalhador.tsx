@@ -406,7 +406,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
-    marginTop: 40,
   },
 
   avatarText: {
@@ -419,7 +418,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    marginTop: 40,
   },
 
   welcome: {
@@ -432,7 +430,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: "#f0f0f0",
-    marginTop: 40,
     flexDirection: "row",
   },
 

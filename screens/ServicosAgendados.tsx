@@ -82,6 +82,13 @@ export default function ServicosAgendados() {
     );
   };
 
+  const handleAbrirChatCliente = (servicoStatus: any) => {
+    navigation.navigate("Chat", {
+      otherUserId: servicoStatus.clienteId,
+      otherUserName: servicoStatus.nomeCliente || "Cliente",
+    });
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -146,14 +153,9 @@ export default function ServicosAgendados() {
                 <View style={styles.buttonsRow}>
                   <TouchableOpacity
                     style={styles.contatoButton}
-                    onPress={() =>
-                      Alert.alert(
-                        "Contato",
-                        "Funcionalidade em desenvolvimento"
-                      )
-                    }
+                    onPress={() => handleAbrirChatCliente(servicoStatus)}
                   >
-                    <Text style={styles.buttonText}>Contatar Cliente</Text>
+                    <Text style={styles.buttonText}>Conversar</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity

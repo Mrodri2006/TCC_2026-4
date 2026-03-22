@@ -152,7 +152,7 @@ export default function Register() {
           criadoEm: new Date(),
         });
 
-      navigation.replace('HomeTrabalhador');
+      navigation.replace('MenuTrabalhador');
 
     } catch (erro: any) {
       alert(erro.message);

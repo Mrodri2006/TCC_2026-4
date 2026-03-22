@@ -57,7 +57,7 @@ export default function LoginTrabalhador() {
     try {
       const userCredentials = await auth.signInWithEmailAndPassword(email, senha);
       console.log('Logado como: ' + userCredentials.user?.email);
-      navigation.replace('HomeTrabalhador');
+      navigation.replace('MenuTrabalhador');
     } catch (erro: any) {
       alert(erro.message);
     } finally {

@@ -68,6 +68,13 @@ export default function DetalheProfissional() {
     }
   };
 
+  const handleAbrirChat = () => {
+    navigation.navigate("Chat", {
+      otherUserId: profissional.id,
+      otherUserName: profissional.nome || "Prestador",
+    });
+  };
+
   if (carregando) {
     return (
       <View style={styles.carregandoContainer}>
@@ -173,6 +180,13 @@ export default function DetalheProfissional() {
         >
           <Phone size={20} color="#fff" />
           <Text style={styles.botaoContrataTexto}>Solicitar Serviço</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.botaoChat}
+          onPress={handleAbrirChat}
+        >
+          <Text style={styles.botaoChatTexto}>Conversar</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -360,6 +374,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 10,
     elevation: 3,
+  },
+
+  botaoChat: {
+    backgroundColor: "#005362",
+    marginTop: 10,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+
+  botaoChatTexto: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
 
   botaoContrataTexto: {

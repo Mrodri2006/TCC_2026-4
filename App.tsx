@@ -5,6 +5,7 @@ import Login    from './screens/Login';
 import Register from './screens/Register';
 import Register2 from './screens/Register2';
 import Menu     from './screens/Menu';
+import MenuTrabalhador from './screens/MenuTrabalhador';
 import LoginTrabalhador     from './screens/LoginTrabalhador';
 import HomeTrabalhador     from './screens/HomeTrabalhador';
 import ServicosAgendados from './screens/ServicosAgendados';
@@ -21,6 +22,8 @@ import ServStatus from './screens/ServStatus';
 import Avaliacao from './screens/Avaliacao';
 import Configuracoes from './screens/Configuracoes';
 import ConfiguracoesPrestador from './screens/ConfiguracoesPrestador';
+import ChatList from './screens/ChatList';
+import Chat from './screens/Chat';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -37,7 +40,8 @@ export default function App() {
          <Stack.Screen name='Register2' component={Register2} options={{ headerShown: false }}/>
         <Stack.Screen name='Menu'     component={Menu} options={{ headerShown: false }}/>
         <Stack.Screen name="LoginTrabalhador" component={LoginTrabalhador} options={{ headerShown: false }}/>
-        <Stack.Screen name="HomeTrabalhador" component={HomeTrabalhador} options={{ headerShown: false }}  />
+        <Stack.Screen name="HomeTrabalhador" component={HomeTrabalhador} />
+        <Stack.Screen name="MenuTrabalhador" component={MenuTrabalhador} options={{ headerShown: false }} />
         <Stack.Screen name="ServicosAgendados" component={ServicosAgendados} options={{ headerShown: false }}/>
         <Stack.Screen name='PerfilTrabalhador' component={PerfilTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name='Perfil'    component={Perfil} options={{ headerShown: false }}/>
@@ -53,6 +57,8 @@ export default function App() {
         <Stack.Screen name='Configuracoes' component={Configuracoes} options={{ headerShown: false }}/>
         <Stack.Screen name='ConfiguracoesPrestador' component={ConfiguracoesPrestador} options={{ headerShown: false }}/>
         <Stack.Screen name='ServicosEmAndamento'    component={ServicosEmAndamento} options={{ headerShown: false }} /> 
+        <Stack.Screen name='Chat' component={Chat} options={{ headerShown: false }} />
+        <Stack.Screen name='ChatList' component={ChatList} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     
