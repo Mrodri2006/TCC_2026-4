@@ -278,38 +278,44 @@ export default function TelaInicialCliente({ onLogout }: any) {
     }
 
     try {
-      // Atualiza o status no documento do trabalhador
+      const agora = new Date();
+      const statusUpdate = {
+        status: novoStatus,
+        dataAtualizacao: agora,
+        ...(novoStatus === "problema"
+          ? { problemaRelatado: problemaTexto || "Problema reportado" }
+          : { problemaRelatado: null }),
+        ...(novoStatus === "realizado"
+          ? { dataFinalizado: agora, avaliacaoLiberada: true }
+          : {}),
+      };
+
+      // Atualiza (ou cria, se nÃ£o existir) o status no documento do trabalhador
       await firestore
         .collection("ServicosAgendados")
         .doc(servicoSelecionado.prestadorId)
         .collection("ServicoStatus")
         .doc(servicoSelecionado.id)
-        .update({
-          status: novoStatus,
-          dataAtualizacao: new Date(),
-          ...(novoStatus === "problema"
-            ? { problemaRelatado: problemaTexto || "Problema reportado" }
-            : { problemaRelatado: null }),
-          ...(novoStatus === "realizado"
-            ? { dataFinalizado: new Date(), avaliacaoLiberada: true }
-            : {}),
-        });
-// Atualiza o status no documento do cliente
+        .set(
+          {
+            ...servicoSelecionado,
+            ...statusUpdate,
+          },
+          { merge: true }
+        );
+// Atualiza (ou cria) o status no documento do cliente
       await firestore
         .collection("ServicosClientes")
         .doc(servicoSelecionado.clienteId)
         .collection("ServicoStatus")
         .doc(servicoSelecionado.id)
-        .update({
-          status: novoStatus,
-          dataAtualizacao: new Date(),
-          ...(novoStatus === "problema"
-            ? { problemaRelatado: problemaTexto || "Problema reportado" }
-            : { problemaRelatado: null }),
-          ...(novoStatus === "realizado"
-            ? { dataFinalizado: new Date(), avaliacaoLiberada: true }
-            : {}),
-        });
+        .set(
+          {
+            ...servicoSelecionado,
+            ...statusUpdate,
+          },
+          { merge: true }
+        );
 
       Alert.alert("Sucesso", `Serviço atualizado para "${novoStatus}"`);
       fecharModal();
