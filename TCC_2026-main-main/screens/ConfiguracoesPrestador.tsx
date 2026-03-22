@@ -49,6 +49,8 @@ export default function ConfiguracoesPrestador() {
     if (mensalidade.status === "paga") return;
     setSalvando(true);
     try {
+      // TODO: integrar API de pagamento aqui (ex: Mercado Pago / Stripe).
+      // Espera-se receber confirmacao de pagamento antes de marcar como paga.
       const usuarioAutenticado = auth.currentUser;
       if (!usuarioAutenticado) return;
       const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
@@ -64,6 +66,7 @@ export default function ConfiguracoesPrestador() {
       }));
     } catch (erro) {
       console.log("Erro ao pagar mensalidade:", erro);
+      Alert.alert("Pagamento", "Falha ao processar pagamento. Tente novamente.");
     } finally {
       setSalvando(false);
     }

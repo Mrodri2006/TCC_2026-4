@@ -23,7 +23,7 @@ export default function Register2() {
   const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', dataNascimento: '' });
 
   const navigation = useNavigation<any>();
-
+// Função para calcular a idade com base na data de nascimento
   const calcularIdade = (data: Date) => {
     const hoje = new Date();
     let idade = hoje.getFullYear() - data.getFullYear();

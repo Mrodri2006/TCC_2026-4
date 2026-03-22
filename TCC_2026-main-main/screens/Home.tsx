@@ -4,6 +4,7 @@ import { Search, User, Wrench, X } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback, useRef } from "react";
 import { auth, firestore } from "../firebase";
+import { Picker } from "@react-native-picker/picker";
 
 export default function TelaInicialCliente({ onLogout }: any) {
 
@@ -17,6 +18,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<any>(null);
   const [problemaTexto, setProblemaTexto] = useState("");
+  const [modalAreaVisivel, setModalAreaVisivel] = useState(false);
+  const [areaSelecionada, setAreaSelecionada] = useState("");
+  const [dataSolicitacao, setDataSolicitacao] = useState("");
+  const [localSolicitacao, setLocalSolicitacao] = useState("");
+  const [descricaoSolicitacao, setDescricaoSolicitacao] = useState("");
+  const [enviandoSolicitacao, setEnviandoSolicitacao] = useState(false);
 
   const unsubscribeAceitosRef = useRef<any>(null);
 
@@ -155,6 +162,115 @@ export default function TelaInicialCliente({ onLogout }: any) {
     setProblemaTexto("");
   };
 
+  const abrirModalArea = () => {
+    setAreaSelecionada("");
+    setDataSolicitacao("");
+    setLocalSolicitacao("");
+    setDescricaoSolicitacao("");
+    setModalAreaVisivel(true);
+  };
+
+  const fecharModalArea = () => {
+    setModalAreaVisivel(false);
+  };
+
+  const enviarSolicitacaoPorArea = async () => {
+    if (!areaSelecionada || !dataSolicitacao || !localSolicitacao) {
+      Alert.alert("Erro", "Selecione a area e preencha data e local.");
+      return;
+    }
+
+    const clienteId = auth.currentUser?.uid;
+    if (!clienteId) {
+      Alert.alert("Erro", "Usuario nao autenticado");
+      return;
+    }
+
+    setEnviandoSolicitacao(true);
+    try {
+      const clienteSnap = await firestore.collection("Usuario").doc(clienteId).get();
+      const clienteNome = clienteSnap.exists ? clienteSnap.data()?.nome : null;
+
+      const prestadoresSnap = await firestore
+        .collection("Usuario")
+        .where("tipo", "==", "prestador")
+        .where("profissao", "==", areaSelecionada)
+        .get();
+
+      if (prestadoresSnap.empty) {
+        Alert.alert("Aviso", "Nenhum prestador encontrado para essa area.");
+        setEnviandoSolicitacao(false);
+        return;
+      }
+
+      const agora = new Date();
+      const requestId = firestore.collection("SolicitacoesArea").doc().id;
+      const promises: Promise<any>[] = [];
+      const prestadoresIds: string[] = [];
+
+      prestadoresSnap.docs.forEach((doc) => {
+        const prestadorId = doc.id;
+        prestadoresIds.push(prestadorId);
+        const docRef = firestore
+          .collection("ServicosAgendados")
+          .doc(prestadorId)
+          .collection("ServicoStatus")
+          .doc(requestId);
+
+        const novoServico = {
+          id: docRef.id,
+          requestId: requestId,
+          origem: "area",
+          estilo: areaSelecionada,
+          tipo: areaSelecionada,
+          data: dataSolicitacao,
+          local: localSolicitacao,
+          descricao: descricaoSolicitacao,
+          status: "aguardando",
+          clienteId: clienteId,
+          nomeCliente: clienteNome || auth.currentUser?.email || "Cliente",
+          dataSolicitacao: agora,
+          criadoEm: agora,
+          prestadorId: prestadorId,
+        };
+
+        promises.push(docRef.set(novoServico));
+        promises.push(
+          firestore
+            .collection("ServicosClientes")
+            .doc(clienteId)
+            .collection("ServicoStatus")
+            .doc(novoServico.id)
+            .set(novoServico)
+        );
+      });
+
+      promises.push(
+        firestore.collection("SolicitacoesArea").doc(requestId).set({
+          requestId,
+          area: areaSelecionada,
+          clienteId,
+          nomeCliente: clienteNome || auth.currentUser?.email || "Cliente",
+          data: dataSolicitacao,
+          local: localSolicitacao,
+          descricao: descricaoSolicitacao,
+          prestadoresIds,
+          status: "aguardando",
+          criadoEm: agora,
+        })
+      );
+
+      await Promise.all(promises);
+      Alert.alert("Sucesso", "Solicitacao enviada para prestadores da area.");
+      fecharModalArea();
+    } catch (erro) {
+      console.error("Erro ao enviar solicitacao:", erro);
+      Alert.alert("Erro", "Nao foi possivel enviar a solicitacao.");
+    } finally {
+      setEnviandoSolicitacao(false);
+    }
+  };
+
   const atualizarStatusServico = async (novoStatus: string) => {
     if (!servicoSelecionado?.prestadorId || !servicoSelecionado?.clienteId) {
       Alert.alert("Erro", "Informações do serviço incompletas");
@@ -237,6 +353,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
       </View>
 
       <Text style={styles.sectionTitle}>Serviços Populares</Text>
+
+      <TouchableOpacity style={styles.solicitarAreaButton} onPress={abrirModalArea}>
+        <Text style={styles.solicitarAreaTitle}>Solicitar servico por area</Text>
+        <Text style={styles.solicitarAreaSub}>Envie o pedido para prestadores da area escolhida</Text>
+      </TouchableOpacity>
 
       {carregando ? (
         <View style={styles.carregandoContainer}>
@@ -360,6 +481,80 @@ export default function TelaInicialCliente({ onLogout }: any) {
         </View>
       </Modal>
 
+
+      <Modal visible={modalAreaVisivel} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Solicitar por area</Text>
+
+            <Text style={styles.modalLabel}>Area do servico *</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={areaSelecionada}
+                onValueChange={(value) => setAreaSelecionada(value)}
+              >
+                <Picker.Item label="Selecione uma area" value="" />
+                {servicosPopulares.map((serv: any) => (
+                  <Picker.Item key={serv.id} label={serv.nome} value={serv.nome} />
+                ))}
+              </Picker>
+            </View>
+
+            <Text style={styles.modalLabel}>Data do servico *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="DD/MM/YYYY"
+              placeholderTextColor="#999"
+              value={dataSolicitacao}
+              onChangeText={setDataSolicitacao}
+            />
+
+            <Text style={styles.modalLabel}>Local do servico *</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Rua, numero, bairro..."
+              placeholderTextColor="#999"
+              value={localSolicitacao}
+              onChangeText={setLocalSolicitacao}
+            />
+
+            <Text style={styles.modalLabel}>Descricao (opcional)</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalInputLong]}
+              placeholder="Descreva detalhes do servico..."
+              placeholderTextColor="#999"
+              value={descricaoSolicitacao}
+              onChangeText={setDescricaoSolicitacao}
+              multiline
+            />
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={styles.modalProblemButton}
+                onPress={fecharModalArea}
+                disabled={enviandoSolicitacao}
+              >
+                <Text style={styles.modalProblemText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.modalFinishButton,
+                  enviandoSolicitacao && styles.botaoDesabilitado,
+                ]}
+                onPress={enviarSolicitacaoPorArea}
+                disabled={enviandoSolicitacao}
+              >
+                <Text style={styles.modalFinishText}>
+                  {enviandoSolicitacao ? "Enviando..." : "Enviar solicitacao"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -413,6 +608,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 10,
+  },
+
+  solicitarAreaButton: {
+    backgroundColor: "#005362",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+  },
+
+  solicitarAreaTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  solicitarAreaSub: {
+    color: "#dff3f6",
+    fontSize: 13,
+    fontWeight: "500",
   },
 
   grid: {
@@ -675,6 +890,18 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
+  modalInputLong: {
+    minHeight: 90,
+  },
+
+  pickerContainer: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+
   modalButtonsRow: {
     marginTop: 6,
   },
@@ -717,5 +944,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#666",
+  },
+
+  botaoDesabilitado: {
+    opacity: 0.6,
   },
 });

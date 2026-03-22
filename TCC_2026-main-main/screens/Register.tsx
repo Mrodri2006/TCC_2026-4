@@ -15,12 +15,14 @@ import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import { Usuario } from '../model/Usuario';
 import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from 'react-native-modal-datetime-picker';
 
 export default function Register() {
 
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
   const [profissao, setProfissao] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dataPickerVisivel, setDataPickerVisivel] = useState(false);
 
   const tiposProfissao = [
     { id: 1, nome: 'Eletricista' },
@@ -32,10 +34,23 @@ export default function Register() {
 
   const navigation = useNavigation<any>();
 
+  const calcularIdade = (data: Date) => {
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - data.getFullYear();
+    const mesAtual = hoje.getMonth();
+    const mesNasc = data.getMonth();
+    if (mesAtual < mesNasc || (mesAtual === mesNasc && hoje.getDate() < data.getDate())) idade--;
+    return idade;
+  };
+
   const registrar = async () => {
 
-    if (!formUsuario.email || !formUsuario.senha || !profissao) {
+    if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento) {
       alert("Preencha todos os campos!");
+      return;
+    }
+    if (calcularIdade(formUsuario.dataNascimento) < 18) {
+      alert("Você deve ter no mínino 18 anos de idade para se cadstrar!");
       return;
     }
 
@@ -56,6 +71,7 @@ export default function Register() {
           nome: formUsuario.nome,
           email: formUsuario.email,
           fone: formUsuario.fone,
+          dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
           tipo: 'prestador',
           profissao: profissao,
           criadoEm: new Date(),
@@ -68,6 +84,11 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmarData = (data: Date) => {
+    setFormUsuario({ ...formUsuario, dataNascimento: data });
+    setDataPickerVisivel(false);
   };
 
   return (
@@ -149,6 +170,25 @@ export default function Register() {
               style={styles.input}
               mode='outlined'
               keyboardType='phone-pad'
+            />
+
+            <TouchableOpacity
+              style={[styles.input, styles.dateButton]}
+              onPress={() => setDataPickerVisivel(true)}
+            >
+              <Text style={styles.dateButtonText}>
+                {formUsuario.dataNascimento
+                  ? formUsuario.dataNascimento.toLocaleDateString("pt-BR")
+                  : "Selecionar data de nascimento"}
+              </Text>
+            </TouchableOpacity>
+
+            <DateTimePicker
+              isVisible={dataPickerVisivel}
+              mode="date"
+              onConfirm={confirmarData}
+              onCancel={() => setDataPickerVisivel(false)}
+              maximumDate={new Date()}
             />
 
             <Text style={styles.profissaoLabel}>
@@ -283,6 +323,15 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: 12,
     backgroundColor: '#fff',
+  },
+
+  dateButton: {
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+
+  dateButtonText: {
+    color: '#555',
   },
 
   profissaoLabel: {

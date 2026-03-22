@@ -113,6 +113,45 @@ export default function HomeTrabalhador() {
           );
       }
 
+      if (servico.origem === "area" && servico.requestId) {
+        const reqRef = firestore.collection("SolicitacoesArea").doc(servico.requestId);
+        const reqSnap = await reqRef.get();
+
+        if (reqSnap.exists) {
+          const reqData: any = reqSnap.data();
+          const prestadoresIds: string[] = reqData?.prestadoresIds || [];
+          const deletePromises: Promise<any>[] = [];
+
+          prestadoresIds.forEach((prestadorId) => {
+            if (prestadorId !== usuarioId) {
+              deletePromises.push(
+                firestore
+                  .collection("ServicosAgendados")
+                  .doc(prestadorId)
+                  .collection("ServicoStatus")
+                  .doc(servico.requestId)
+                  .delete()
+              );
+            }
+          });
+
+          deletePromises.push(
+            reqRef.set(
+              {
+                status: "aceito",
+                aceitoPor: usuarioId,
+                dataAceito: new Date(),
+              },
+              { merge: true }
+            )
+          );
+
+          if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+          }
+        }
+      }
+
       setServicoAceito(servico);
       setServicoRejeitado(null);
       setAlertVisivel(true);
