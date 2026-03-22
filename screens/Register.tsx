@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Text,
   View,
@@ -8,8 +8,13 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
-  Image
+  Image,
+  Modal,
+  Linking
 } from 'react-native';
+import { Asset } from 'expo-asset';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { TextInput } from 'react-native-paper';
 import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
@@ -23,6 +28,72 @@ export default function Register() {
   const [profissao, setProfissao] = useState('');
   const [loading, setLoading] = useState(false);
   const [dataPickerVisivel, setDataPickerVisivel] = useState(false);
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [termosVisivel, setTermosVisivel] = useState(false);
+  const [pdfUri, setPdfUri] = useState<string | null>(null);
+  const [pdfCarregando, setPdfCarregando] = useState(false);
+  const [pdfErro, setPdfErro] = useState(false);
+
+  useEffect(() => {
+    const carregarPdf = async () => {
+      try {
+        setPdfCarregando(true);
+        const asset = Asset.fromModule(require('../assets/termos_prestador_app.pdf'));
+        await asset.downloadAsync();
+        const sourceUri = asset.localUri || asset.uri;
+        const cacheUri = `${FileSystem.cacheDirectory}termos_prestador_app.pdf`;
+        const info = await FileSystem.getInfoAsync(cacheUri);
+        if (!info.exists) {
+          await FileSystem.copyAsync({ from: sourceUri, to: cacheUri });
+        }
+        setPdfUri(cacheUri);
+        setPdfErro(false);
+      } catch {
+        setPdfUri(null);
+        setPdfErro(true);
+      } finally {
+        setPdfCarregando(false);
+      }
+    };
+    carregarPdf();
+  }, []);
+
+  const abrirPdfExterno = async () => {
+    try {
+      setPdfCarregando(true);
+      let uri = pdfUri;
+      if (!uri) {
+        const asset = Asset.fromModule(require('../assets/termos_prestador_app.pdf'));
+        await asset.downloadAsync();
+        const sourceUri = asset.localUri || asset.uri;
+        const cacheUri = `${FileSystem.cacheDirectory}termos_prestador_app.pdf`;
+        const info = await FileSystem.getInfoAsync(cacheUri);
+        if (!info.exists) {
+          await FileSystem.copyAsync({ from: sourceUri, to: cacheUri });
+        }
+        uri = cacheUri;
+        setPdfUri(uri);
+      }
+      if (uri) {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          await Linking.openURL(uri);
+        }
+        setPdfErro(false);
+      } else {
+        setPdfErro(true);
+      }
+    } catch {
+      setPdfErro(true);
+    } finally {
+      setPdfCarregando(false);
+    }
+  };
 
   const tiposProfissao = [
     { id: 1, nome: 'Eletricista' },
@@ -47,6 +118,10 @@ export default function Register() {
 
     if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento) {
       alert("Preencha todos os campos!");
+      return;
+    }
+    if (!aceitouTermos) {
+      alert("Aceite os termos e as especificacoes do app para continuar.");
       return;
     }
     if (calcularIdade(formUsuario.dataNascimento) < 18) {
@@ -220,6 +295,27 @@ export default function Register() {
 
             </View>
 
+            <View style={styles.termosRow}>
+              <TouchableOpacity
+                style={[styles.checkbox, aceitouTermos && styles.checkboxChecked]}
+                onPress={() => setAceitouTermos(!aceitouTermos)}
+              >
+                {aceitouTermos ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              </TouchableOpacity>
+
+              <Text style={styles.termosText}>
+                Eu li e aceito os{" "}
+                <Text style={styles.termosLink} onPress={() => setTermosVisivel(true)}>
+                  Termos de uso
+                </Text>{" "}
+                e as{" "}
+                <Text style={styles.termosLink} onPress={() => setTermosVisivel(true)}>
+                  especificacoes do app
+                </Text>
+                .
+              </Text>
+            </View>
+
             <TouchableOpacity
               style={styles.registerButton}
               onPress={registrar}
@@ -243,6 +339,46 @@ export default function Register() {
             </TouchableOpacity>
 
           </View>
+
+          <Modal
+            visible={termosVisivel}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setTermosVisivel(false)}
+          >
+            <View style={styles.modalBackdrop}>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Termos de uso (Prestador)</Text>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalText}>
+                    Para ver o PDF completo, abra no visualizador externo.
+                  </Text>
+                  {!!pdfErro && (
+                    <Text style={styles.modalText}>
+                      Nao foi possivel abrir o PDF. Verifique o arquivo em assets.
+                    </Text>
+                  )}
+                  <TouchableOpacity
+                    style={styles.openPdfButton}
+                    onPress={abrirPdfExterno}
+                    disabled={pdfCarregando}
+                  >
+                    {pdfCarregando
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.openPdfButtonText}>Abrir PDF</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => setTermosVisivel(false)}
+                >
+                  <Text style={styles.modalButtonText}>Fechar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
         </ScrollView>
 
@@ -374,6 +510,99 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#005362',
     fontWeight: '600',
-  }
+  },
+
+  termosRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#005362',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+
+  checkboxChecked: {
+    backgroundColor: '#005362',
+  },
+
+  checkboxMark: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  termosText: {
+    flex: 1,
+    color: '#333',
+  },
+
+  termosLink: {
+    color: '#005362',
+    fontWeight: '600',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    height: '85%',
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#111',
+  },
+
+  modalContent: {
+    marginBottom: 12,
+  },
+
+  modalText: {
+    color: '#333',
+    marginBottom: 12,
+  },
+
+  modalButton: {
+    backgroundColor: '#005362',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  openPdfButton: {
+    marginTop: 8,
+    backgroundColor: '#005362',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  openPdfButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 
 });

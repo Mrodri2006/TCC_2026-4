@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
-  Image
+  Image,
+  Modal
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { auth, firestore } from '../firebase';
@@ -20,7 +21,9 @@ export default function Register2() {
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
   const [dataPickerVisivel, setDataPickerVisivel] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', dataNascimento: '' });
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [termosVisivel, setTermosVisivel] = useState(false);
+  const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', dataNascimento: '', termos: '' });
 
   const navigation = useNavigation<any>();
 // Função para calcular a idade com base na data de nascimento
@@ -34,7 +37,7 @@ export default function Register2() {
   };
 
   const validarFormulario = () => {
-    let novoErros = { nome: '', email: '', senha: '', fone: '', dataNascimento: '' };
+    let novoErros = { nome: '', email: '', senha: '', fone: '', dataNascimento: '', termos: '' };
     let valido = true;
 
     if (!formUsuario.nome?.trim()) {
@@ -55,6 +58,9 @@ export default function Register2() {
       novoErros.dataNascimento = 'Data de nascimento é obrigatória'; valido = false;
     } else if (calcularIdade(formUsuario.dataNascimento) < 18) {
       novoErros.dataNascimento = 'Você deve ter no mínimo 18 anos'; valido = false;
+    }
+    if (!aceitouTermos) {
+      novoErros.termos = 'Aceite os termos e as especificacoes do app'; valido = false;
     }
 
     setErrors(novoErros);
@@ -179,6 +185,31 @@ export default function Register2() {
                 maximumDate={new Date()}
               />
 
+              <View style={styles.termosRow}>
+                <TouchableOpacity
+                  style={[styles.checkbox, aceitouTermos && styles.checkboxChecked]}
+                  onPress={() => {
+                    setAceitouTermos(!aceitouTermos);
+                    if (errors.termos) setErrors({ ...errors, termos: '' });
+                  }}
+                >
+                  {aceitouTermos ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                </TouchableOpacity>
+
+                <Text style={styles.termosText}>
+                  Eu li e aceito os{" "}
+                  <Text style={styles.termosLink} onPress={() => setTermosVisivel(true)}>
+                    Termos de uso
+                  </Text>{" "}
+                  e as{" "}
+                  <Text style={styles.termosLink} onPress={() => setTermosVisivel(true)}>
+                    especificacoes do app
+                  </Text>
+                  .
+                </Text>
+              </View>
+              {!!errors.termos && <Text style={styles.errorText}>{errors.termos}</Text>}
+
               <TouchableOpacity
                 style={styles.registerButton}
                 onPress={registrar}
@@ -198,6 +229,44 @@ export default function Register2() {
               </TouchableOpacity>
 
             </View>
+
+            <Modal
+              visible={termosVisivel}
+              animationType="slide"
+              transparent
+              onRequestClose={() => setTermosVisivel(false)}
+            >
+              <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                  <Text style={styles.modalTitle}>Termos de uso</Text>
+                  <ScrollView style={styles.modalContent}>
+                    <Text style={styles.modalText}>
+                      1. Ao criar a conta, voce declara que as informacoes fornecidas sao verdadeiras.
+                      {"\n\n"}
+                      2. O app conecta contratantes e prestadores. Nao garantimos a execucao do servico.
+                      {"\n\n"}
+                      3. Conteudos ofensivos, fraudulentos ou ilegais podem resultar em bloqueio da conta.
+                    </Text>
+
+                    <Text style={styles.modalTitle}>Especificacoes do app</Text>
+                    <Text style={styles.modalText}>
+                      1. O app utiliza seus dados de cadastro para criar seu perfil e facilitar contatos.
+                      {"\n\n"}
+                      2. As mensagens e solicitacoes podem ser registradas para fins de seguranca.
+                      {"\n\n"}
+                      3. Atualizacoes do app podem alterar funcionalidades sem aviso previo.
+                    </Text>
+                  </ScrollView>
+
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={() => setTermosVisivel(false)}
+                  >
+                    <Text style={styles.modalButtonText}>Fechar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
 
           </ScrollView>
         </View>
@@ -301,5 +370,85 @@ const styles = StyleSheet.create({
   errorText: { 
     color: '#ff4d4d', 
     marginBottom: 6 
+  },
+
+  termosRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 6,
+    marginBottom: 6,
+  },
+
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#005362',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+
+  checkboxChecked: {
+    backgroundColor: '#005362',
+  },
+
+  checkboxMark: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  termosText: {
+    flex: 1,
+    color: '#333',
+  },
+
+  termosLink: {
+    color: '#005362',
+    fontWeight: '600',
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '85%',
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#111',
+  },
+
+  modalContent: {
+    marginBottom: 12,
+  },
+
+  modalText: {
+    color: '#333',
+    marginBottom: 12,
+  },
+
+  modalButton: {
+    backgroundColor: '#005362',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
