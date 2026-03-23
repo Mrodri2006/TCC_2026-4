@@ -10,15 +10,40 @@ import {
   Modal,
   Image,
   ActivityIndicator,
+  TextInput,
+  Linking,
 } from "react-native";
-import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
+import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut, RefreshCcw, ExternalLink } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 
+const MENSALIDADE_VALOR = 28.9;
+const CONFIG_COLLECTION = "Configuracoes";
+const CONFIG_DOC = "mercadoPago";
+
+type MensalidadeState = {
+  vencimento: any;
+  status: string;
+  pagoEm: any;
+  ultimoPagamentoId?: string;
+  ultimoPagamentoStatus?: string;
+  ultimoQrGeradoEm?: any;
+};
+
+type MercadoPagoConfig = {
+  accessToken: string;
+  descricao: string;
+  titulo: string;
+};
+
+const configPadrao: MercadoPagoConfig = {
+  accessToken: "",
+  descricao: "Mensalidade do prestador",
+  titulo: "Mensalidade",
+};
+
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation();
-  const MENSALIDADE_VALOR = 28.9;
-  const MERCADO_PAGO_TOKEN = "APP_USR-6909888801358132-032316-80f7def2bb6837c9a66448835be174d0-3288465614";
   const [notificacoes, setNotificacoes] = useState(true);
   const [modoEscuro, setModoEscuro] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -28,33 +53,56 @@ export default function ConfiguracoesPrestador() {
   const [qrTicketUrl, setQrTicketUrl] = useState("");
   const [carregandoPix, setCarregandoPix] = useState(false);
   const [erroPix, setErroPix] = useState("");
-  const [mensalidade, setMensalidade] = useState({
+  const [carregandoConfig, setCarregandoConfig] = useState(true);
+  const [mensalidade, setMensalidade] = useState<MensalidadeState>({
     vencimento: null,
     status: "em_aberto",
     pagoEm: null,
+    ultimoPagamentoId: "",
+    ultimoPagamentoStatus: "",
+    ultimoQrGeradoEm: null,
   });
-  const [salvando, setSalvando] = useState(false);
+  const [configMercadoPago, setConfigMercadoPago] = useState<MercadoPagoConfig>(configPadrao);
 
   useEffect(() => {
-    const carregarMensalidade = async () => {
+    const carregarDados = async () => {
       try {
         const usuarioAutenticado = auth.currentUser;
         if (!usuarioAutenticado) return;
-        const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
+
+        const [docSnap, configSnap] = await Promise.all([
+          firestore.collection("Usuario").doc(usuarioAutenticado.uid).get(),
+          firestore.collection(CONFIG_COLLECTION).doc(CONFIG_DOC).get(),
+        ]);
+
         if (docSnap.exists) {
           const dados = docSnap.data();
           setMensalidade({
-            vencimento: dados.mensalidadeVencimento || null,
-            status: dados.mensalidadeStatus || "em_aberto",
-            pagoEm: dados.mensalidadePagoEm || null,
+            vencimento: dados?.mensalidadeVencimento || null,
+            status: dados?.mensalidadeStatus || "em_aberto",
+            pagoEm: dados?.mensalidadePagoEm || null,
+            ultimoPagamentoId: dados?.mensalidadeUltimoPagamentoId || "",
+            ultimoPagamentoStatus: dados?.mensalidadeUltimoPagamentoStatus || "",
+            ultimoQrGeradoEm: dados?.mensalidadeUltimoQrGeradoEm || null,
+          });
+        }
+
+        if (configSnap.exists) {
+          const config = configSnap.data();
+          setConfigMercadoPago({
+            accessToken: String(config?.accessToken || "").trim(),
+            descricao: String(config?.descricaoMensalidade || configPadrao.descricao),
+            titulo: String(config?.tituloMensalidade || configPadrao.titulo),
           });
         }
       } catch (erro) {
-        console.log("Erro ao carregar mensalidade:", erro);
+        console.log("Erro ao carregar configuracoes:", erro);
+      } finally {
+        setCarregandoConfig(false);
       }
     };
 
-    carregarMensalidade();
+    carregarDados();
   }, []);
 
   const formatarData = (valor: any) => {
@@ -62,32 +110,6 @@ export default function ConfiguracoesPrestador() {
     const data = valor?.toDate ? valor.toDate() : new Date(valor);
     if (Number.isNaN(data.getTime())) return "Nao informado";
     return data.toLocaleDateString("pt-BR");
-  };
-
-  const pagarMensalidade = async () => {
-    if (mensalidade.status === "paga") return;
-    setSalvando(true);
-    try {
-
-      const usuarioAutenticado = auth.currentUser;
-      if (!usuarioAutenticado) return;
-      const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
-      const pagoEm = new Date();
-      await refUsuario.update({
-        mensalidadeStatus: "paga",
-        mensalidadePagoEm: pagoEm,
-      });
-      setMensalidade((prev) => ({
-        ...prev,
-        status: "paga",
-        pagoEm,
-      }));
-    } catch (erro) {
-      console.log("Erro ao pagar mensalidade:", erro);
-      Alert.alert("Pagamento", "Falha ao processar pagamento. Tente novamente.");
-    } finally {
-      setSalvando(false);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -142,32 +164,62 @@ export default function ConfiguracoesPrestador() {
     setModalVisible(false);
   };
 
-  const gerarIdempotencyKey = () => {
-    return `pix_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const gerarIdempotencyKey = () => `pix_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+  const registrarPagamentoGerado = async (data: any, transaction: any) => {
+    const usuarioAutenticado = auth.currentUser;
+    if (!usuarioAutenticado) return;
+
+    const agora = new Date();
+    const atualizacao = {
+      mensalidadeStatus: data?.status || "pendente",
+      mensalidadeUltimoPagamentoId: String(data?.id || ""),
+      mensalidadeUltimoPagamentoStatus: String(data?.status_detail || data?.status || ""),
+      mensalidadeUltimoQrGeradoEm: agora,
+      mensalidadeUltimoTicketUrl: transaction?.ticket_url || "",
+      mensalidadeUltimoPixCode: transaction?.qr_code || "",
+    };
+
+    await firestore.collection("Usuario").doc(usuarioAutenticado.uid).update(atualizacao);
+    setMensalidade((prev) => ({
+      ...prev,
+      status: data?.status === "approved" ? "paga" : prev.status,
+      pagoEm: data?.status === "approved" ? agora : prev.pagoEm,
+      ultimoPagamentoId: String(data?.id || ""),
+      ultimoPagamentoStatus: String(data?.status_detail || data?.status || ""),
+      ultimoQrGeradoEm: agora,
+    }));
   };
 
   const gerarQrPix = async () => {
-    const token = MERCADO_PAGO_TOKEN.trim();
+    const token = configMercadoPago.accessToken.trim();
     if (!token) {
-      const mensagem = "Informe o Access Token do Mercado Pago no código.";
+      const mensagem = "Configure o access token em Configuracoes/mercadoPago no Firestore para habilitar o PIX.";
       setErroPix(mensagem);
-      Alert.alert("API", mensagem);
+      Alert.alert("Mercado Pago", mensagem);
       return;
     }
+
     const emailPagador = auth.currentUser?.email || "";
-    if (!emailPagador) {
-      const mensagem = "Não foi possível identificar o e-mail do pagador.";
+    const usuarioId = auth.currentUser?.uid;
+
+    if (!emailPagador || !usuarioId) {
+      const mensagem = "Não foi possível identificar o usuário autenticado.";
       setErroPix(mensagem);
-      Alert.alert("E-mail", mensagem);
+      Alert.alert("Usuário", mensagem);
       return;
     }
 
     setCarregandoPix(true);
+    setErroPix("");
+
     try {
       const payload = {
         transaction_amount: MENSALIDADE_VALOR,
-        description: "Mensalidade",
+        description: configMercadoPago.descricao,
         payment_method_id: "pix",
+        external_reference: `mensalidade_${usuarioId}_${Date.now()}`,
+        notification_url: "https://example.com/mercadopago/webhook",
         payer: {
           email: emailPagador,
         },
@@ -185,7 +237,10 @@ export default function ConfiguracoesPrestador() {
 
       const data = await response.json();
       if (!response.ok) {
-        const mensagem = data?.message || data?.error || "Erro ao gerar PIX.";
+        const causa = Array.isArray(data?.cause)
+          ? data.cause.map((item: any) => item?.description).filter(Boolean).join(" | ")
+          : "";
+        const mensagem = causa || data?.message || data?.error || "Erro ao gerar PIX.";
         setErroPix(mensagem);
         Alert.alert("PIX", mensagem);
         return;
@@ -195,8 +250,11 @@ export default function ConfiguracoesPrestador() {
       setQrBase64(transaction?.qr_code_base64 || "");
       setQrCopiaCola(transaction?.qr_code || "");
       setQrTicketUrl(transaction?.ticket_url || "");
-      if (!transaction?.qr_code_base64) {
-        setErroPix("Não foi possível obter o QR Code.");
+
+      await registrarPagamentoGerado(data, transaction);
+
+      if (!transaction?.qr_code_base64 && !transaction?.qr_code) {
+        setErroPix("O pagamento foi criado, mas o Mercado Pago não retornou o QR Code.");
       }
     } catch (erro) {
       console.log("Erro ao gerar Pix:", erro);
@@ -214,32 +272,26 @@ export default function ConfiguracoesPrestador() {
     }
   }, [modalVisible]);
 
+  const abrirTicket = async () => {
+    if (!qrTicketUrl) return;
+    const supported = await Linking.canOpenURL(qrTicketUrl);
+    if (!supported) {
+      Alert.alert("PIX", "Não foi possível abrir o link do pagamento.");
+      return;
+    }
+    await Linking.openURL(qrTicketUrl);
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{
-            padding: 8,
-            borderRadius: 10,
-            backgroundColor: "#f1f1f1",
-            marginTop: 40,
-          }}
+          style={styles.backButton}
         >
           <ArrowLeft size={20} color="#005362" />
         </TouchableOpacity>
-        <Text
-          style={{
-            marginTop: 40,
-            marginBottom: 4,
-            fontSize: 28,
-            fontWeight: "600",
-            color: "#000",
-            alignItems: "center",
-          }}
-        >
-          Configurações
-        </Text>
+        <Text style={styles.headerTitle}>Configurações</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -284,10 +336,26 @@ export default function ConfiguracoesPrestador() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Integração Mercado Pago</Text>
+        <Text style={styles.helperText}>
+          O app agora lê o token da coleção <Text style={styles.helperTextStrong}>Configuracoes/mercadoPago</Text> no Firestore.
+        </Text>
+        <TextInput
+          style={styles.readonlyInput}
+          value={carregandoConfig ? "Carregando configuração..." : (configMercadoPago.accessToken ? "Token configurado no Firestore" : "Token não configurado")}
+          editable={false}
+          multiline
+        />
+        <Text style={styles.helperText}>
+          Campos esperados: <Text style={styles.helperTextStrong}>accessToken</Text>, <Text style={styles.helperTextStrong}>descricaoMensalidade</Text> e <Text style={styles.helperTextStrong}>tituloMensalidade</Text>.
+        </Text>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Pagamento</Text>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Mensalidade</Text>
+            <Text style={styles.cardTitle}>{configMercadoPago.titulo}</Text>
             <View
               style={[
                 styles.statusBadge,
@@ -301,6 +369,11 @@ export default function ConfiguracoesPrestador() {
           </View>
 
           <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Valor:</Text>
+            <Text style={styles.infoValue}>R$ {MENSALIDADE_VALOR.toFixed(2).replace(".", ",")}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Vencimento:</Text>
             <Text style={styles.infoValue}>{formatarData(mensalidade.vencimento)}</Text>
           </View>
@@ -311,17 +384,21 @@ export default function ConfiguracoesPrestador() {
               {mensalidade.status === "paga" ? formatarData(mensalidade.pagoEm) : "-"}
             </Text>
           </View>
-        
-          <TouchableOpacity
-            style={[
-              styles.botaoPagar,
-              salvando && styles.botaoDesabilitado,
-            ]}
-            onPress={abrirModal}
-            disabled={salvando}
-          >
-          <Text style={styles.botaoTexto}>Gerar QR Pix</Text>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Último pagamento:</Text>
+            <Text style={styles.infoValue}>{mensalidade.ultimoPagamentoId || "-"}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Status MP:</Text>
+            <Text style={styles.infoValue}>{mensalidade.ultimoPagamentoStatus || "-"}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.botaoPagar} onPress={abrirModal}>
+            <Text style={styles.botaoTexto}>Gerar QR Pix</Text>
           </TouchableOpacity>
+
           <Modal visible={modalVisible} transparent animationType="fade">
             <TouchableOpacity
               style={styles.modalOverlay}
@@ -356,25 +433,29 @@ export default function ConfiguracoesPrestador() {
                       <Text style={styles.qrCodeText} selectable>
                         {qrCopiaCola}
                       </Text>
-                      {!!qrTicketUrl && (
-                        <Text style={styles.qrHint} selectable>
-                          {qrTicketUrl}
-                        </Text>
-                      )}
                     </View>
+                  )}
+
+                  {!!qrTicketUrl && !carregandoPix && (
+                    <TouchableOpacity style={styles.ticketButton} onPress={abrirTicket}>
+                      <ExternalLink size={16} color="#005362" />
+                      <Text style={styles.ticketButtonText}>Abrir comprovante no navegador</Text>
+                    </TouchableOpacity>
                   )}
 
                   <View style={styles.modalActions}>
                     <TouchableOpacity style={styles.modalButtonGhost} onPress={fecharModal}>
                       <Text style={styles.modalButtonGhostText}>Fechar</Text>
                     </TouchableOpacity>
+                    <TouchableOpacity style={styles.modalButtonPrimary} onPress={gerarQrPix}>
+                      <RefreshCcw size={16} color="#fff" />
+                      <Text style={styles.modalButtonPrimaryText}>Gerar novamente</Text>
+                    </TouchableOpacity>
                   </View>
                 </ScrollView>
               </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
-
-            
         </View>
       </View>
 
@@ -413,6 +494,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
+  backButton: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: "#f1f1f1",
+    marginTop: 40,
+  },
+  headerTitle: {
+    marginTop: 40,
+    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: "600",
+    color: "#000",
+    alignItems: "center",
+  },
   headerSpacer: {
     width: 36,
   },
@@ -450,6 +545,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#666",
     fontWeight: "500",
+    flex: 1,
+    textAlign: "right",
+    marginLeft: 12,
+  },
+  helperText: {
+    fontSize: 13,
+    color: "#4b5563",
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  helperTextStrong: {
+    fontWeight: "700",
+    color: "#111827",
+  },
+  readonlyInput: {
+    minHeight: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    color: "#374151",
+    marginBottom: 10,
   },
   actionButton: {
     backgroundColor: "#fff",
@@ -518,121 +637,144 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    gap: 10,
   },
   infoLabel: {
     fontSize: 13,
-    color: "#555",
+    color: "#666",
+    fontWeight: "600",
   },
   infoValue: {
     fontSize: 13,
-    fontWeight: "600",
     color: "#000",
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "right",
   },
   botaoPagar: {
+    marginTop: 14,
     backgroundColor: "#005362",
-    paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
+    paddingVertical: 12,
     alignItems: "center",
-    marginTop: 10,
   },
   botaoTexto: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
   },
-  botaoDesabilitado: {
-    opacity: 0.6,
-  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     padding: 20,
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    borderRadius: 16,
+    padding: 18,
+    maxHeight: "85%",
   },
   loadingBox: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 20,
+    paddingVertical: 24,
+    gap: 10,
   },
   loadingText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#555",
+    fontSize: 14,
+    color: "#444",
   },
   errorText: {
-    fontSize: 13,
-    color: "#b00020",
-    marginBottom: 12,
+    fontSize: 14,
+    color: "#d93025",
     textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  qrBox: {
+    alignItems: "center",
+    gap: 10,
+  },
+  qrImage: {
+    width: 220,
+    height: 220,
+  },
+  qrLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  qrCodeText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+  },
+  ticketButton: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  ticketButtonText: {
+    color: "#005362",
+    fontSize: 14,
+    fontWeight: "600",
   },
   modalActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
     gap: 10,
-    marginTop: 12,
+    marginTop: 18,
   },
   modalButtonGhost: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
     borderRadius: 10,
-    backgroundColor: "#f1f1f1",
+    paddingVertical: 12,
+    alignItems: "center",
   },
   modalButtonGhostText: {
-    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
+  },
+  modalButtonPrimary: {
+    flex: 1,
+    backgroundColor: "#005362",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  modalButtonPrimaryText: {
+    color: "#fff",
     fontWeight: "700",
-    color: "#333",
-  },
-  qrBox: {
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: "#fafafa",
-  },
-  qrImage: {
-    width: "100%",
-    height: 220,
-    marginBottom: 10,
-  },
-  qrLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#333",
-    marginBottom: 6,
-  },
-  qrCodeText: {
-    fontSize: 11,
-    color: "#444",
-  },
-  qrHint: {
-    fontSize: 11,
-    color: "#1e90ff",
-    marginTop: 8,
   },
   deleteButton: {
     marginTop: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#fff5f5",
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#f1c0c0",
+    borderColor: "#ffd6d6",
   },
   deleteButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#b00020",
+    color: "#d93025",
   },
 });
