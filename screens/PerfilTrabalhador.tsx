@@ -76,31 +76,40 @@ export default function PerfilTrabalhador() {
               .where("avaliado", "==", true)
               .get();
 
-            const avalLista = avalSnapshot.docs.map((doc) => {
-              const data = doc.data();
-              const dataAvaliacao =
-                data.avaliacaoData?.toDate?.() ||
-                (data.avaliacaoData?.seconds
-                  ? new Date(data.avaliacaoData.seconds * 1000)
-                  : null);
-              return {
-                id: doc.id,
-                nota: data.avaliacaoNota ?? 0,
-                data: dataAvaliacao ? dataAvaliacao.toLocaleDateString("pt-BR") : "Data não informada",
-                servico: data.estilo || data.tipo || "Servico",
-              };
-            });
+              console.log('interagiu com firebase'); 
 
+            const avalLista = avalSnapshot.docs.map((doc) => {
+              try {
+                const data = doc.data();
+                const dataAvaliacao =
+                  data.avaliacaoData?.toDate?.() ||
+                  (data.avaliacaoData?.seconds
+                    ? new Date(data.avaliacaoData.seconds * 1000)
+                    : null);
+                return {
+                  id: doc.id,
+                  nota: data.avaliacaoNota ?? 0,
+                  data: dataAvaliacao ? dataAvaliacao.toLocaleDateString("pt-BR") : "Data não informada",
+                  servico: data.estilo || data.tipo || "Servico",
+                };
+              } catch (error) {
+                console.error('Erro ao processar avaliação:', error);
+              }
+            });
+            if(avalLista)
+              { console.log('Avaliação puxada'); }
             const total = avalLista.reduce((acc, item) => acc + Number(item.nota || 0), 0);
             const qtd = avalLista.length;
             const media = qtd > 0 ? Number((total / qtd).toFixed(1)) : 0;
 
             setAvaliacoes(avalLista);
+            console.log('setou aval'); 
             setUsuario((prev) => ({
               ...prev,
               avaliacao: media || prev.avaliacao,
               numeroAvaliacoes: qtd,
             }));
+            console.log('setou usuario'); 
           }
         } catch (erro) {
           console.log("Erro ao carregar dados:", erro);
@@ -316,6 +325,7 @@ export default function PerfilTrabalhador() {
             Acessar configurações
           </Text>
         </TouchableOpacity>
+        
       </View>
       <View style={styles.spacer} />
     </ScrollView>

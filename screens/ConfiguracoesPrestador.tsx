@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert, Modal, Touchable } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
@@ -8,12 +8,14 @@ export default function ConfiguracoesPrestador() {
   const navigation = useNavigation();
   const [notificacoes, setNotificacoes] = useState(true);
   const [modoEscuro, setModoEscuro] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
   const [privacidade, setPrivacidade] = useState(true);
   const [mensalidade, setMensalidade] = useState({
     vencimento: null,
     status: "em_aberto",
     pagoEm: null,
   });
+  const [abrirMensalidade, setAbrirMensalidade] = useState<any>(null);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -49,8 +51,7 @@ export default function ConfiguracoesPrestador() {
     if (mensalidade.status === "paga") return;
     setSalvando(true);
     try {
-      // TODO: integrar API de pagamento aqui (ex: Mercado Pago / Stripe).
-      // Espera-se receber confirmacao de pagamento antes de marcar como paga.
+
       const usuarioAutenticado = auth.currentUser;
       if (!usuarioAutenticado) return;
       const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
@@ -110,6 +111,16 @@ export default function ConfiguracoesPrestador() {
         },
       ]
     );
+  };
+
+  const abrirModal = (prestador: any) => {
+    setAbrirMensalidade(prestador);
+    setModalVisible(true);
+  };
+
+  const fecharModal = () => {
+    setModalVisible(false);
+    setAbrirMensalidade(null);
   };
 
   return (
@@ -209,7 +220,7 @@ export default function ConfiguracoesPrestador() {
               {mensalidade.status === "paga" ? formatarData(mensalidade.pagoEm) : "-"}
             </Text>
           </View>
-
+        
           <TouchableOpacity
             style={[
               styles.botaoPagar,
@@ -218,8 +229,17 @@ export default function ConfiguracoesPrestador() {
             onPress={pagarMensalidade}
             disabled={salvando || mensalidade.status === "paga"}
           >
-            <Text style={styles.botaoTexto}>Pagar mensalidade</Text>
+          <Text style={styles.botaoTexto}>Pagar mensalidade</Text>
           </TouchableOpacity>
+          <Modal visible={modalVisible} transparent animationType="fade">
+            <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} onPress={fecharModal} activeOpacity={1}>
+             <View style={{}}>
+              <Text style={{}}>Fechar</Text>
+             </View>
+            </TouchableOpacity>
+          </Modal>
+
+            
         </View>
       </View>
 
