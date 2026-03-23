@@ -1,21 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert, Modal, Touchable } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Switch,
+  ScrollView,
+  Alert,
+  Modal,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation();
+  const MENSALIDADE_VALOR = 28.9;
+  const MERCADO_PAGO_TOKEN = "APP_USR-6909888801358132-032316-80f7def2bb6837c9a66448835be174d0-3288465614";
   const [notificacoes, setNotificacoes] = useState(true);
   const [modoEscuro, setModoEscuro] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [privacidade, setPrivacidade] = useState(true);
+  const [qrBase64, setQrBase64] = useState("");
+  const [qrCopiaCola, setQrCopiaCola] = useState("");
+  const [qrTicketUrl, setQrTicketUrl] = useState("");
+  const [carregandoPix, setCarregandoPix] = useState(false);
+  const [erroPix, setErroPix] = useState("");
   const [mensalidade, setMensalidade] = useState({
     vencimento: null,
     status: "em_aberto",
     pagoEm: null,
   });
-  const [abrirMensalidade, setAbrirMensalidade] = useState<any>(null);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -113,15 +130,89 @@ export default function ConfiguracoesPrestador() {
     );
   };
 
-  const abrirModal = (prestador: any) => {
-    setAbrirMensalidade(prestador);
+  const abrirModal = () => {
+    setQrBase64("");
+    setQrCopiaCola("");
+    setQrTicketUrl("");
+    setErroPix("");
     setModalVisible(true);
   };
 
   const fecharModal = () => {
     setModalVisible(false);
-    setAbrirMensalidade(null);
   };
+
+  const gerarIdempotencyKey = () => {
+    return `pix_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  };
+
+  const gerarQrPix = async () => {
+    const token = MERCADO_PAGO_TOKEN.trim();
+    if (!token) {
+      const mensagem = "Informe o Access Token do Mercado Pago no código.";
+      setErroPix(mensagem);
+      Alert.alert("API", mensagem);
+      return;
+    }
+    const emailPagador = auth.currentUser?.email || "";
+    if (!emailPagador) {
+      const mensagem = "Não foi possível identificar o e-mail do pagador.";
+      setErroPix(mensagem);
+      Alert.alert("E-mail", mensagem);
+      return;
+    }
+
+    setCarregandoPix(true);
+    try {
+      const payload = {
+        transaction_amount: MENSALIDADE_VALOR,
+        description: "Mensalidade",
+        payment_method_id: "pix",
+        payer: {
+          email: emailPagador,
+        },
+      };
+
+      const response = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": gerarIdempotencyKey(),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const mensagem = data?.message || data?.error || "Erro ao gerar PIX.";
+        setErroPix(mensagem);
+        Alert.alert("PIX", mensagem);
+        return;
+      }
+
+      const transaction = data?.point_of_interaction?.transaction_data;
+      setQrBase64(transaction?.qr_code_base64 || "");
+      setQrCopiaCola(transaction?.qr_code || "");
+      setQrTicketUrl(transaction?.ticket_url || "");
+      if (!transaction?.qr_code_base64) {
+        setErroPix("Não foi possível obter o QR Code.");
+      }
+    } catch (erro) {
+      console.log("Erro ao gerar Pix:", erro);
+      const mensagem = "Falha ao gerar o QR Code. Tente novamente.";
+      setErroPix(mensagem);
+      Alert.alert("PIX", mensagem);
+    } finally {
+      setCarregandoPix(false);
+    }
+  };
+
+  useEffect(() => {
+    if (modalVisible) {
+      gerarQrPix();
+    }
+  }, [modalVisible]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -224,18 +315,62 @@ export default function ConfiguracoesPrestador() {
           <TouchableOpacity
             style={[
               styles.botaoPagar,
-              (salvando || mensalidade.status === "paga") && styles.botaoDesabilitado,
+              salvando && styles.botaoDesabilitado,
             ]}
-            onPress={pagarMensalidade}
-            disabled={salvando || mensalidade.status === "paga"}
+            onPress={abrirModal}
+            disabled={salvando}
           >
-          <Text style={styles.botaoTexto}>Pagar mensalidade</Text>
+          <Text style={styles.botaoTexto}>Gerar QR Pix</Text>
           </TouchableOpacity>
           <Modal visible={modalVisible} transparent animationType="fade">
-            <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }} onPress={fecharModal} activeOpacity={1}>
-             <View style={{}}>
-              <Text style={{}}>Fechar</Text>
-             </View>
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              onPress={fecharModal}
+              activeOpacity={1}
+            >
+              <TouchableOpacity
+                style={styles.modalContent}
+                onPress={() => {}}
+                activeOpacity={1}
+              >
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {carregandoPix && (
+                    <View style={styles.loadingBox}>
+                      <ActivityIndicator />
+                      <Text style={styles.loadingText}>Gerando QR Code...</Text>
+                    </View>
+                  )}
+
+                  {!!erroPix && !carregandoPix && (
+                    <Text style={styles.errorText}>{erroPix}</Text>
+                  )}
+
+                  {!!qrBase64 && !carregandoPix && (
+                    <View style={styles.qrBox}>
+                      <Image
+                        source={{ uri: `data:image/png;base64,${qrBase64}` }}
+                        style={styles.qrImage}
+                        resizeMode="contain"
+                      />
+                      <Text style={styles.qrLabel}>PIX Copia e Cola</Text>
+                      <Text style={styles.qrCodeText} selectable>
+                        {qrCopiaCola}
+                      </Text>
+                      {!!qrTicketUrl && (
+                        <Text style={styles.qrHint} selectable>
+                          {qrTicketUrl}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity style={styles.modalButtonGhost} onPress={fecharModal}>
+                      <Text style={styles.modalButtonGhostText}>Fechar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
 
@@ -408,6 +543,83 @@ const styles = StyleSheet.create({
   },
   botaoDesabilitado: {
     opacity: 0.6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 16,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  loadingBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: "#555",
+  },
+  errorText: {
+    fontSize: 13,
+    color: "#b00020",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 12,
+  },
+  modalButtonGhost: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#f1f1f1",
+  },
+  modalButtonGhostText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#333",
+  },
+  qrBox: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#fafafa",
+  },
+  qrImage: {
+    width: "100%",
+    height: 220,
+    marginBottom: 10,
+  },
+  qrLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 6,
+  },
+  qrCodeText: {
+    fontSize: 11,
+    color: "#444",
+  },
+  qrHint: {
+    fontSize: 11,
+    color: "#1e90ff",
+    marginTop: 8,
   },
   deleteButton: {
     marginTop: 10,
