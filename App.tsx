@@ -24,6 +24,8 @@ import Configuracoes from './screens/Configuracoes';
 import ConfiguracoesPrestador from './screens/ConfiguracoesPrestador';
 import ChatList from './screens/ChatList';
 import Chat from './screens/Chat';
+import LoginAdm from './screens/LoginAdm';
+import RegisterAdm from './screens/RegisterAdm';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -59,6 +61,8 @@ export default function App() {
         <Stack.Screen name='ServicosEmAndamento'    component={ServicosEmAndamento} options={{ headerShown: false }} /> 
         <Stack.Screen name='Chat' component={Chat} options={{ headerShown: false }} />
         <Stack.Screen name='ChatList' component={ChatList} options={{ headerShown: false }} />
+        <Stack.Screen name='LoginAdm' component={LoginAdm} options={{ headerShown: false }} />
+        <Stack.Screen name='RegisterAdm' component={RegisterAdm} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     

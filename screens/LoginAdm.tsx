@@ -1,3 +1,4 @@
+//gerir os usuarios podendo exluir eles, editar e bloquear
 import { useState } from 'react';
 import { 
   Text, 
@@ -16,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  //add que diferencie o login do adm 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', senha: '' });
 
@@ -45,6 +47,7 @@ export default function Login() {
       novoErros.senha = 'Senha deve ter no mínimo 6 caracteres';
       valido = false;
     }
+    
 
     setErrors(novoErros);
     return valido;
@@ -79,7 +82,7 @@ export default function Login() {
               marginBottom: 90, 
               fontWeight: 'bold',}}
               >
-                TELA DE LOGIN
+                TELA DE LOGIN DO ADM
             </Text>
           </View>
 
@@ -89,18 +92,6 @@ export default function Login() {
                 source={require('../assets/logo8.jpg')}
                 style={{ width: 400, height: 100, marginBottom: 20, }}
                 />
-            </View>
-
-            <View style={styles.tabContainer}>
-              <TouchableOpacity style={styles.activeTab}>
-                <Text style={styles.activeTabText}>Contratante</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.inactiveTab}
-                onPress={() => navigation.replace('LoginTrabalhador')}
-              >
-                <Text style={styles.inactiveTabText}>Prestador</Text>
-              </TouchableOpacity>
             </View>
 
             <View style={styles.card}>
@@ -136,21 +127,10 @@ export default function Login() {
                 }
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={() => navigation.replace('LoginAdm')}
-                disabled={loading}
-              >
-                {loading 
-                  ? <ActivityIndicator color='#fff' /> 
-                  : <Text style={styles.buttonText}>Registrar/Logar ADM</Text>
-                }
-              </TouchableOpacity>
-
               <View style={styles.registerRow}>
                 <Text>Não tem login? </Text>
-                <TouchableOpacity onPress={() => navigation.replace('Register')}>
-                  <Text style={styles.link}>Registre-se</Text>
+                <TouchableOpacity onPress={() => navigation.replace('RegisterAdm')}>
+                  <Text style={styles.link}>Registre-se ADM</Text>
                 </TouchableOpacity>
               </View>
 
