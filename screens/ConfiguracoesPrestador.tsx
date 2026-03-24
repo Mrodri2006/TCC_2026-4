@@ -7,23 +7,23 @@ import {
   Switch,
   ScrollView,
   Alert,
-  Modal,
-  Image,
   ActivityIndicator,
 } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
+import QRCode from "react-native-qrcode-svg";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation();
   const MENSALIDADE_VALOR = 28.9;
-  const MERCADO_PAGO_TOKEN = "APP_USR-6909888801358132-032316-80f7def2bb6837c9a66448835be174d0-3288465614";
+  const PIX_CHAVE = "05475674051";
+  const PIX_NOME = "MIGUEL MACHADO";
+  const PIX_CIDADE = "BAGE";
+  const PIX_VALOR = MENSALIDADE_VALOR;
   const [notificacoes, setNotificacoes] = useState(true);
   const [modoEscuro, setModoEscuro] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const [privacidade, setPrivacidade] = useState(true);
-  const [qrBase64, setQrBase64] = useState("");
   const [qrCopiaCola, setQrCopiaCola] = useState("");
   const [qrTicketUrl, setQrTicketUrl] = useState("");
   const [carregandoPix, setCarregandoPix] = useState(false);
@@ -130,16 +130,11 @@ export default function ConfiguracoesPrestador() {
     );
   };
 
-  const abrirModal = () => {
-    setQrBase64("");
+  const iniciarGeracaoQr = () => {
     setQrCopiaCola("");
     setQrTicketUrl("");
     setErroPix("");
-    setModalVisible(true);
-  };
-
-  const fecharModal = () => {
-    setModalVisible(false);
+    gerarQrPix();
   };
 
   const gerarIdempotencyKey = () => {
@@ -147,58 +142,30 @@ export default function ConfiguracoesPrestador() {
   };
 
   const gerarQrPix = async () => {
-    const token = MERCADO_PAGO_TOKEN.trim();
-    if (!token) {
-      const mensagem = "Informe o Access Token do Mercado Pago no código.";
+    const chave = normalizarChavePix(PIX_CHAVE);
+    if (!chave || chave === "SUA_CHAVE_PIX_AQUI") {
+      const mensagem = "Informe sua chave PIX no código para gerar o QR.";
       setErroPix(mensagem);
-      Alert.alert("API", mensagem);
-      return;
-    }
-    const emailPagador = auth.currentUser?.email || "";
-    if (!emailPagador) {
-      const mensagem = "Não foi possível identificar o e-mail do pagador.";
-      setErroPix(mensagem);
-      Alert.alert("E-mail", mensagem);
+      Alert.alert("PIX", mensagem);
       return;
     }
 
     setCarregandoPix(true);
     try {
-      const payload = {
-        transaction_amount: MENSALIDADE_VALOR,
-        description: "Mensalidade",
-        payment_method_id: "pix",
-        payer: {
-          email: emailPagador,
-        },
-      };
-
-      const response = await fetch("https://api.mercadopago.com/v1/payments", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": gerarIdempotencyKey(),
-        },
-        body: JSON.stringify(payload),
+      const payload = gerarPixCopiaECola({
+        chave,
+        nome: PIX_NOME,
+        cidade: PIX_CIDADE,
+        valor: PIX_VALOR,
+        txid: "***",
       });
 
-      const data = await response.json();
-      if (!response.ok) {
-        const mensagem = data?.message || data?.error || "Erro ao gerar PIX.";
-        setErroPix(mensagem);
-        Alert.alert("PIX", mensagem);
-        return;
-      }
-
-      const transaction = data?.point_of_interaction?.transaction_data;
-      setQrBase64(transaction?.qr_code_base64 || "");
-      setQrCopiaCola(transaction?.qr_code || "");
-      setQrTicketUrl(transaction?.ticket_url || "");
-      if (!transaction?.qr_code_base64) {
+      setQrCopiaCola(payload);
+      setQrTicketUrl("");
+      if (!payload) {
         setErroPix("Não foi possível obter o QR Code.");
       }
-    } catch (erro) {
+    } catch (erro: any) {
       console.log("Erro ao gerar Pix:", erro);
       const mensagem = "Falha ao gerar o QR Code. Tente novamente.";
       setErroPix(mensagem);
@@ -208,11 +175,88 @@ export default function ConfiguracoesPrestador() {
     }
   };
 
-  useEffect(() => {
-    if (modalVisible) {
-      gerarQrPix();
+  const gerarPixCopiaECola = ({
+    chave,
+    nome,
+    cidade,
+    valor,
+    txid,
+  }: {
+    chave: string;
+    nome: string;
+    cidade: string;
+    valor?: number;
+    txid: string;
+  }) => {
+    const nomeFormatado = limparTextoPix(nome).toUpperCase().slice(0, 25);
+    const cidadeFormatada = limparTextoPix(cidade).toUpperCase().slice(0, 15);
+    const valorFormatado =
+      typeof valor === "number" && valor > 0 ? valor.toFixed(2) : "";
+
+    const merchantAccount =
+      "0014br.gov.bcb.pix" + montarTLV("01", chave);
+    const additionalData = montarTLV("05", txid || "***");
+
+    let payload =
+      montarTLV("00", "01") +
+      montarTLV("26", merchantAccount) +
+      montarTLV("52", "0000") +
+      montarTLV("53", "986") +
+      (valorFormatado ? montarTLV("54", valorFormatado) : "") +
+      montarTLV("58", "BR") +
+      montarTLV("59", nomeFormatado) +
+      montarTLV("60", cidadeFormatada) +
+      montarTLV("62", additionalData);
+
+    const crc = calcularCRC16(payload + "6304");
+    payload += "6304" + crc;
+    return payload;
+  };
+
+  const montarTLV = (id: string, valor: string) => {
+    const tamanho = valor.length.toString().padStart(2, "0");
+    return `${id}${tamanho}${valor}`;
+  };
+
+  const limparTextoPix = (texto: string) => {
+    return texto
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9 .-]/g, "")
+      .trim();
+  };
+
+  const normalizarChavePix = (chave: string) => {
+    const valor = String(chave || "").trim();
+    if (!valor) return "";
+    if (valor.includes("@")) {
+      return valor.toLowerCase();
     }
-  }, [modalVisible]);
+    if (valor.startsWith("+")) {
+      return "+" + valor.replace(/[^\d]/g, "");
+    }
+    const somenteDigitos = valor.replace(/[^\d]/g, "");
+    if (somenteDigitos.length === 11 || somenteDigitos.length === 14) {
+      return somenteDigitos;
+    }
+    return valor.replace(/\s+/g, "");
+  };
+
+  const calcularCRC16 = (payload: string) => {
+    let crc = 0xffff;
+    for (let i = 0; i < payload.length; i++) {
+      crc ^= payload.charCodeAt(i) << 8;
+      for (let j = 0; j < 8; j++) {
+        if ((crc & 0x8000) !== 0) {
+          crc = (crc << 1) ^ 0x1021;
+        } else {
+          crc = crc << 1;
+        }
+        crc &= 0xffff;
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, "0");
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -317,62 +361,39 @@ export default function ConfiguracoesPrestador() {
               styles.botaoPagar,
               salvando && styles.botaoDesabilitado,
             ]}
-            onPress={abrirModal}
+            onPress={iniciarGeracaoQr}
             disabled={salvando}
           >
           <Text style={styles.botaoTexto}>Gerar QR Pix</Text>
           </TouchableOpacity>
-          <Modal visible={modalVisible} transparent animationType="fade">
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              onPress={fecharModal}
-              activeOpacity={1}
-            >
-              <TouchableOpacity
-                style={styles.modalContent}
-                onPress={() => {}}
-                activeOpacity={1}
-              >
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {carregandoPix && (
-                    <View style={styles.loadingBox}>
-                      <ActivityIndicator />
-                      <Text style={styles.loadingText}>Gerando QR Code...</Text>
-                    </View>
-                  )}
 
-                  {!!erroPix && !carregandoPix && (
-                    <Text style={styles.errorText}>{erroPix}</Text>
-                  )}
+          {carregandoPix && (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator />
+              <Text style={styles.loadingText}>Gerando QR Code...</Text>
+            </View>
+          )}
 
-                  {!!qrBase64 && !carregandoPix && (
-                    <View style={styles.qrBox}>
-                      <Image
-                        source={{ uri: `data:image/png;base64,${qrBase64}` }}
-                        style={styles.qrImage}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.qrLabel}>PIX Copia e Cola</Text>
-                      <Text style={styles.qrCodeText} selectable>
-                        {qrCopiaCola}
-                      </Text>
-                      {!!qrTicketUrl && (
-                        <Text style={styles.qrHint} selectable>
-                          {qrTicketUrl}
-                        </Text>
-                      )}
-                    </View>
-                  )}
+          {!!erroPix && !carregandoPix && (
+            <Text style={styles.errorText}>{erroPix}</Text>
+          )}
 
-                  <View style={styles.modalActions}>
-                    <TouchableOpacity style={styles.modalButtonGhost} onPress={fecharModal}>
-                      <Text style={styles.modalButtonGhostText}>Fechar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </ScrollView>
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </Modal>
+          {!!qrCopiaCola && !carregandoPix && (
+            <View style={styles.qrBox}>
+              <View style={styles.qrImage}>
+                <QRCode value={qrCopiaCola} size={200} />
+              </View>
+              <Text style={styles.qrLabel}>PIX Copia e Cola</Text>
+              <Text style={styles.qrCodeText} selectable>
+                {qrCopiaCola}
+              </Text>
+              {!!qrTicketUrl && (
+                <Text style={styles.qrHint} selectable>
+                  {qrTicketUrl}
+                </Text>
+              )}
+            </View>
+          )}
 
             
         </View>
@@ -544,22 +565,6 @@ const styles = StyleSheet.create({
   botaoDesabilitado: {
     opacity: 0.6,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
   loadingBox: {
     alignItems: "center",
     justifyContent: "center",
@@ -575,23 +580,6 @@ const styles = StyleSheet.create({
     color: "#b00020",
     marginBottom: 12,
     textAlign: "center",
-  },
-  modalActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 12,
-  },
-  modalButtonGhost: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: "#f1f1f1",
-  },
-  modalButtonGhostText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#333",
   },
   qrBox: {
     marginTop: 16,

@@ -2,6 +2,7 @@ import firebase from "firebase/compat/app";
 import "firebase/compat/auth";
 import "firebase/compat/firestore";
 import "firebase/compat/storage";
+import "firebase/compat/functions";
 
 // COLAR AQUI A STRING DE CONEXÃO
 const firebaseConfig = {
@@ -26,4 +27,5 @@ if (firebase.apps.length == 0) {
 const auth = firebase.auth();
 const firestore = firebase.firestore();
 const storage = firebase.storage();
-export { auth, firestore, storage };
+const functions = firebase.app().functions("us-central1");
+export { auth, firestore, storage, functions };
