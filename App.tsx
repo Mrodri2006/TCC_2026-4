@@ -24,8 +24,7 @@ import Configuracoes from './screens/Configuracoes';
 import ConfiguracoesPrestador from './screens/ConfiguracoesPrestador';
 import ChatList from './screens/ChatList';
 import Chat from './screens/Chat';
-import LoginAdm from './screens/LoginAdm';
-import RegisterAdm from './screens/RegisterAdm';
+import Adm from './screens/Adm';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -39,10 +38,11 @@ export default function App() {
       <Stack.Navigator>
         <Stack.Screen name='Login'    component={Login} options={{ headerShown: false }} /> 
         <Stack.Screen name='Register' component={Register} options={{ headerShown: false }} />
-         <Stack.Screen name='Register2' component={Register2} options={{ headerShown: false }}/>
+        <Stack.Screen name='Register2' component={Register2} options={{ headerShown: false }}/>
         <Stack.Screen name='Menu'     component={Menu} options={{ headerShown: false }}/>
         <Stack.Screen name="LoginTrabalhador" component={LoginTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name="HomeTrabalhador" component={HomeTrabalhador} />
+        <Stack.Screen name="Home" component={Menu} options={{ headerShown: false }} />
         <Stack.Screen name="MenuTrabalhador" component={MenuTrabalhador} options={{ headerShown: false }} />
         <Stack.Screen name="ServicosAgendados" component={ServicosAgendados} options={{ headerShown: false }}/>
         <Stack.Screen name='PerfilTrabalhador' component={PerfilTrabalhador} options={{ headerShown: false }}/>
@@ -61,8 +61,7 @@ export default function App() {
         <Stack.Screen name='ServicosEmAndamento'    component={ServicosEmAndamento} options={{ headerShown: false }} /> 
         <Stack.Screen name='Chat' component={Chat} options={{ headerShown: false }} />
         <Stack.Screen name='ChatList' component={ChatList} options={{ headerShown: false }} />
-        <Stack.Screen name='LoginAdm' component={LoginAdm} options={{ headerShown: false }} />
-        <Stack.Screen name='RegisterAdm' component={RegisterAdm} options={{ headerShown: false }} />
+        <Stack.Screen name='Adm' component={Adm} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     

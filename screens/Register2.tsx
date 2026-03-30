@@ -16,6 +16,7 @@ import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { Usuario } from '../model/Usuario';
+import { Picker } from '@react-native-picker/picker';
 
 export default function Register2() {
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
@@ -24,6 +25,7 @@ export default function Register2() {
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosVisivel, setTermosVisivel] = useState(false);
   const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', dataNascimento: '', termos: '' });
+  const [admin, setAdmin] = useState<'nao' | 'sim'>('nao');
 
   const navigation = useNavigation<any>();
 // Função para calcular a idade com base na data de nascimento
@@ -80,11 +82,12 @@ export default function Register2() {
         email: formUsuario.email,
         fone: formUsuario.fone,
         dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
-        tipo: 'contratante',
+        tipo: admin === 'sim' ? 'admin' : 'contratante',
+        admin: admin === 'sim',
         criadoEm: new Date(),
       });
 
-      navigation.replace('Menu');
+      navigation.replace(admin === 'sim' ? 'Adm' : 'Home');
     } catch (erro: any) {
       alert(erro.message);
     } finally {
@@ -184,6 +187,19 @@ export default function Register2() {
                 onCancel={() => setDataPickerVisivel(false)}
                 maximumDate={new Date()}
               />
+
+              <Text style={styles.adminLabel}>Conta de administrador?</Text>
+
+              <View style={styles.adminContainer}>
+                <Picker
+                  selectedValue={admin}
+                  onValueChange={(valor) => setAdmin(valor)}
+                  style={styles.select}
+                >
+                  <Picker.Item label="Nao" value="nao" />
+                  <Picker.Item label="Sim" value="sim" />
+                </Picker>
+              </View>
 
               <View style={styles.termosRow}>
                 <TouchableOpacity
@@ -346,6 +362,18 @@ const styles = StyleSheet.create({
   },
   dateButtonText: { 
     color: '#555' 
+  },
+  adminLabel: {
+    marginTop: 10,
+    marginBottom: 8,
+    fontWeight: '600',
+    color: '#333',
+  },
+  adminContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginBottom: 12,
   },
   registerButton: { 
     backgroundColor: '#005362', 

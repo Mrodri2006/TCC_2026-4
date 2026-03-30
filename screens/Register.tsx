@@ -148,6 +148,7 @@ export default function Register() {
           fone: formUsuario.fone,
           dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
           tipo: 'prestador',
+          admin: false,
           profissao: profissao,
           criadoEm: new Date(),
         });

@@ -10,7 +10,7 @@ import {
   Image
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
-import { auth } from '../firebase';
+import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 
 export default function LoginTrabalhador() {
@@ -57,7 +57,15 @@ export default function LoginTrabalhador() {
     try {
       const userCredentials = await auth.signInWithEmailAndPassword(email, senha);
       console.log('Logado como: ' + userCredentials.user?.email);
-      navigation.replace('MenuTrabalhador');
+      const uid = userCredentials.user?.uid;
+      if (uid) {
+        const userDoc = await firestore.collection('Usuario').doc(uid).get();
+        const userData = userDoc.exists ? userDoc.data() : null;
+        const ehAdmin = userData?.admin === true || userData?.tipo === 'admin';
+        navigation.replace(ehAdmin ? 'Adm' : 'MenuTrabalhador');
+      } else {
+        navigation.replace('MenuTrabalhador');
+      }
     } catch (erro: any) {
       alert(erro.message);
     } finally {

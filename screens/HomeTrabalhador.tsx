@@ -60,7 +60,17 @@ export default function HomeTrabalhador() {
           snapshot.forEach((doc) => {
             const data = doc.data();
 
-            if (data.status === "não realizado" || data.status === "aguardando" || !data.status) {
+            if (data.prestadorId && data.prestadorId !== usuarioId) {
+              return;
+            }
+
+            const status = data.status;
+            const statusValido =
+              status === "aguardando" ||
+              status === "não realizado" ||
+              status === "nao realizado";
+
+            if (statusValido) {
               servicos.push({
                 id: doc.id,
                 ...data,
@@ -181,6 +191,19 @@ export default function HomeTrabalhador() {
           dataRejeicao: new Date(),
         })
         ;
+
+      await firestore
+        .collection("ServicosAgendados")
+        .doc(usuarioId)
+        .collection("ServicoStatus")
+        .doc(servico.id)
+        .set(
+          {
+            status: "rejeitado",
+            dataRejeicao: new Date(),
+          },
+          { merge: true }
+        );
 
       if (servico.clienteId) {
         await firestore

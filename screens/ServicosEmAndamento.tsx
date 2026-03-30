@@ -23,21 +23,48 @@ export default function ServicosEmAndamento() {
   );
 
   const carregarServicos = async () => {
+    setCarregando(true);
     try {
       const usuarioId = auth.currentUser?.uid;
       if (!usuarioId) return;
 
-      const docSnap = await firestore
-        .collection("ServicosAgendados")
-        .doc(usuarioId)
-        .collection("ServicoStatus")
-        .where("status", "==", "a fazer") // busca só os serviços em andamento
-        .get();
+      const userDoc = await firestore.collection("Usuario").doc(usuarioId).get();
+      const userData = userDoc.exists ? userDoc.data() : null;
+      const ehAdmin = userData?.admin === true || userData?.tipo === "admin";
 
-      const lista = docSnap.docs.map((doc) => ({
-        ...doc.data(),
-        firestoreId: doc.id,
-      }));
+      let lista: any[] = [];
+
+      if (ehAdmin) {
+        const docSnap = await firestore
+          .collectionGroup("ServicoStatus")
+          .where("status", "==", "a fazer")
+          .get();
+
+        const mapa = new Map<string, any>();
+        docSnap.docs.forEach((doc) => {
+          const data = doc.data() as any;
+          const key = `${data?.prestadorId || "p"}_${data?.id || doc.id}`;
+          if (!mapa.has(key)) {
+            mapa.set(key, {
+              ...data,
+              firestoreId: doc.id,
+            });
+          }
+        });
+        lista = Array.from(mapa.values());
+      } else {
+        const docSnap = await firestore
+          .collection("ServicosAgendados")
+          .doc(usuarioId)
+          .collection("ServicoStatus")
+          .where("status", "==", "a fazer") // busca só os serviços em andamento
+          .get();
+
+        lista = docSnap.docs.map((doc) => ({
+          ...doc.data(),
+          firestoreId: doc.id,
+        }));
+      }
 
       setServicos(lista);
     } catch (erro) {
