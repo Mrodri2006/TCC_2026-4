@@ -9,10 +9,10 @@ import {
   TextInput,
   Image,
 } from "react-native";
-import { MapPin, Clock, Plus, User, CheckCircle, X, Camera } from "lucide-react-native";
+import { Camera } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
-import { auth, firestore } from "../firebase";
+import { firestore, storage } from "../firebase";
 import * as ImagePicker from 'expo-image-picker';
 
 export default function AddServico() {
@@ -47,6 +47,20 @@ export default function AddServico() {
     }
   };
 
+  const uploadImagem = async (uri: string, prestId: string) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const timestamp = Date.now();
+    const caminho = `servicos/${prestId}/${timestamp}.jpg`;
+    const ref = storage.ref().child(caminho);
+    await ref.put(blob);
+    const url = await ref.getDownloadURL();
+    if ((blob as any)?.close) {
+      (blob as any).close();
+    }
+    return url;
+  };
+
   const salvarServico = async () => {
     if (!estilo || !valor || !PrestId) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
@@ -55,6 +69,11 @@ export default function AddServico() {
 
     setLoading(true);
     try {
+      let imagemUrl: string | null = null;
+      if (imagem) {
+        imagemUrl = await uploadImagem(imagem, PrestId);
+      }
+
       await firestore
         .collection('ServicosAdds')
         .doc(PrestId)
@@ -62,7 +81,8 @@ export default function AddServico() {
         .add({
           estilo,
           valor: parseFloat(valor),
-          imagem,
+          imagem: imagemUrl,
+          imagemUrl,
           status: "Oferecido",
           dataCriacao: new Date(),
         });
