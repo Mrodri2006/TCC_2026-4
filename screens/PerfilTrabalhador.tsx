@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, LogOut, Calendar, Briefcase } from "lucide-react-native";
+import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, LogOut, Camera, Briefcase } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore } from "../firebase";
@@ -56,6 +56,13 @@ export default function PerfilTrabalhador() {
 
             const lista = snapshot.docs.map(doc => {
               const data = doc.data();
+              const imagemServico =
+                data.imagem ||
+                data.imagemUrl ||
+                data.urlImagem ||
+                data.foto ||
+                data.photoUrl ||
+                data.photo;
               console.log('Documento:', doc.id, data); 
               return {
                 id: doc.id,
@@ -63,7 +70,7 @@ export default function PerfilTrabalhador() {
                 data: data.dataCriacao ? new Date(data.dataCriacao.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não informada',
                 status: data.status || 'Finalizado',
                 valor: data.valor,
-                imagem: data.imagem,
+                imagem: imagemServico,
               };
             });
             console.log('Lista de serviços:', lista); 
@@ -259,7 +266,10 @@ export default function PerfilTrabalhador() {
                 {item.imagem ? (
                   <Image source={{ uri: item.imagem }} style={styles.historicoImagem} />
                 ) : (
-                  <Calendar size={18} color="#1e90ff" />
+                  <View style={styles.historicoImagemPlaceholder}>
+                    <Camera size={16} color="#1e90ff" />
+                    <Text style={styles.historicoImagemTexto}>Sem foto</Text>
+                  </View>
                 )}
                 <View style={styles.historicoContent}>
                   <Text style={styles.historicoServico}>{item.servico}</Text>

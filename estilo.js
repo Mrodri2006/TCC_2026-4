@@ -687,6 +687,20 @@ export default StyleSheet.create({
     height: 40,
     borderRadius: 8,
   },
+  historicoImagemPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "#EAF4FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historicoImagemTexto: {
+    fontSize: 8,
+    color: "#1e90ff",
+    marginTop: 2,
+    fontWeight: "600",
+  },
 
   historicoServico: {
     fontSize: 14,
