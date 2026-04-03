@@ -9,21 +9,57 @@ export default function Avaliacao() {
   const servico = route.params?.servico;
 
   const [notaTexto, setNotaTexto] = useState("");
+  const [comentario, setComentario] = useState("");
+  const [comentarioError, setComentarioError] = useState("");
+
+  // importar uma biblioteca 
+  // https://github.com/wbotelhos/blacklist/blob/master/blacklist-server/.project
+  const palavrasProibidas = [ 
+    "idiota", 
+    "lixo",
+    "burro",
+    "burra",
+    "incompetente",
+    "vergonha",
+    "horrível",
+    "nojento",
+    "nojenta",
+    "desgraçado",
+    "desgraçada",
+    "imbecil",
+  ];
+
+  // 🔍 Função para verificar conteúdo
+  const contemPalavraProibida = (texto: string) => {
+    return palavrasProibidas.some(p =>
+      texto.toLowerCase().includes(p)
+    );
+  };
 
   const salvarAvaliacao = async () => {
     const nota = Number(notaTexto);
+
     if (!servico?.prestadorId || !servico?.clienteId) {
       Alert.alert("Erro", "Informacoes do servico incompletas");
       return;
     }
+
     if (!Number.isFinite(nota) || nota < 1 || nota > 5) {
       Alert.alert("Erro", "Informe uma nota entre 1 e 5");
       return;
     }
 
+    // 🚫 VALIDAÇÃO DO COMENTÁRIO
+    if (comentarioError) {
+      Alert.alert("Comentário inválido", comentarioError);
+      return;
+    }
+
+// atualiza as informações do banco de dados incluindo a aval
     try {
       const payload = {
         avaliacaoNota: nota,
+        avaliacaoComentario: comentario,
         avaliacaoData: new Date(),
         avaliacaoLiberada: false,
         avaliado: true,
@@ -74,6 +110,27 @@ export default function Avaliacao() {
           onChangeText={setNotaTexto}
           keyboardType="numeric"
         />
+      </View>
+
+      {/* 💬 NOVO CAMPO DE COMENTÁRIO */}
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Comentário (opcional)</Text>
+        <TextInput
+          style={[styles.input, { height: 80 }]}
+          placeholder="Digite seu comentário..."
+          placeholderTextColor="#999"
+          value={comentario}
+          onChangeText={(text) => {
+            setComentario(text);
+            if (text.trim().length > 0 && contemPalavraProibida(text)) {
+              setComentarioError("Seu comentário contém palavras proibidas");
+            } else {
+              setComentarioError("");
+            }
+          }}
+          multiline
+        />
+        {comentarioError ? <Text style={styles.errorText}>{comentarioError}</Text> : null}
       </View>
 
       <TouchableOpacity style={styles.salvarButton} onPress={salvarAvaliacao}>
@@ -132,6 +189,11 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     color: "#333",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: 4,
   },
   salvarButton: {
     backgroundColor: "#005362",

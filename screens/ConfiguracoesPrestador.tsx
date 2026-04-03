@@ -129,18 +129,21 @@ export default function ConfiguracoesPrestador() {
       ]
     );
   };
-
+// Inicia o processo de geração do QR Pix, limpando estados anteriores e chamando a função de geração
+// para evitar que dados antigos interfiram na nova geração do QR Code.
   const iniciarGeracaoQr = () => {
     setQrCopiaCola("");
     setQrTicketUrl("");
     setErroPix("");
     gerarQrPix();
   };
-
+// Gera uma chave de idempotência única para cada transação, garantindo que 
+// múltiplas tentativas de pagamento não resultem em cobranças duplicadas.
   const gerarIdempotencyKey = () => {
     return `pix_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   };
-
+// Função principal para gerar o QR Code Pix, 
+// incluindo validação da chave, construção do payload e tratamento de erros.
   const gerarQrPix = async () => {
     const chave = normalizarChavePix(PIX_CHAVE);
     if (!chave || chave === "SUA_CHAVE_PIX_AQUI") {
@@ -149,7 +152,8 @@ export default function ConfiguracoesPrestador() {
       Alert.alert("PIX", mensagem);
       return;
     }
-
+// Gerar uma chave de idempotência para evitar cobranças duplicadas
+// A chave de idempotência é uma string única que identifica a transação de pagamento.
     setCarregandoPix(true);
     try {
       const payload = gerarPixCopiaECola({
@@ -159,7 +163,7 @@ export default function ConfiguracoesPrestador() {
         valor: PIX_VALOR,
         txid: "***",
       });
-
+// Atualiza o estado com o payload do QR Code e limpa qualquer URL de ticket anterior
       setQrCopiaCola(payload);
       setQrTicketUrl("");
       if (!payload) {
@@ -174,7 +178,8 @@ export default function ConfiguracoesPrestador() {
       setCarregandoPix(false);
     }
   };
-
+// Função para gerar o payload do QR Code Pix no formato "Copia e Cola",
+// seguindo as especificações do Banco Central para garantir compatibilidade com leitores de QR Code.
   const gerarPixCopiaECola = ({
     chave,
     nome,
@@ -192,11 +197,15 @@ export default function ConfiguracoesPrestador() {
     const cidadeFormatada = limparTextoPix(cidade).toUpperCase().slice(0, 15);
     const valorFormatado =
       typeof valor === "number" && valor > 0 ? valor.toFixed(2) : "";
-
+// O payload do Pix é construído utilizando o formato TLV (Tag-Length-Value), 
+// onde cada campo é representado por uma tag (ID), seguida pelo comprimento do valor e pelo próprio valor.
     const merchantAccount =
       "0014br.gov.bcb.pix" + montarTLV("01", chave);
     const additionalData = montarTLV("05", txid || "***");
-
+// 54 é a tag para o valor da transação, 
+// 58 para o país, 
+// 59 para o nome do recebedor, 
+// 60 para a cidade e 62 para dados adicionais como o txid.
     let payload =
       montarTLV("00", "01") +
       montarTLV("26", merchantAccount) +
@@ -207,12 +216,12 @@ export default function ConfiguracoesPrestador() {
       montarTLV("59", nomeFormatado) +
       montarTLV("60", cidadeFormatada) +
       montarTLV("62", additionalData);
-
     const crc = calcularCRC16(payload + "6304");
     payload += "6304" + crc;
     return payload;
   };
-
+// Função auxiliar para montar o formato TLV (Tag-Length-Value) utilizado no payload do Pix,
+// onde "id" é a tag, "valor" é o conteúdo e o comprimento é calculado automaticamente.
   const montarTLV = (id: string, valor: string) => {
     const tamanho = valor.length.toString().padStart(2, "0");
     return `${id}${tamanho}${valor}`;
@@ -225,7 +234,8 @@ export default function ConfiguracoesPrestador() {
       .replace(/[^a-zA-Z0-9 .-]/g, "")
       .trim();
   };
-
+// Função para normalizar a chave Pix, garantindo que ela esteja 
+// no formato correto para geração do QR Code,
   const normalizarChavePix = (chave: string) => {
     const valor = String(chave || "").trim();
     if (!valor) return "";
