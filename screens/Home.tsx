@@ -12,6 +12,8 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const navigation = useNavigation() as any;
   const { theme } = useTheme();
   const [searchText, setSearchText] = useState("");
+  const [searchPrestadores, setSearchPrestadores] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState("inicio");
   const [profissionaisRecomendados, setProfissionaisRecomendados] = useState([]);
   const [servicosPopulares, setServicosPopulares] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -50,23 +52,20 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
       for (const userDoc of users.docs) {
         const userData = userDoc.data();
-// faz a contagem dos serviços oferecidos por cada profissão
+        
+        // faz a contagem dos serviços oferecidos por cada profissão
         if (userData.tipo === "prestador" && userData.profissao) {
           const count = (servicosUnicos.get(userData.profissao) || 0) + 1;
           servicosUnicos.set(userData.profissao, count);
-        }
-
-        const servicos = await userDoc.ref.collection("Serv").get();
-        
-        if (servicos.docs.length > 0) {
-          const primeiro = servicos.docs[0].data();
+          
+          // Adiciona todos os prestadores independente se tem serviços ou não
           const profissional = {
             id: userDoc.id,
             nome: userData.nome || "Sem nome",
             avaliacao: userData.avaliacao || 4.5,
             distancia: userData.distancia || "A calcular",
-            tipo: primeiro.tipo || "Geral",
-            profissao: userData.profissao || primeiro.tipo || "Geral",
+            tipo: userData.profissao || "Geral",
+            profissao: userData.profissao || "Geral",
           };
           profissionais.push(profissional);
         }
@@ -81,6 +80,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
           quantidade: item[1],
         }));
 
+      console.log("Profissionais carregados:", profissionais.length);
       setProfissionaisRecomendados(profissionais);
       setServicosPopulares(servicosArray);
       setCarregando(false);
@@ -96,6 +96,10 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
   const profissionaisFiltrados = profissionaisRecomendados.filter((pro) =>
     pro.nome.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const prestadoresBuscados = profissionaisRecomendados.filter((pro) =>
+    pro.nome.toLowerCase().includes(searchPrestadores.toLowerCase())
   );
 
   const contarProfissionaisPorServico = (nomeServico: any) => {
@@ -331,112 +335,177 @@ export default function TelaInicialCliente({ onLogout }: any) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <Text style={styles.titulo}>Olá!</Text>
+    <View style={[styles.containerFull, { backgroundColor: theme.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+        {abaAtiva === "inicio" ? (
+          <>
+            <View style={styles.header}>
+              <Text style={styles.titulo}>Olá!</Text>
+              <View style={styles.headerButtons}>
+                <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Perfil")}>
+                  <User size={24} />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Perfil")}>
-            <User size={24} />
-          </TouchableOpacity>
-        </View>
-      </View>
+            <View style={styles.searchBox}>
+              <Search size={20} color="#666" />
+              <TextInput
+                placeholder="Buscar serviços..."
+                placeholderTextColor="#777"
+                style={styles.searchInput}
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              {searchText.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchText("")}
+                >
+                  <X size={20} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
 
-      <View style={styles.searchBox}>
-        <Search size={20} color="#666" />
-        <TextInput
-          placeholder="Buscar serviços..."
-          placeholderTextColor="#777"
-          style={styles.searchInput}
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText("")}
-          >
-            <X size={20} color="#666" />
-          </TouchableOpacity>
-        )}
-      </View>
+            <Text style={styles.sectionTitle}>Serviços Populares</Text>
 
-      <Text style={styles.sectionTitle}>Serviços Populares</Text>
-
-      <TouchableOpacity style={styles.solicitarAreaButton} onPress={abrirModalArea}>
-        <Text style={styles.solicitarAreaTitle}>Solicitar servico por area</Text>
-        <Text style={styles.solicitarAreaSub}>Envie o pedido para prestadores da area escolhida</Text>
-      </TouchableOpacity>
-
-      {carregando ? (
-        <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#005362" />
-          <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
-        </View>
-      ) : servicosFiltrados.length > 0 ? (
-        <View style={styles.grid}>
-          {servicosFiltrados.map((serv) => {
-            const quantidadeProf = contarProfissionaisPorServico(serv.nome);
-            return (
-              <TouchableOpacity key={serv.id} style={styles.card} onPress={() => handleServicoPress(serv)}>
-                <View style={styles.iconCenter}>{serv.icon}</View>
-                <Text style={styles.cardText}>{serv.nome}</Text>
-                <View style={styles.badgeContainer}>
-                  <Text style={styles.badgeTexto}>{quantidadeProf} profissional{quantidadeProf !== 1 ? "s" : ""}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      ) : (
-        <Text style={styles.nenhumResultado}>Nenhum serviço encontrado</Text>
-      )}
-
-      <View>
-        <Text style={styles.sectionTitle}>Serviços em andamento</Text>
-      </View>
-
-      {carregandoAceitos ? (
-        <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="small" color="#005362" />
-          <Text style={styles.carregandoTexto}>Carregando serviços aceitos...</Text>
-        </View>
-      ) : servicosAceitos.length > 0 ? (
-        <View style={styles.servicosAceitosList}>
-          {servicosAceitos.map((serv) => (
-            <TouchableOpacity
-              key={`${serv.id}-${serv.prestadorId}`}
-              style={styles.servicoAceitoCard}
-              onPress={() => abrirModal(serv)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.servicoAceitoTitulo}>
-                {serv.estilo || serv.tipo || "Serviço"}
-              </Text>
-              <Text style={styles.servicoAceitoInfo}>
-                {serv.data || "Data não informada"} • {serv.local || "Local não informado"}
-              </Text>
-              <Text style={styles.servicoAceitoAcoes}>Toque para gerenciar</Text>
+            <TouchableOpacity style={styles.solicitarAreaButton} onPress={abrirModalArea}>
+              <Text style={styles.solicitarAreaTitle}>Solicitar servico por area</Text>
+              <Text style={styles.solicitarAreaSub}>Envie o pedido para prestadores da area escolhida</Text>
             </TouchableOpacity>
-          ))}
-        </View>
-      ) : (
-        <Text style={styles.nenhumResultado}>Nenhum serviço aceito no momento</Text>
-      )}
 
-      {!carregando && (
-        <TouchableOpacity
-          style={styles.sectionButtonContainer}
-          onPress={() => navigation.navigate("NovosPrestadores")}
-          activeOpacity={0.7}
-        >
-          <View style={styles.sectionButtonContent}>
-            <Text style={styles.sectionButtonTitle}>Novos Prestadores</Text>
-            <Text style={styles.sectionButtonSubtitle}>
-              Confira trabalhadores recém cadastrados
-            </Text>
-          </View>
-          <Text style={styles.sectionButtonArrow}>→</Text>
-        </TouchableOpacity>
-      )}
+            {carregando ? (
+              <View style={styles.carregandoContainer}>
+                <ActivityIndicator size="large" color="#005362" />
+                <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
+              </View>
+            ) : servicosFiltrados.length > 0 ? (
+              <View style={styles.grid}>
+                {servicosFiltrados.map((serv) => {
+                  const quantidadeProf = contarProfissionaisPorServico(serv.nome);
+                  return (
+                    <TouchableOpacity key={serv.id} style={styles.card} onPress={() => handleServicoPress(serv)}>
+                      <View style={styles.iconCenter}>{serv.icon}</View>
+                      <Text style={styles.cardText}>{serv.nome}</Text>
+                      <View style={styles.badgeContainer}>
+                        <Text style={styles.badgeTexto}>{quantidadeProf} profissional{quantidadeProf !== 1 ? "s" : ""}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text style={styles.nenhumResultado}>Nenhum serviço encontrado</Text>
+            )}
+
+            <View>
+              <Text style={styles.sectionTitle}>Serviços em andamento</Text>
+            </View>
+
+            {carregandoAceitos ? (
+              <View style={styles.carregandoContainer}>
+                <ActivityIndicator size="small" color="#005362" />
+                <Text style={styles.carregandoTexto}>Carregando serviços aceitos...</Text>
+              </View>
+            ) : servicosAceitos.length > 0 ? (
+              <View style={styles.servicosAceitosList}>
+                {servicosAceitos.map((serv) => (
+                  <TouchableOpacity
+                    key={`${serv.id}-${serv.prestadorId}`}
+                    style={styles.servicoAceitoCard}
+                    onPress={() => abrirModal(serv)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.servicoAceitoTitulo}>
+                      {serv.estilo || serv.tipo || "Serviço"}
+                    </Text>
+                    <Text style={styles.servicoAceitoInfo}>
+                      {serv.data || "Data não informada"} • {serv.local || "Local não informado"}
+                    </Text>
+                    <Text style={styles.servicoAceitoAcoes}>Toque para gerenciar</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.nenhumResultado}>Nenhum serviço aceito no momento</Text>
+            )}
+
+            {!carregando && (
+              <TouchableOpacity
+                style={styles.sectionButtonContainer}
+                onPress={() => navigation.navigate("NovosPrestadores")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sectionButtonContent}>
+                  <Text style={styles.sectionButtonTitle}>Novos Prestadores</Text>
+                  <Text style={styles.sectionButtonSubtitle}>
+                    Confira trabalhadores recém cadastrados
+                  </Text>
+                </View>
+                <Text style={styles.sectionButtonArrow}>→</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={{ height: 20 }} />
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Buscar Prestadores</Text>
+            <View style={styles.searchBoxPrestadores}>
+              <Search size={20} color="#666" />
+              <TextInput
+                placeholder="Buscar por nome..."
+                placeholderTextColor="#777"
+                style={styles.searchInput}
+                value={searchPrestadores}
+                onChangeText={setSearchPrestadores}
+              />
+              {searchPrestadores.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchPrestadores("")}>
+                  <X size={20} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {searchPrestadores.length > 0 ? (
+              prestadoresBuscados.length > 0 ? (
+                <View style={styles.prestadoresListContainer}>
+                  {prestadoresBuscados.map((prestador) => (
+                    <TouchableOpacity
+                      key={prestador.id}
+                      style={styles.prestadorCard}
+                      onPress={() => handleProfissionalPress(prestador)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.prestadorAvatar}>
+                        <Text style={styles.prestadorAvatarText}>
+                          {prestador.nome
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </Text>
+                      </View>
+                      <View style={styles.prestadorInfo}>
+                        <Text style={styles.prestadorNome}>{prestador.nome}</Text>
+                        <Text style={styles.prestadorProfissao}>{prestador.profissao}</Text>
+                        <View style={styles.prestadorRating}>
+                          <Text style={styles.prestadorEstrela}>⭐ {prestador.avaliacao}</Text>
+                          <Text style={styles.prestadorDistancia}>📍 {prestador.distancia}</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.nenhumResultado}>Nenhum prestador encontrado com esse nome</Text>
+              )
+            ) : (
+              <Text style={styles.nenhumResultado}>Digite um nome para buscar prestadores</Text>
+            )}
+
+            <View style={{ height: 20 }} />
+          </>
+        )}
 
       <Modal visible={modalVisivel} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -562,11 +631,34 @@ export default function TelaInicialCliente({ onLogout }: any) {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+
+      <View style={styles.bottomTabsContainer}>
+        <TouchableOpacity
+          style={[styles.bottomTab, abaAtiva === "inicio" && styles.bottomTabActive]}
+          onPress={() => setAbaAtiva("inicio")}
+        >
+          <Text style={[styles.bottomTabIcon, abaAtiva === "inicio" && styles.bottomTabIconActive]}>🏠</Text>
+          <Text style={[styles.bottomTabLabel, abaAtiva === "inicio" && styles.bottomTabLabelActive]}>Início</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.bottomTab, abaAtiva === "busca" && styles.bottomTabActive]}
+          onPress={() => setAbaAtiva("busca")}
+        >
+          <Text style={[styles.bottomTabIcon, abaAtiva === "busca" && styles.bottomTabIconActive]}>🔍</Text>
+          <Text style={[styles.bottomTabLabel, abaAtiva === "busca" && styles.bottomTabLabelActive]}>Buscar</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  containerFull: {
+    flex: 1,
+  },
+
   container: {
     flex: 1,
     padding: 16,
@@ -956,4 +1048,128 @@ const styles = StyleSheet.create({
   botaoDesabilitado: {
     opacity: 0.6,
   },
+
+  searchBoxPrestadores: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eee",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+
+  prestadoresListContainer: {
+    marginBottom: 24,
+  },
+
+  prestadorCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#005362",
+  },
+
+  prestadorAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#005362",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  prestadorAvatarText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  prestadorInfo: {
+    flex: 1,
+  },
+
+  prestadorNome: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 2,
+  },
+
+  prestadorProfissao: {
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 6,
+  },
+
+  prestadorRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  prestadorEstrela: {
+    fontSize: 12,
+    color: "#FFD700",
+    fontWeight: "600",
+  },
+
+  prestadorDistancia: {
+    fontSize: 12,
+    color: "#666",
+  },
+
+  bottomTabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    paddingBottom: 36,
+  },
+
+  bottomTab: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+  },
+
+  bottomTabActive: {
+    borderTopWidth: 3,
+    borderTopColor: "#005362",
+    backgroundColor: "#f5f5f5",
+  },
+
+  bottomTabIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+
+  bottomTabIconActive: {
+    fontSize: 26,
+  },
+
+  bottomTabLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#666",
+  },
+
+  bottomTabLabelActive: {
+    color: "#005362",
+    fontWeight: "700",
+    fontSize: 12,
+  },
 });
+

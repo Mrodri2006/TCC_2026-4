@@ -1,8 +1,8 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, LogOut, Camera, Briefcase } from "lucide-react-native";
+import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
-import { auth, firestore } from "../firebase";
+import { auth, firestore, storage } from "../firebase";
 import styles from "../estilo";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../theme/ThemeContext";
@@ -47,6 +47,7 @@ export default function PerfilTrabalhador() {
                 email: usuarioAutenticado.email || "",
                 telefone: dados.fone || "",
                 profissao: dados.profissao || "",
+                fotoPerfil: dados.fotoPerfil || dados.foto || "",
               }));
             }
 
@@ -69,6 +70,7 @@ export default function PerfilTrabalhador() {
               return {
                 id: doc.id,
                 servico: data.estilo,
+                estilo: data.estilo,
                 data: data.dataCriacao ? new Date(data.dataCriacao.seconds * 1000).toLocaleDateString('pt-BR') : 'Data não informada',
                 status: data.status || 'Finalizado',
                 valor: data.valor,
@@ -181,70 +183,184 @@ export default function PerfilTrabalhador() {
     );
   };
 
+  const selecionarFotoPerfil = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Precisamos de acesso à galeria para adicionar uma foto.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+
+      if (result.canceled) return;
+
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Erro", "Usuário não autenticado.");
+        return;
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("Usuário não autenticado.");
+      }
+
+      const caminho = `${userId}/avatar.jpg`;
+      console.log("Iniciando upload para:", caminho);
+      console.log("UID do usuário:", userId);
+
+      try {
+        // Converter arquivo para blob
+        console.log("Buscando arquivo do URI:", uri);
+        const response = await fetch(uri);
+        if (!response.ok) {
+          throw new Error(`Falha ao buscar imagem: ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        console.log("Blob criado, tamanho:", blob.size);
+
+        // Usar Firebase Storage para upload
+        console.log("Referenciando armazenamento...");
+        const ref = storage.ref(caminho);
+        
+        console.log("Iniciando upload...");
+        const metadata = { contentType: "image/jpeg" };
+        const uploadTaskSnapshot = await ref.put(blob, metadata);
+        
+        console.log("Upload concluído! Bytes transferidos:", uploadTaskSnapshot.bytesTransferred);
+
+        // Obter URL de download
+        console.log("Obtendo URL de download...");
+        const url = await ref.getDownloadURL();
+        console.log("URL de download:", url);
+
+        // Salvar URL no Firestore
+        console.log("Salvando URL no Firestore...");
+        await firestore.collection("Usuario").doc(userId).set(
+          {
+            fotoPerfil: url,
+          },
+          { merge: true }
+        );
+
+        setUsuario((prev) => ({ ...prev, fotoPerfil: url }));
+        Alert.alert("Sucesso", "Foto de perfil atualizada com sucesso!");
+      } catch (uploadError) {
+        const err: any = uploadError;
+        console.error("Erro detalhado no upload:", {
+          message: err?.message,
+          code: err?.code,
+          name: err?.name,
+          toString: err?.toString?.(),
+        });
+        
+        // Verificar se é erro de permissão
+        if (err?.code === "storage/unauthorized" || err?.code === "storage/unauthenticated") {
+          throw new Error("Você não tem permissão para atualizar a foto. Verifique suas credenciais.");
+        }
+        throw err;
+      }
+    } catch (error) {
+      const err: any = error;
+      console.error("Erro ao atualizar foto de perfil:", err);
+      console.error("Detalhes completos:", JSON.stringify(err, null, 2));
+      Alert.alert("Erro", "Não foi possível atualizar a foto de perfil. Tente novamente.");
+    }
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#fff" style={{marginTop: 40}} />
+          <ArrowLeft size={24} color="#000" style={{ marginBottom: 4, marginTop: 40 }} />
         </TouchableOpacity>
-
-        <Text style={{ 
-          marginTop: 40, 
-          marginBottom: 4, 
-          fontSize: 28, 
-          fontWeight: "600", 
-          color: "#000", 
-          marginRight: 130 
-          }}>
+        <Text
+          style={{
+            marginTop: 40,
+            marginBottom: 4,
+            fontSize: 28,
+            fontWeight: "600",
+            color: "#000",
+            alignItems: "center",
+            marginRight: 130,
+          }}
+        >
           Meu Perfil
         </Text>
       </View>
 
       <View style={styles.perfilSection}>
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar} />
+          <View style={styles.avatar}>
+            {usuario.fotoPerfil ? (
+              <Image source={{ uri: usuario.fotoPerfil }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {usuario.nome
+                  ? usuario.nome
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)
+                  : "U"}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity style={styles.avatarEditButton} onPress={selecionarFotoPerfil}>
+            <Camera size={16} color="#fff" />
+          </TouchableOpacity>
         </View>
-        <Text style={styles.nome}>{usuario.nome}</Text>
-        <Text style={styles.email}>{usuario.email}</Text>
+
+        <Text style={styles.nome}>{usuario.nome || "Carregando..."}</Text>
+
+        <View style={styles.infoRow}>
+          <MapPin size={16} color="#666" />
+          <Text style={styles.infoText}>{usuario.localizacao}</Text>
+        </View>
       </View>
 
       <View style={styles.avaliacaoCard}>
         <View style={styles.avaliacaoContent}>
           <Star size={20} color="#FFD700" fill="#FFD700" />
           <Text style={styles.avaliacaoTexto}>{usuario.avaliacao}</Text>
-          <Text style={styles.avaliacaoSubtexto}>({usuario.numeroAvaliacoes} avaliações)</Text>
+          <Text style={styles.avaliacaoSubtexto}>
+            ({usuario.numeroAvaliacoes} avaliações)
+          </Text>
         </View>
       </View>
 
       <View style={styles.contatoSection}>
         <Text style={styles.sectionTitle}>Informações de Contato</Text>
 
-        <View style={styles.infoItem}>
-          <Phone size={18} color="#1e90ff" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Telefone</Text>
-            <Text style={styles.infoText}>{usuario.telefone || "Não informado"}</Text>
+        <View style={styles.contatoItem}>
+          <Phone size={18} color="#005362" />
+          <View style={styles.contatoContent}>
+            <Text style={styles.contatoLabel}>Telefone</Text>
+            <Text style={styles.contatoValue}>{usuario.telefone || "N?o informado"}</Text>
           </View>
         </View>
 
-        <View style={styles.infoItem}>
-          <Mail size={18} color="#1e90ff" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoText}>{usuario.email}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoItem}>
-          <MapPin size={18} color="#1e90ff" />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Localização</Text>
-            <Text style={styles.infoText}>{usuario.localizacao}</Text>
+        <View style={styles.contatoItem}>
+          <Mail size={18} color="#005362" />
+          <View style={styles.contatoContent}>
+            <Text style={styles.contatoLabel}>Email</Text>
+            <Text style={styles.contatoValue}>{usuario.email || "Carregando..."}</Text>
           </View>
         </View>
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.historicoSection}>
         <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
         {usuario.profissao ? (
           <View style={styles.servicosContainer}>
@@ -258,60 +374,58 @@ export default function PerfilTrabalhador() {
         )}
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.historicoSection}>
         <Text style={styles.sectionTitle}>Serviços Adicionados</Text>
 
         {historico.length > 0 ? (
           historico.map((item) => (
-            <View key={item.id} style={styles.historicoItem}>
-              <View style={styles.historicoLeft}>
-                {item.imagem ? (
-                  <Image source={{ uri: item.imagem }} style={styles.historicoImagem} />
-                ) : (
-                  <View style={styles.historicoImagemPlaceholder}>
-                    <Camera size={16} color="#1e90ff" />
-                    <Text style={styles.historicoImagemTexto}>Sem foto</Text>
-                  </View>
-                )}
-                <View style={styles.historicoContent}>
-                  <Text style={styles.historicoServico}>{item.servico}</Text>
-                  <Text style={styles.historicoData}>{item.data}</Text>
-
-                  <Text
-                    style={[
-                      styles.historicoStatus,
-                      item.status === "Concluído" && styles.statusConcluido,
-                    ]}
-                  >
-                    {item.status}
-                  </Text>
-
-                  <Text style={styles.historicoValor}>
-                    R$ {item.valor}
-                  </Text>
+            <View key={item.id} style={styles.historicoCard}>
+              <View style={styles.historicoContent}>
+                <Text style={styles.historicoServico}>{item.servico}</Text>
+                <Text style={styles.historicoData}>{item.data}</Text>
+              </View>
+              <View style={styles.historicoRight}>
+                <Text style={styles.historicoValor}>R$ {item.valor}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: "#d4edda" }]}>
+                  <Text style={styles.statusText}>{item.status}</Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.editButtonMini}
+                  onPress={() =>
+                    (navigation as any).navigate("AddServico", {
+                      PrestId: auth.currentUser?.uid,
+                      servicoId: item.id,
+                      servico: {
+                        estilo: item.estilo,
+                        valor: item.valor,
+                        imagem: item.imagem,
+                      },
+                    })
+                  }
+                >
+                  <Edit2 size={16} color="#005362" />
+                </TouchableOpacity>
               </View>
             </View>
           ))
         ) : (
-          <Text style={styles.nenhumTexto}>Nenhum serviço encontrado</Text>
+          <Text style={styles.nenhumTexto}>Nenhum servi?o encontrado</Text>
         )}
       </View>
 
-      <View style={styles.section}>
+      <View style={styles.historicoSection}>
         <Text style={styles.sectionTitle}>Avaliações Recebidas</Text>
 
         {avaliacoes.length > 0 ? (
           avaliacoes.map((item) => (
-            <View key={item.id} style={styles.historicoItem}>
-              <View style={styles.historicoLeft}>
-                <Star size={16} color="#FFD700" fill="#FFD700" />
-                <View style={styles.historicoContent}>
-                  <Text style={styles.historicoServico}>{item.servico}</Text>
-                  <Text style={styles.historicoData}>{item.data}</Text>
-                </View>
+            <View key={item.id} style={styles.historicoCard}>
+              <View style={styles.historicoContent}>
+                <Text style={styles.historicoServico}>{item.servico}</Text>
+                <Text style={styles.historicoData}>{item.data}</Text>
               </View>
-              <Text style={styles.historicoValor}>{item.nota}</Text>
+              <View style={styles.historicoRight}>
+                <Text style={styles.historicoValor}>{item.nota}</Text>
+              </View>
             </View>
           ))
         ) : (
@@ -319,17 +433,27 @@ export default function PerfilTrabalhador() {
         )}
       </View>
 
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configurações</Text>
+      <View style={styles.buttonContainer}>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "600",
+            color: "#000",
+            marginBottom: 12,
+          }}
+        >
+          Configurações
+        </Text>
         <TouchableOpacity
           style={{
-            backgroundColor: "#fff",
+            backgroundColor: "#f0f0f0",
             paddingVertical: 12,
+            paddingHorizontal: 16,
             borderRadius: 10,
             alignItems: "center",
             borderWidth: 1,
-            borderColor: "#E0E0E0",
+            borderColor: "#ddd",
+            marginBottom: 50,
           }}
           onPress={() => navigation.navigate("ConfiguracoesPrestador")}
         >
@@ -337,9 +461,9 @@ export default function PerfilTrabalhador() {
             Acessar configurações
           </Text>
         </TouchableOpacity>
-        
       </View>
-      <View style={styles.spacer} />
     </ScrollView>
   );
 }
+
+

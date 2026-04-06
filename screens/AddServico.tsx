@@ -12,18 +12,22 @@ import {
 import { Camera } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
-import { firestore, storage } from "../firebase";
+import { auth, firestore, storage } from "../firebase";
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 export default function AddServico() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { PrestId } = route.params || {};
+  const { PrestId, servicoId, servico } = route.params || {};
 
   const [estilo, setEstilo] = useState('');
   const [valor, setValor] = useState('');
   const [loading, setLoading] = useState(false);
   const [imagem, setImagem] = useState<string | null>(null);
+  const [imagemOriginal, setImagemOriginal] = useState<string | null>(null);
+
+  const isEdit = Boolean(servicoId);
 
   useEffect(() => {
     (async () => {
@@ -34,9 +38,32 @@ export default function AddServico() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!servico) return;
+
+    const estiloInicial = servico.estilo || servico.servico || '';
+    const valorInicial =
+      servico.valor !== undefined && servico.valor !== null
+        ? String(servico.valor)
+        : '';
+    const imagemInicial =
+      servico.imagem ||
+      servico.imagemUrl ||
+      servico.urlImagem ||
+      servico.foto ||
+      servico.photoUrl ||
+      servico.photo ||
+      null;
+
+    setEstilo(estiloInicial);
+    setValor(valorInicial);
+    setImagem(imagemInicial);
+    setImagemOriginal(imagemInicial);
+  }, [servico]);
+
   const selecionarImagem = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: [ImagePicker.MediaType.Images],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -48,50 +75,107 @@ export default function AddServico() {
   };
 
   const uploadImagem = async (uri: string, prestId: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
     const timestamp = Date.now();
     const caminho = `servicos/${prestId}/${timestamp}.jpg`;
     const ref = storage.ref().child(caminho);
-    await ref.put(blob);
-    const url = await ref.getDownloadURL();
-    if ((blob as any)?.close) {
-      (blob as any).close();
+
+    try {
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      if (!baseDir) {
+        throw new Error('Diretório de cache indisponível.');
+      }
+
+      let sourceUri = uri;
+      const isHttp = uri.startsWith('http');
+      const isContentLike =
+        uri.startsWith('content:') ||
+        uri.startsWith('ph:') ||
+        uri.startsWith('assets-library:');
+
+      if (isHttp) {
+        const tempPath = `${baseDir}upload_${timestamp}.jpg`;
+        const download = await FileSystem.downloadAsync(uri, tempPath);
+        sourceUri = download.uri;
+      } else if (isContentLike) {
+        const tempPath = `${baseDir}upload_${timestamp}.jpg`;
+        await FileSystem.copyAsync({ from: uri, to: tempPath });
+        sourceUri = tempPath;
+      }
+
+      const base64 = await FileSystem.readAsStringAsync(sourceUri, {
+        encoding: 'base64',
+      });
+
+      await ref.putString(base64, 'base64', { contentType: 'image/jpeg' });
+      const downloadUrl = await ref.getDownloadURL();
+      return downloadUrl;
+    } catch (error) {
+      const err: any = error;
+      console.error('Erro ao fazer upload da imagem:', err);
+      if (err?.serverResponse) {
+        console.error('Resposta do servidor (Storage):', err.serverResponse);
+      }
+      throw error;
     }
-    return url;
   };
 
   const salvarServico = async () => {
     if (!estilo || !valor || !PrestId) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
+      Alert.alert('Erro', 'Preencha todos os campos obrigat?rios.');
       return;
     }
 
     setLoading(true);
     try {
-      let imagemUrl: string | null = null;
-      if (imagem) {
-        imagemUrl = await uploadImagem(imagem, PrestId);
+      let imagemUrl: string | null = imagemOriginal;
+
+      if (imagem && imagem !== imagemOriginal) {
+        if (imagem.startsWith('http')) {
+          imagemUrl = imagem;
+        } else {
+          imagemUrl = await uploadImagem(imagem, PrestId);
+        }
       }
 
-      await firestore
-        .collection('ServicosAdds')
-        .doc(PrestId)
-        .collection('ServicosOferecidos')
-        .add({
-          estilo,
-          valor: parseFloat(valor),
-          imagem: imagemUrl,
-          imagemUrl,
-          status: "Oferecido",
-          dataCriacao: new Date(),
-        });
+      const payload = {
+        estilo,
+        valor: parseFloat(valor),
+        imagem: imagemUrl,
+        imagemUrl,
+      };
 
-      Alert.alert('Sucessos', 'Serviço adicionado com sucesso!');
+      if (isEdit) {
+        await firestore
+          .collection('ServicosAdds')
+          .doc(PrestId)
+          .collection('ServicosOferecidos')
+          .doc(servicoId)
+          .set(
+            {
+              ...payload,
+              dataAtualizacao: new Date(),
+            },
+            { merge: true }
+          );
+
+        Alert.alert('Sucesso', 'Servi?o atualizado com sucesso!');
+      } else {
+        await firestore
+          .collection('ServicosAdds')
+          .doc(PrestId)
+          .collection('ServicosOferecidos')
+          .add({
+            ...payload,
+            status: "Oferecido",
+            dataCriacao: new Date(),
+          });
+
+        Alert.alert('Sucessos', 'Servi?o adicionado com sucesso!');
+      }
       navigation.goBack();
     } catch (error) {
-      console.error('Erro ao salvar serviço:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o serviço.');
+      console.error('Erro ao salvar servi?o:', error);
+      Alert.alert('Erro', 'N?o foi poss?vel salvar o servi?o.');
     } finally {
       setLoading(false);
     }
@@ -99,7 +183,9 @@ export default function AddServico() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#000"}}>Adicionar Serviço</Text>
+      <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#000"}}>
+        {isEdit ? 'Editar Serviço' : 'Adicionar Serviço'}
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -128,7 +214,9 @@ export default function AddServico() {
       )}
 
       <TouchableOpacity style={styles.saveButton} onPress={salvarServico} disabled={loading}>
-        <Text style={styles.saveButtonText}>{loading ? 'Salvando...' : 'Salvar Serviço'}</Text>
+        <Text style={styles.saveButtonText}>
+          {loading ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Serviço'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
