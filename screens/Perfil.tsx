@@ -6,9 +6,11 @@ import { auth, firestore } from "../firebase";
 import React from "react";
 import styles from "../estilo";
 import Aval from "../model/Aval";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function Perfil() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [usuario, setUsuario] = useState({
     nome: "",
     email: "",
@@ -97,7 +99,7 @@ export default function Perfil() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
      
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

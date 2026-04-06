@@ -13,6 +13,7 @@ import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-nativ
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import QRCode from "react-native-qrcode-svg";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation();
@@ -22,7 +23,6 @@ export default function ConfiguracoesPrestador() {
   const PIX_CIDADE = "BAGE";
   const PIX_VALOR = MENSALIDADE_VALOR;
   const [notificacoes, setNotificacoes] = useState(true);
-  const [modoEscuro, setModoEscuro] = useState(false);
   const [privacidade, setPrivacidade] = useState(true);
   const [qrCopiaCola, setQrCopiaCola] = useState("");
   const [qrTicketUrl, setQrTicketUrl] = useState("");
@@ -34,6 +34,7 @@ export default function ConfiguracoesPrestador() {
     pagoEm: null,
   });
   const [salvando, setSalvando] = useState(false);
+  const { isDark, setIsDark, theme } = useTheme();
 
   useEffect(() => {
     const carregarMensalidade = async () => {
@@ -269,14 +270,17 @@ export default function ConfiguracoesPrestador() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{
             padding: 8,
             borderRadius: 10,
-            backgroundColor: "#f1f1f1",
+            backgroundColor: theme.headerBtnBg,
             marginTop: 40,
           }}
         >
@@ -288,7 +292,7 @@ export default function ConfiguracoesPrestador() {
             marginBottom: 4,
             fontSize: 28,
             fontWeight: "600",
-            color: "#000",
+            color: theme.textPrimary,
             alignItems: "center",
           }}
         >
@@ -297,71 +301,91 @@ export default function ConfiguracoesPrestador() {
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferências</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Preferências</Text>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Bell size={18} color="#005362" />
-            <Text style={styles.itemText}>Notificações</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Notificações</Text>
           </View>
-          <Switch value={notificacoes} onValueChange={setNotificacoes} />
+          <Switch
+            value={notificacoes}
+            onValueChange={setNotificacoes}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Moon size={18} color="#005362" />
-            <Text style={styles.itemText}>Modo escuro</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Modo escuro</Text>
           </View>
-          <Switch value={modoEscuro} onValueChange={setModoEscuro} />
+          <Switch
+            value={isDark}
+            onValueChange={setIsDark}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Globe size={18} color="#005362" />
-            <Text style={styles.itemText}>Idioma</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Idioma</Text>
           </View>
-          <Text style={styles.itemValue}>Português (BR)</Text>
+          <Text style={[styles.itemValue, { color: theme.textMuted }]}>Português (BR)</Text>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Privacidade</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Privacidade</Text>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Shield size={18} color="#005362" />
-            <Text style={styles.itemText}>Perfil visível</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Perfil visível</Text>
           </View>
-          <Switch value={privacidade} onValueChange={setPrivacidade} />
+          <Switch
+            value={privacidade}
+            onValueChange={setPrivacidade}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Pagamento</Text>
-        <View style={styles.card}>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Pagamento</Text>
+        <View style={[styles.card, { backgroundColor: theme.actionBg, borderColor: theme.border }]}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Mensalidade</Text>
+            <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>Mensalidade</Text>
             <View
               style={[
                 styles.statusBadge,
                 mensalidade.status === "paga" ? styles.statusPago : styles.statusAberto,
               ]}
             >
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: theme.textPrimary }]}>
                 {mensalidade.status === "paga" ? "Paga" : "Em aberto"}
               </Text>
             </View>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Vencimento:</Text>
-            <Text style={styles.infoValue}>{formatarData(mensalidade.vencimento)}</Text>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Vencimento:</Text>
+            <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
+              {formatarData(mensalidade.vencimento)}
+            </Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Pago em:</Text>
-            <Text style={styles.infoValue}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Pago em:</Text>
+            <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
               {mensalidade.status === "paga" ? formatarData(mensalidade.pagoEm) : "-"}
             </Text>
           </View>
@@ -380,7 +404,7 @@ export default function ConfiguracoesPrestador() {
           {carregandoPix && (
             <View style={styles.loadingBox}>
               <ActivityIndicator />
-              <Text style={styles.loadingText}>Gerando QR Code...</Text>
+              <Text style={[styles.loadingText, { color: theme.textMuted }]}>Gerando QR Code...</Text>
             </View>
           )}
 
@@ -389,12 +413,12 @@ export default function ConfiguracoesPrestador() {
           )}
 
           {!!qrCopiaCola && !carregandoPix && (
-            <View style={styles.qrBox}>
+            <View style={[styles.qrBox, { borderColor: theme.border, backgroundColor: theme.card }]}>
               <View style={styles.qrImage}>
                 <QRCode value={qrCopiaCola} size={200} />
               </View>
-              <Text style={styles.qrLabel}>PIX Copia e Cola</Text>
-              <Text style={styles.qrCodeText} selectable>
+              <Text style={[styles.qrLabel, { color: theme.textSecondary }]}>PIX Copia e Cola</Text>
+              <Text style={[styles.qrCodeText, { color: theme.textSecondary }]} selectable>
                 {qrCopiaCola}
               </Text>
               {!!qrTicketUrl && (
@@ -409,19 +433,28 @@ export default function ConfiguracoesPrestador() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Conta</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Conta</Text>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate("EditarPerfil")}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("EditarPerfil")}
+        >
           <Text style={styles.actionText}>Editar perfil</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={() => navigation.navigate("LoginTrabalhador")}>
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("LoginTrabalhador")}
+        >
           <LogOut size={18} color="#1e90ff" />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+        <TouchableOpacity
+          style={[styles.deleteButton, { backgroundColor: theme.actionBg, borderColor: theme.deleteBorder }]}
+          onPress={handleDeleteAccount}
+        >
           <Text style={styles.deleteButtonText}>Deletar Conta</Text>
         </TouchableOpacity>
       </View>

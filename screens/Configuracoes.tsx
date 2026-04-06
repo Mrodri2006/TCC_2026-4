@@ -3,12 +3,13 @@ import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert } f
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function Configuracoes() {
   const navigation = useNavigation();
   const [notificacoes, setNotificacoes] = useState(true);
-  const [modoEscuro, setModoEscuro] = useState(false);
   const [privacidade, setPrivacidade] = useState(true);
+  const { isDark, setIsDark, theme } = useTheme();
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -51,82 +52,114 @@ export default function Configuracoes() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{
-          padding: 8,
-          borderRadius: 10,
-          backgroundColor: "#f1f1f1",
-          marginTop:40,
-          }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{
+            padding: 8,
+            borderRadius: 10,
+            backgroundColor: theme.headerBtnBg,
+            marginTop: 40,
+          }}
+        >
           <ArrowLeft size={20} color="#005362" />
         </TouchableOpacity>
-        <Text style={{ 
-          marginTop:40, 
-          marginBottom:4, 
-          fontSize: 28, 
-          fontWeight: "600", 
-          color: "#000", 
-          alignItems: "center",
-          }}>
-            Configurações
-          </Text>
+        <Text
+          style={{
+            marginTop: 40,
+            marginBottom: 4,
+            fontSize: 28,
+            fontWeight: "600",
+            color: theme.textPrimary,
+            alignItems: "center",
+          }}
+        >
+          Configurações
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Preferências</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Preferências</Text>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Bell size={18} color="#005362" />
-            <Text style={styles.itemText}>Notificações</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Notificações</Text>
           </View>
-          <Switch value={notificacoes} onValueChange={setNotificacoes} />
+          <Switch
+            value={notificacoes}
+            onValueChange={setNotificacoes}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Moon size={18} color="#005362" />
-            <Text style={styles.itemText}>Modo escuro</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Modo escuro</Text>
           </View>
-          <Switch value={modoEscuro} onValueChange={setModoEscuro} />
+          <Switch
+            value={isDark}
+            onValueChange={setIsDark}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Globe size={18} color="#005362" />
-            <Text style={styles.itemText}>Idioma</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Idioma</Text>
           </View>
-          <Text style={styles.itemValue}>Português (BR)</Text>
+          <Text style={[styles.itemValue, { color: theme.textMuted }]}>Português (BR)</Text>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Privacidade</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Privacidade</Text>
 
-        <View style={styles.item}>
+        <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Shield size={18} color="#005362" />
-            <Text style={styles.itemText}>Perfil visível</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Perfil visível</Text>
           </View>
-          <Switch value={privacidade} onValueChange={setPrivacidade} />
+          <Switch
+            value={privacidade}
+            onValueChange={setPrivacidade}
+            trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
+            thumbColor={isDark ? "#f2f2f2" : "#fff"}
+            ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
+          />
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Conta</Text>
+      <View style={[styles.section, { backgroundColor: theme.card }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Conta</Text>
 
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate("EditarPerfil")}>
-          <Text style={styles.actionText}>Editar perfil</Text>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("EditarPerfil")}
+        >
+          <Text style={[styles.actionText, { color: "#005362" }]}>Editar perfil</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={() => navigation.navigate("Login")}>
+        <TouchableOpacity
+          style={[styles.logoutButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("Login")}
+        >
           <LogOut size={18} color="#1e90ff" />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+        <TouchableOpacity
+          style={[styles.deleteButton, { backgroundColor: theme.actionBg, borderColor: theme.deleteBorder }]}
+          onPress={handleDeleteAccount}
+        >
           <Text style={styles.deleteButtonText}>Deletar Conta</Text>
         </TouchableOpacity>
       </View>

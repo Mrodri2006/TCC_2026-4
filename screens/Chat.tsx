@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { ArrowLeft, Send } from "lucide-react-native";
 import { auth, firestore } from "../firebase";
 import firebase from "firebase/compat/app";
+import { useTheme } from "../theme/ThemeContext";
 
 type Message = {
   id: string;
@@ -25,6 +26,7 @@ export default function Chat() {
   const navigation = useNavigation();
   const route = useRoute() as any;
   const { otherUserId, otherUserName } = route.params || {};
+  const { theme } = useTheme();
 
   const [mensagens, setMensagens] = useState<Message[]>([]);
   const [texto, setTexto] = useState("");
@@ -103,7 +105,7 @@ export default function Chat() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >

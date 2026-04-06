@@ -3,9 +3,11 @@ import { ArrowLeft, Save } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useState, useEffect } from "react";
 import { auth, firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function EditarPerfil() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [formDados, setFormDados] = useState({
     nome: "",
     email: "",
@@ -100,7 +102,7 @@ export default function EditarPerfil() {
 
   if (carregando) {
     return (
-      <View style={styles.carregandoContainer}>
+      <View style={[styles.carregandoContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color="#005362" />
         <Text style={styles.carregandoTexto}>Carregando dados...</Text>
       </View>
@@ -108,7 +110,7 @@ export default function EditarPerfil() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#000" style={{ 

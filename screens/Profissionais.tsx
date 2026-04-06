@@ -4,9 +4,11 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import { useState, useCallback } from "react";
 import { firestore } from "../firebase";
 import styles from "../estilo";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function TelaProfissionais() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const route = useRoute();
   const { servico } = route.params || { servico: "" };
 
@@ -72,7 +74,7 @@ export default function TelaProfissionais() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft size={24} color="#000" />

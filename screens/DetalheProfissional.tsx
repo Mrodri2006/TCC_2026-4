@@ -4,11 +4,13 @@ import { Star, MapPin, Phone, Mail, ArrowLeft, Award } from "lucide-react-native
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
 import { firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function DetalheProfissional() {
   const navigation = useNavigation();
   const route = useRoute();
   const { profissional } = route.params || {};
+  const { theme } = useTheme();
 
   const [servicos, setServicos] = useState([]);
   const [usuarioData, setUsuarioData] = useState({});
@@ -77,7 +79,7 @@ export default function DetalheProfissional() {
 
   if (carregando) {
     return (
-      <View style={styles.carregandoContainer}>
+      <View style={[styles.carregandoContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color="#527954" />
         <Text style={styles.carregandoTexto}>Carregando informações...</Text>
       </View>
@@ -85,7 +87,7 @@ export default function DetalheProfissional() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerDetalhe}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoVoltar}>
           <ArrowLeft size={24} color="#fff" />
@@ -396,4 +398,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

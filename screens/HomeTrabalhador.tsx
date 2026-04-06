@@ -15,9 +15,11 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback, useRef } from "react";
 import { auth, firestore } from "../firebase";
 import { Calendar } from "lucide-react-native";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function HomeTrabalhador() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -239,7 +241,7 @@ export default function HomeTrabalhador() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatar}>

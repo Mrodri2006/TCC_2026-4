@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 type ChatItem = {
   id: string;
@@ -13,6 +14,7 @@ type ChatItem = {
 
 export default function ChatList() {
   const navigation = useNavigation() as any;
+  const { theme } = useTheme();
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,14 +75,14 @@ export default function ChatList() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <Text style={styles.emptyText}>Carregando conversas...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {chats.length === 0 ? (
         <Text style={styles.emptyText}>Nenhuma conversa ainda</Text>
       ) : (

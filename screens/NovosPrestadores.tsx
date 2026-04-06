@@ -3,9 +3,11 @@ import { ArrowLeft, MapPin, Star, Clock } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
 import { firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function NovosPrestadores() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [usuariosPrestadores, setUsuariosPrestadores] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [modalVisivel, setModalVisivel] = useState(false);
@@ -95,7 +97,7 @@ export default function NovosPrestadores() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -428,7 +430,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
-
 
 
 

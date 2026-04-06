@@ -5,9 +5,11 @@ import { useCallback, useState } from "react";
 import { auth, firestore } from "../firebase";
 import styles from "../estilo";
 import * as ImagePicker from "expo-image-picker";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
 
   const [usuario, setUsuario] = useState({
     nome: "",
@@ -180,7 +182,7 @@ export default function PerfilTrabalhador() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#fff" style={{marginTop: 40}} />

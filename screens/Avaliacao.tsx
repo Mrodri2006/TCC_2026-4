@@ -2,18 +2,20 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "reac
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import { firestore } from "../firebase";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function Avaliacao() {
   const navigation = useNavigation() as any;
   const route = useRoute() as any;
   const servico = route.params?.servico;
+  const { theme } = useTheme();
 
-  const [notaTexto, setNotaTexto] = useState("");
+  const [nota, setNota] = useState(0);
   const [comentario, setComentario] = useState("");
   const [comentarioError, setComentarioError] = useState("");
 
   // importar uma biblioteca 
-  // https://github.com/wbotelhos/blacklist/blob/master/blacklist-server/.project
+  // https://github.com/wbotelhos/blacklist/blob/master/blacklist-server/.project 
   const palavrasProibidas = [ 
     "idiota", 
     "lixo",
@@ -37,8 +39,6 @@ export default function Avaliacao() {
   };
 
   const salvarAvaliacao = async () => {
-    const nota = Number(notaTexto);
-
     if (!servico?.prestadorId || !servico?.clienteId) {
       Alert.alert("Erro", "Informacoes do servico incompletas");
       return;
@@ -88,7 +88,7 @@ export default function Avaliacao() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={styles.title}>Avaliar Servico</Text>
 
       <View style={styles.card}>
@@ -101,15 +101,26 @@ export default function Avaliacao() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Nota (1 a 5)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 4"
-          placeholderTextColor="#999"
-          value={notaTexto}
-          onChangeText={setNotaTexto}
-          keyboardType="numeric"
-        />
+        <Text style={styles.label}>Nota</Text>
+        <View style={styles.estrelasRow}>
+          {[1, 2, 3, 4, 5].map((valor) => {
+            const ativa = valor <= nota;
+            return (
+              <TouchableOpacity
+                key={valor}
+                style={styles.estrelaBotao}
+                onPress={() => setNota(valor)}
+                accessibilityRole="button"
+                accessibilityLabel={`Definir nota ${valor}`}
+              >
+                <Text style={[styles.estrela, ativa ? styles.estrelaAtiva : styles.estrelaInativa]}>
+                  {ativa ? "★" : "☆"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {nota > 0 ? <Text style={styles.notaTexto}>Sua nota: {nota}</Text> : null}
       </View>
 
       {/* 💬 NOVO CAMPO DE COMENTÁRIO */}
@@ -154,7 +165,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#333",
-    marginTop: 10,
+    marginTop: 40,
     marginBottom: 12,
   },
   card: {
@@ -189,6 +200,28 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     color: "#333",
+  },
+  estrelasRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  estrelaBotao: {
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  estrela: {
+    fontSize: 28,
+  },
+  estrelaAtiva: {
+    color: "#f5b301",
+  },
+  estrelaInativa: {
+    color: "#c9c9c9",
+  },
+  notaTexto: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#666",
   },
   errorText: {
     color: "red",

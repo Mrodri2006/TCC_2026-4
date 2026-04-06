@@ -5,11 +5,13 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import { firestore, auth } from "../firebase";
 import styles from "../estilo";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function SolicitarServico() {
   const navigation = useNavigation();
   const route = useRoute() as any;
   const { prestadorId, prestadorNome, servico } = route.params || {};
+  const { theme } = useTheme();
 
   const [data, setData] = useState("");
   const [local, setLocal] = useState("");
@@ -82,7 +84,7 @@ export default function SolicitarServico() {
   };
 
   return (
-    <ScrollView style={estilos.container}>
+    <ScrollView style={[estilos.container, { backgroundColor: theme.background }]}>
       <View style={estilos.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

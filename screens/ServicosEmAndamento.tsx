@@ -10,9 +10,11 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
 import { auth, firestore } from "../firebase";
 import styles from "../estilo";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function ServicosEmAndamento() {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   const [servicos, setServicos] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -75,7 +77,7 @@ export default function ServicosEmAndamento() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

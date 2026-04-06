@@ -5,10 +5,12 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback, useRef } from "react";
 import { auth, firestore } from "../firebase";
 import { Picker } from "@react-native-picker/picker";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function TelaInicialCliente({ onLogout }: any) {
 
   const navigation = useNavigation() as any;
+  const { theme } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [profissionaisRecomendados, setProfissionaisRecomendados] = useState([]);
   const [servicosPopulares, setServicosPopulares] = useState([]);
@@ -329,7 +331,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <Text style={styles.titulo}>Olá!</Text>
 

@@ -4,8 +4,10 @@ import { FlatList, Text, ImageBackground, View, ActivityIndicator, StyleSheet } 
 import { auth, firestore } from '../firebase';
 import { useFocusEffect } from '@react-navigation/native';
 import { Serv } from '../model/Serv';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function ServStatus() {
+    const { theme } = useTheme();
     const [servs, setServs] = useState<Serv[]>([]);
     const [loading, setLoading] = useState(true);
     const unsubscribeRef = useRef<any>(null);
@@ -78,7 +80,7 @@ export default function ServStatus() {
         });
 
     return (
-        <ImageBackground resizeMode='stretch' style={styles.container}>
+        <ImageBackground resizeMode='stretch' style={[styles.container, { backgroundColor: theme.background }]}>
             <Text style={styles.title}>Histórico de Serviços</Text>
 
             {loading ? (
