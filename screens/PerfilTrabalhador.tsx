@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera } from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet } from "react-native";
+import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
@@ -279,191 +279,443 @@ export default function PerfilTrabalhador() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#000" style={{ marginBottom: 4, marginTop: 40 }} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            marginTop: 40,
-            marginBottom: 4,
-            fontSize: 28,
-            fontWeight: "600",
-            color: "#000",
-            alignItems: "center",
-            marginRight: 130,
-          }}
-        >
-          Meu Perfil
-        </Text>
-      </View>
-
-      <View style={styles.perfilSection}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            {usuario.fotoPerfil ? (
-              <Image source={{ uri: usuario.fotoPerfil }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarText}>
-                {usuario.nome
-                  ? usuario.nome
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)
-                  : "U"}
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity style={styles.avatarEditButton} onPress={selecionarFotoPerfil}>
-            <Camera size={16} color="#fff" />
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={localStyles.scrollContent}>
+      <View style={localStyles.headerCard}>
+        <View style={localStyles.topRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.iconButton}>
+            <ArrowLeft size={20} color="#0F2937" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={localStyles.editButton}>
+            <Edit2 size={18} color="#0F2937" />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.nome}>{usuario.nome || "Carregando..."}</Text>
-
-        <View style={styles.infoRow}>
-          <MapPin size={16} color="#666" />
-          <Text style={styles.infoText}>{usuario.localizacao}</Text>
-        </View>
-      </View>
-
-      <View style={styles.avaliacaoCard}>
-        <View style={styles.avaliacaoContent}>
-          <Star size={20} color="#FFD700" fill="#FFD700" />
-          <Text style={styles.avaliacaoTexto}>{usuario.avaliacao}</Text>
-          <Text style={styles.avaliacaoSubtexto}>
-            ({usuario.numeroAvaliacoes} avaliações)
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.contatoSection}>
-        <Text style={styles.sectionTitle}>Informações de Contato</Text>
-
-        <View style={styles.contatoItem}>
-          <Phone size={18} color="#005362" />
-          <View style={styles.contatoContent}>
-            <Text style={styles.contatoLabel}>Telefone</Text>
-            <Text style={styles.contatoValue}>{usuario.telefone || "N?o informado"}</Text>
+        <View style={localStyles.profileHeader}>
+          <View style={localStyles.avatarWrapper}>
+            {usuario.fotoPerfil ? (
+              <Image source={{ uri: usuario.fotoPerfil }} style={localStyles.avatarImage} />
+            ) : (
+              <View style={localStyles.avatarCircle}>
+                <Text style={localStyles.avatarText}>
+                  {usuario.nome
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2) || "DI"}
+                </Text>
+              </View>
+            )}
           </View>
-        </View>
 
-        <View style={styles.contatoItem}>
-          <Mail size={18} color="#005362" />
-          <View style={styles.contatoContent}>
-            <Text style={styles.contatoLabel}>Email</Text>
-            <Text style={styles.contatoValue}>{usuario.email || "Carregando..."}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.historicoSection}>
-        <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
-        {usuario.profissao ? (
-          <View style={styles.servicosContainer}>
-            <View style={styles.servicoBadge}>
-              <Briefcase size={16} color="#fff" />
-              <Text style={styles.servicoTexto}>{usuario.profissao}</Text>
+          <View style={localStyles.profileInfo}>
+            <Text style={localStyles.profileName}>{usuario.nome || "Diarista 2"}</Text>
+            <View style={localStyles.metaRow}>
+              <MapPin size={14} color="#64748B" />
+              <Text style={localStyles.metaText}>{usuario.localizacao}</Text>
+            </View>
+            <View style={localStyles.ratingRow}>
+              <Star size={16} color="#F5B403" fill="#F5B403" />
+              <Text style={localStyles.ratingScore}>{usuario.avaliacao.toFixed(1)}</Text>
+              <Text style={localStyles.ratingText}>({usuario.numeroAvaliacoes} avaliações)</Text>
             </View>
           </View>
-        ) : (
-          <Text style={styles.nenhumTexto}>Nenhum serviço informado</Text>
-        )}
+        </View>
       </View>
 
-      <View style={styles.historicoSection}>
-        <Text style={styles.sectionTitle}>Serviços Adicionados</Text>
+      <View style={localStyles.sectionBlock}>
+        <Text style={localStyles.sectionTitle}>Contato</Text>
+        <View style={localStyles.infoCard}>
+          <View style={localStyles.infoRow}>
+            <View style={localStyles.infoIcon}><Phone size={18} color="#0F2937" /></View>
+            <View style={localStyles.infoTextGroup}>
+              <Text style={localStyles.infoLabel}>Telefone</Text>
+              <Text style={localStyles.infoValue}>{usuario.telefone || "Não informado"}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={localStyles.infoCard}>
+          <View style={localStyles.infoRow}>
+            <View style={localStyles.infoIcon}><Mail size={18} color="#0F2937" /></View>
+            <View style={localStyles.infoTextGroup}>
+              <Text style={localStyles.infoLabel}>Email</Text>
+              <Text style={localStyles.infoValue}>{usuario.email || "Não informado"}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
 
+      <View style={localStyles.sectionBlock}>
+        <View style={localStyles.sectionHeaderRow}>
+          <Text style={localStyles.sectionTitle}>Serviços</Text>
+          <Text style={localStyles.sectionMeta}>1 categoria</Text>
+        </View>
+        <View style={localStyles.chipRow}>
+          <View style={localStyles.chip}> 
+            <Briefcase size={14} color="#2563EB" />
+            <Text style={localStyles.chipText}>{usuario.profissao || "Diarista"}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={localStyles.sectionBlock}>
+        <View style={localStyles.sectionHeaderRow}>
+          <Text style={localStyles.sectionTitle}>Serviços com preço</Text>
+          <Text style={localStyles.sectionMeta}>{historico.length}</Text>
+        </View>
         {historico.length > 0 ? (
           historico.map((item) => (
-            <View key={item.id} style={styles.historicoCard}>
-              <View style={styles.historicoContent}>
-                <Text style={styles.historicoServico}>{item.servico}</Text>
-                <Text style={styles.historicoData}>{item.data}</Text>
-              </View>
-              <View style={styles.historicoRight}>
-                <Text style={styles.historicoValor}>R$ {item.valor}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: "#d4edda" }]}>
-                  <Text style={styles.statusText}>{item.status}</Text>
+            <View key={item.id} style={localStyles.offerCard}>
+              {item.imagem && (
+                <Image source={{ uri: item.imagem }} style={localStyles.offerImage} />
+              )}
+              <View style={localStyles.offerContent}>
+                <View style={localStyles.offerTopRow}>
+                  <Text style={localStyles.offerTitle}>{item.servico || "Serviço"}</Text>
+                  <Text style={localStyles.offerPrice}>R$ {item.valor}</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.editButtonMini}
-                  onPress={() =>
-                    (navigation as any).navigate("AddServico", {
-                      PrestId: auth.currentUser?.uid,
-                      servicoId: item.id,
-                      servico: {
-                        estilo: item.estilo,
-                        valor: item.valor,
-                        imagem: item.imagem,
-                      },
-                    })
-                  }
-                >
-                  <Edit2 size={16} color="#005362" />
-                </TouchableOpacity>
+                <View style={localStyles.offerBottomRow}>
+                  <Text style={localStyles.offerDate}>{item.data}</Text>
+                  <View style={localStyles.offerStatusBadge}>
+                    <Text style={localStyles.offerStatusText}>{item.status || "Oferecido"}</Text>
+                  </View>
+                </View>
               </View>
             </View>
           ))
         ) : (
-          <Text style={styles.nenhumTexto}>Nenhum servi?o encontrado</Text>
+          <Text style={localStyles.emptyText}>Nenhum serviço registrado ainda</Text>
         )}
       </View>
 
-      <View style={styles.historicoSection}>
-        <Text style={styles.sectionTitle}>Avaliações Recebidas</Text>
-
+      <View style={localStyles.sectionBlock}>
+        <View style={localStyles.sectionHeaderRow}>
+          <Text style={localStyles.sectionTitle}>Avaliações</Text>
+          <Text style={localStyles.sectionMeta}>{avaliacoes.length} recebidas</Text>
+        </View>
         {avaliacoes.length > 0 ? (
           avaliacoes.map((item) => (
-            <View key={item.id} style={styles.historicoCard}>
-              <View style={styles.historicoContent}>
-                <Text style={styles.historicoServico}>{item.servico}</Text>
-                <Text style={styles.historicoData}>{item.data}</Text>
+            <View key={item.id} style={localStyles.reviewCard}>
+              <View style={localStyles.reviewHeader}>
+                <Text style={localStyles.reviewTitle}>{item.servico || "Serviço"}</Text>
+                <View style={localStyles.reviewRating}>
+                  <Star size={14} color="#F5B403" fill="#F5B403" />
+                  <Text style={localStyles.reviewScore}>{item.nota?.toFixed?.(1) || item.nota}</Text>
+                </View>
               </View>
-              <View style={styles.historicoRight}>
-                <Text style={styles.historicoValor}>{item.nota}</Text>
-              </View>
+              <Text style={localStyles.reviewDate}>{item.data}</Text>
             </View>
           ))
         ) : (
-          <Text style={styles.nenhumTexto}>Nenhuma avaliação encontrada</Text>
+          <Text style={localStyles.emptyText}>Ainda não há avaliações recebidas</Text>
         )}
       </View>
 
-      <View style={styles.buttonContainer}>
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "600",
-            color: "#000",
-            marginBottom: 12,
-          }}
-        >
-          Configurações
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: "#f0f0f0",
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 10,
-            alignItems: "center",
-            borderWidth: 1,
-            borderColor: "#ddd",
-            marginBottom: 50,
-          }}
-          onPress={() => navigation.navigate("ConfiguracoesPrestador")}
-        >
-          <Text style={{ fontSize: 14, fontWeight: "600", color: "#005362" }}>
-            Acessar configurações
-          </Text>
+      <View style={localStyles.footerBlock}>
+        <TouchableOpacity style={localStyles.settingsButton} onPress={() => navigation.navigate("ConfiguracoesPrestador") }>
+          <Text style={localStyles.settingsButtonText}>Acessar configurações</Text>
+          <ArrowRight size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
-
+const localStyles = StyleSheet.create({
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  headerCard: {
+    backgroundColor: "#E8F4FF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
+  },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 41, 55, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 41, 55, 0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarWrapper: {
+    marginRight: 16,
+  },
+  avatarCircle: {
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+    backgroundColor: "#D9EEF7",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  avatarImage: {
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+  },
+  avatarText: {
+    color: "#0F2937",
+    fontSize: 32,
+    fontWeight: "800",
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 6,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  metaText: {
+    color: "#475569",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  ratingScore: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  ratingText: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  sectionBlock: {
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  sectionMeta: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  infoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  infoIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#EAF4FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoTextGroup: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  chipText: {
+    color: "#2563EB",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  offerCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    marginBottom: 14,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+    overflow: "hidden",
+  },
+  offerImage: {
+    width: "100%",
+    height: 160,
+    backgroundColor: "#E0E0E0",
+  },
+  offerContent: {
+    padding: 18,
+  },
+  offerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },  offerTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+    flex: 1,
+    paddingRight: 12,
+  },
+  offerPrice: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  offerBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  offerDate: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  offerStatusBadge: {
+    backgroundColor: "#E6F7EC",
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  offerStatusText: {
+    color: "#276A45",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  reviewCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+  },
+  reviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  reviewTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  reviewRating: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  reviewScore: {
+    color: "#0F2937",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  reviewDate: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  emptyText: {
+    color: "#64748B",
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: 16,
+  },
+  footerBlock: {
+    marginBottom: 30,
+  },
+  settingsButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+  settingsButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+});

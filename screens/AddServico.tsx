@@ -63,7 +63,7 @@ export default function AddServico() {
 
   const selecionarImagem = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.Images],
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -77,44 +77,43 @@ export default function AddServico() {
   const uploadImagem = async (uri: string, prestId: string) => {
     const timestamp = Date.now();
     const caminho = `servicos/${prestId}/${timestamp}.jpg`;
-    const ref = storage.ref().child(caminho);
-
+    
     try {
-      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
-      if (!baseDir) {
-        throw new Error('Diretório de cache indisponível.');
+      console.log('Verificando autenticação...');
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Usuário não autenticado. Faça login primeiro.');
       }
-
-      let sourceUri = uri;
-      const isHttp = uri.startsWith('http');
-      const isContentLike =
-        uri.startsWith('content:') ||
-        uri.startsWith('ph:') ||
-        uri.startsWith('assets-library:');
-
-      if (isHttp) {
-        const tempPath = `${baseDir}upload_${timestamp}.jpg`;
-        const download = await FileSystem.downloadAsync(uri, tempPath);
-        sourceUri = download.uri;
-      } else if (isContentLike) {
-        const tempPath = `${baseDir}upload_${timestamp}.jpg`;
-        await FileSystem.copyAsync({ from: uri, to: tempPath });
-        sourceUri = tempPath;
-      }
-
-      const base64 = await FileSystem.readAsStringAsync(sourceUri, {
+      console.log('Usuário autenticado:', user.uid);
+      
+      console.log('Iniciando upload de:', uri);
+      
+      // Ler arquivo como base64
+      const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64',
       });
-
+      
+      console.log('Base64 gerado, tamanho:', base64.length);
+      console.log('Caminho do upload:', caminho);
+      
+      const ref = storage.ref(caminho);
+      console.log('Referência criada. Fazendo upload...');
+      
       await ref.putString(base64, 'base64', { contentType: 'image/jpeg' });
+      console.log('Upload concluído. Obtendo URL...');
+      
       const downloadUrl = await ref.getDownloadURL();
+      console.log('Download URL obtida:', downloadUrl);
+      
       return downloadUrl;
     } catch (error) {
       const err: any = error;
-      console.error('Erro ao fazer upload da imagem:', err);
-      if (err?.serverResponse) {
-        console.error('Resposta do servidor (Storage):', err.serverResponse);
-      }
+      console.error('Erro detalhado no upload:', {
+        uri,
+        message: err?.message,
+        code: err?.code,
+        customMessage: err?.toString?.(),
+      });
       throw error;
     }
   };

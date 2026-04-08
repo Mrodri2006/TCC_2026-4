@@ -1,5 +1,5 @@
 ﻿import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal } from "react-native";
-import { ArrowLeft, MapPin, Star, Clock } from "lucide-react-native";
+import { ArrowLeft, Clock } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
 import { firestore } from "../firebase";
@@ -105,7 +105,7 @@ export default function NovosPrestadores() {
         >
           <ArrowLeft size={24} color="#005362" />
         </TouchableOpacity>
-        <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#000"}}>Novos Prestadores</Text>
+        <Text style={styles.titulo}>Novos Prestadores</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -123,56 +123,49 @@ export default function NovosPrestadores() {
         </View>
       ) : usuariosPrestadores.length > 0 ? (
         <View style={styles.prestadoresList}>
-          {usuariosPrestadores.map((prestador) => (
-            <TouchableOpacity
-              key={prestador.id}
-              style={styles.prestadorCard}
-              activeOpacity={0.7}
-            >
-              <View style={styles.avatarContainer}>
-                <Text style={styles.avatarText}>
-                  {prestador.nome.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-              <View style={styles.infoContainer}>
-                <View style={styles.topRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.nomePrestador}>{prestador.nome}</Text>
-                    <View style={styles.profissaoBadge}>
-                      <Text style={styles.profissaoTexto}>{prestador.profissao}</Text>
-                    </View>
-                  </View>
-                  <View>
-                    <Text style={styles.badgeNovoTexto}>NOVO</Text>
-                  </View>
-                </View>
+          {usuariosPrestadores.map((prestador) => {
+            const notaDisponivel = prestador.numeroAvaliacoes > 0;
+            const distanciaDisponivel = prestador.distancia && prestador.distancia !== "A calcular";
+            const subtitulo = notaDisponivel
+              ? `⭐ ${prestador.avaliacao.toFixed(1)} • ${distanciaDisponivel ? prestador.distancia : "Calculando..."}`
+              : `Sem avaliações${distanciaDisponivel ? ` • ${prestador.distancia}` : ""}`;
 
-                <View style={styles.detalhesRow}>
-                  <View style={styles.detalheItem}>
-                    <Star size={14} color="#FFD700" fill="#FFD700" />
-                    <Text style={styles.detalheTexto}>
-                      {prestador.avaliacao.toFixed(1)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detalheItem}>
-                    <MapPin size={14} color="#005362" />
-                    <Text style={styles.detalheTexto}>{prestador.distancia}</Text>
-                  </View>
-                </View>
-
-                <Text style={styles.emailTexto}>{prestador.email}</Text>
-              </View>
-
+            return (
               <TouchableOpacity
-                style={styles.botaoChamar}
+                key={prestador.id}
+                style={styles.prestadorCard}
                 activeOpacity={0.8}
                 onPress={() => abrirModal(prestador)}
               >
-                <Text style={styles.botaoTxt}>Informações</Text>
+                <View style={styles.avatarContainer}>
+                  <Text style={styles.avatarText}>
+                    {prestador.nome.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={styles.infoContainer}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.titleBlock}>
+                      <Text style={styles.nomePrestador}>{prestador.nome}</Text>
+                      <View style={styles.profissaoBadge}>
+                        <Text style={styles.profissaoTexto}>{prestador.profissao}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.novoBadge}>
+                      <Text style={styles.novoTexto}>NOVO</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.subtituloTexto}>{subtitulo}</Text>
+
+                  <View style={styles.actionRow}>
+                    <Text style={styles.actionLabel}>Ver detalhes</Text>
+                    <Text style={styles.actionIcon}>→</Text>
+                  </View>
+                </View>
               </TouchableOpacity>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View style={styles.nenhumContainer}>
@@ -229,6 +222,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 40,
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -259,101 +253,95 @@ const styles = StyleSheet.create({
   },
   prestadorCard: {
     flexDirection: "row",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: "#527954",
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
     alignItems: "flex-start",
+    position: "relative",
   },
   avatarContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: "#527954",
+    borderRadius: 16,
+    backgroundColor: "#D7E7F0",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   avatarText: {
-    color: "#fff",
-    fontSize: 24,
+    color: "#1A3145",
+    fontSize: 22,
     fontWeight: "700",
   },
   infoContainer: {
     flex: 1,
   },
-  topRow: {
+  cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  titleBlock: {
+    flex: 1,
+    paddingRight: 12,
   },
   nomePrestador: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#11213B",
+    marginBottom: 8,
   },
   profissaoBadge: {
-    backgroundColor: "#527954",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+    backgroundColor: "rgba(0, 83, 98, 0.08)",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     alignSelf: "flex-start",
   },
   profissaoTexto: {
-    color: "#fff",
+    color: "#005362",
     fontSize: 12,
     fontWeight: "600",
   },
-  badgeNovo: {
-    backgroundColor: "#527954",
+  novoBadge: {
+    backgroundColor: "#E6F7EC",
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: 999,
+    alignSelf: "flex-start",
   },
-  badgeNovoTexto: {
-    color: "green",
-    fontSize: 10,
+  novoTexto: {
+    color: "#276A45",
+    fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 0.5,
-    margin: 1,
+    letterSpacing: 0.4,
   },
-  detalhesRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginVertical: 8,
+  subtituloTexto: {
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 20,
+    marginBottom: 14,
   },
-  detalheItem: {
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
   },
-  detalheTexto: {
-    fontSize: 13,
-    color: "#666",
-    fontWeight: "500",
+  actionLabel: {
+    fontSize: 14,
+    color: "#005362",
+    fontWeight: "700",
   },
-  emailTexto: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 6,
-  },
-  botaoChamar: {
-    backgroundColor: "#527954",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    elevation: 3,
+  actionIcon: {
     marginLeft: 8,
-  },
-  botaoTxt: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 12,
+    fontSize: 16,
+    color: "#005362",
   },
   carregandoContainer: {
     justifyContent: "center",

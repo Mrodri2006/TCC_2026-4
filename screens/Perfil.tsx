@@ -1,11 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, LogOut } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from "react-native";
+import { ArrowLeft, Edit2, MapPin, Phone, Mail, LogOut } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore } from "../firebase";
 import React from "react";
-import styles from "../estilo";
-import Aval from "../model/Aval";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function Perfil() {
@@ -15,21 +13,14 @@ export default function Perfil() {
     nome: "",
     email: "",
     telefone: "",
-    avaliacao: 4.8,
-    numeroAvaliacoes: 45,
     localizacao: "São Paulo, SP",
-    descricao: "Profissional com 5 anos de experiência em serviços gerais",
-    servicos: [
-      { id: 1, nome: "Eletricista" },
-      { id: 2, nome: "Encanador" },
-      { id: 3, nome: "Manutenção Geral" },
-    ],
     historico: [
       { id: 1, servico: "Reparo Elétrico", data: "20/11/2024", status: "Concluído", valor: "R$ 150" },
       { id: 2, servico: "Desentupimento", data: "15/11/2024", status: "Concluído", valor: "R$ 200" },
       { id: 3, servico: "Instalação Luminária", data: "10/11/2024", status: "Concluído", valor: "R$ 120" },
     ],
   });
+
   useFocusEffect(
     useCallback(() => {
       const carregarDadosUsuario = async () => {
@@ -37,17 +28,17 @@ export default function Perfil() {
           const usuarioAutenticado = auth.currentUser;
           if (usuarioAutenticado) {
             const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
-            
             if (docSnap.exists) {
               const dados = docSnap.data();
-              setUsuario(prevState => ({
+              setUsuario((prevState) => ({
                 ...prevState,
                 nome: dados.nome || usuarioAutenticado.displayName || "Usuário",
                 email: usuarioAutenticado.email || "",
                 telefone: dados.fone || "",
+                localizacao: dados.localizacao || prevState.localizacao,
               }));
             } else {
-              setUsuario(prevState => ({
+              setUsuario((prevState) => ({
                 ...prevState,
                 nome: usuarioAutenticado.displayName || "Usuário",
                 email: usuarioAutenticado.email || "",
@@ -74,18 +65,11 @@ export default function Perfil() {
           onPress: async () => {
             try {
               const usuarioId = auth.currentUser?.uid;
-              
               if (usuarioId) {
                 await firestore.collection("Usuario").doc(usuarioId).delete();
               }
-
               await auth.currentUser?.delete();
-
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-              });
-
+              navigation.reset({ index: 0, routes: [{ name: "Login" }] });
               Alert.alert("Sucesso", "Sua conta foi deletada com sucesso");
             } catch (erro: any) {
               console.log("Erro ao deletar conta:", erro);
@@ -98,83 +82,79 @@ export default function Perfil() {
     );
   };
 
+  const initials = usuario.nome
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-     
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#000" style={{marginBottom:4, marginTop:40}} />
-        </TouchableOpacity>
-        <Text style={{ 
-          marginTop:40, 
-          marginBottom:4, 
-          fontSize: 28, 
-          fontWeight: "600", 
-          color: "#000", 
-          alignItems: "center", 
-          marginRight:130
-          }}>
-            Meu Perfil
-          </Text>
-      </View>
-      
-      <View style={styles.perfilSection}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {usuario.nome
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
-            </Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}> 
+      <View style={styles.topHeader}>
+        <View style={styles.topActions}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
+            <ArrowLeft size={22} color="#0F2937" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={styles.iconButton}>
+            <Edit2 size={18} color="#0F2937" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.profileBlock}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initials || "US"}</Text>
           </View>
-        </View>
-
-        <Text style={styles.nome}>{usuario.nome || "Carregando..."}</Text>
-
-        <View style={styles.infoRow}>
-          <MapPin size={16} color="#666" />
-          <Text style={styles.infoText}>{usuario.localizacao}</Text>
-        </View>
-
-      </View>
-
-
-      <View style={styles.contatoSection}>
-        <Text style={styles.sectionTitle}>Informações de Contato</Text>
-
-        <View style={styles.contatoItem}>
-          <Phone size={18} color="#005362" />
-          <View style={styles.contatoContent}>
-            <Text style={styles.contatoLabel}>Telefone</Text>
-            <Text style={styles.contatoValue}>{usuario.telefone}</Text>
-          </View>
-        </View>
-
-        <View style={styles.contatoItem}>
-          <Mail size={18} color="#005362" />
-          <View style={styles.contatoContent}>
-            <Text style={styles.contatoLabel}>Email</Text>
-            <Text style={styles.contatoValue}>{usuario.email || "Carregando..."}</Text>
+          <Text style={styles.profileName}>{usuario.nome || "Meu Perfil"}</Text>
+          <View style={styles.locationRow}>
+            <MapPin size={16} color="#64748B" />
+            <Text style={styles.locationText}>{usuario.localizacao}</Text>
           </View>
         </View>
       </View>
 
-    
-      <View style={styles.historicoSection}>
-        <Text style={styles.sectionTitle}>Serviços Solicitados</Text>
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeading}>Informações de Contato</Text>
+        </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoRowItem}>
+            <View style={styles.iconBadge}><Phone size={18} color="#0F2937" /></View>
+            <View style={styles.infoTextGroup}>
+              <Text style={styles.infoLabel}>Telefone</Text>
+              <Text style={styles.infoValue}>{usuario.telefone || "Não informado"}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoRowItem}>
+            <View style={styles.iconBadge}><Mail size={18} color="#0F2937" /></View>
+            <View style={styles.infoTextGroup}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{usuario.email || "Não informado"}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionHeading}>Serviços Solicitados</Text>
+          <Text style={styles.sectionMeta}>{usuario.historico.length} itens</Text>
+        </View>
 
         {usuario.historico.map((item) => (
-          <View key={item.id} style={styles.historicoCard}>
-            <View style={styles.historicoContent}>
-              <Text style={styles.historicoServico}>{item.servico}</Text>
-              <Text style={styles.historicoData}>{item.data}</Text>
+          <View key={item.id} style={styles.serviceCard}>
+            <View style={styles.serviceTopRow}>
+              <Text style={styles.serviceTitle}>{item.servico}</Text>
+              <Text style={styles.servicePrice}>{item.valor}</Text>
             </View>
-            <View style={styles.historicoRight}>
-              <Text style={styles.historicoValor}>{item.valor}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: "#d4edda" }]}>
+            <View style={styles.serviceBottomRow}>
+              <Text style={styles.serviceDate}>{item.data}</Text>
+              <View style={styles.statusBadge}>
                 <Text style={styles.statusText}>{item.status}</Text>
               </View>
             </View>
@@ -182,28 +162,217 @@ export default function Perfil() {
         ))}
       </View>
 
-      <View style={styles.buttonContainer}>
-        <Text style={{
-         fontSize: 16,
-         fontWeight: "600",
-         color: "#000",
-         marginBottom: 12,
-         }}>
-           Configurações 
-        </Text>
-        <TouchableOpacity style={{
-          backgroundColor: "#f0f0f0",
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          borderRadius: 10,
-          alignItems: "center",
-          borderWidth: 1,
-          borderColor: "#ddd",
-          marginBottom:50,
-          }} onPress={() => navigation.navigate("Configuracoes")}>
-          <Text style={{fontSize: 14, fontWeight: "600", color: "#005362", }}>Acessar configurações</Text>
+      <View style={styles.footerSection}>
+        <Text style={styles.footerTitle}>Configurações</Text>
+        <TouchableOpacity style={styles.settingsCard} onPress={() => navigation.navigate("Configuracoes") }>
+          <Text style={styles.settingsLabel}>Acessar configurações</Text>
+          <LogOut size={20} color="#0F2937" />
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  topHeader: {
+    backgroundColor: "#E8F4FB",
+    borderRadius: 28,
+    paddingBottom: 26,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  topActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+  profileBlock: {
+    alignItems: "center",
+  },
+  avatarCircle: {
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+    backgroundColor: "#D9EEF7",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+    marginBottom: 16,
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#0F2937",
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 8,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: "#475569",
+    fontWeight: "500",
+  },
+  sectionBlock: {
+    marginBottom: 20,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sectionHeading: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  sectionMeta: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  infoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  infoRowItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  iconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: "#E8F4FB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoTextGroup: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  serviceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+  },
+  serviceTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+    flex: 1,
+    paddingRight: 12,
+  },
+  servicePrice: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+  serviceBottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  serviceDate: {
+    fontSize: 13,
+    color: "#64748B",
+  },
+  statusBadge: {
+    backgroundColor: "#E6F7EC",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#276A45",
+  },
+  footerSection: {
+    marginBottom: 32,
+  },
+  footerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+    marginBottom: 12,
+  },
+  settingsCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 18,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+  },
+  settingsLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
+  },
+});
