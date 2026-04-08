@@ -39,7 +39,7 @@ export default function Avaliacao() {
   };
 
   const salvarAvaliacao = async () => {
-    if (!servico?.prestadorId || !servico?.clienteId) {
+    if (!servico?.clienteId) {
       Alert.alert("Erro", "Informacoes do servico incompletas");
       return;
     }
@@ -57,6 +57,27 @@ export default function Avaliacao() {
 
 // atualiza as informações do banco de dados incluindo a aval
     try {
+      let prestadorId = servico?.prestadorId;
+      const requestId = servico?.requestId || servico?.id;
+
+      if (!prestadorId && requestId) {
+        const snap = await firestore
+          .collectionGroup("ServicoStatus")
+          .where("requestId", "==", requestId)
+          .limit(1)
+          .get();
+
+        if (!snap.empty) {
+          const data = snap.docs[0].data() as any;
+          prestadorId = data.prestadorId;
+        }
+      }
+
+      if (!prestadorId) {
+        Alert.alert("Erro", "Nao foi possivel identificar o prestador");
+        return;
+      }
+
       const payload = {
         avaliacaoNota: nota,
         avaliacaoComentario: comentario,
@@ -67,17 +88,23 @@ export default function Avaliacao() {
 
       await firestore
         .collection("ServicosAgendados")
-        .doc(servico.prestadorId)
+        .doc(prestadorId)
         .collection("ServicoStatus")
         .doc(servico.id)
-        .update(payload);
+        .set(payload, { merge: true });
 
       await firestore
         .collection("ServicosClientes")
         .doc(servico.clienteId)
         .collection("ServicoStatus")
         .doc(servico.id)
-        .update(payload);
+        .set(
+          {
+            ...payload,
+            prestadorId,
+          },
+          { merge: true }
+        );
 
       Alert.alert("Sucesso", "Avaliacao registrada");
       navigation.goBack();

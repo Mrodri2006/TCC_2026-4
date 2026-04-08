@@ -24,7 +24,7 @@ export default function Register2() {
   const [loading, setLoading] = useState(false);
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosVisivel, setTermosVisivel] = useState(false);
-  const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', dataNascimento: '', termos: '' });
+  const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', localizacao: '', dataNascimento: '', termos: '' });
   const [admin, setAdmin] = useState<'nao' | 'sim'>('nao');
 
   const navigation = useNavigation<any>();
@@ -39,7 +39,7 @@ export default function Register2() {
   };
 
   const validarFormulario = () => {
-    let novoErros = { nome: '', email: '', senha: '', fone: '', dataNascimento: '', termos: '' };
+    let novoErros = { nome: '', email: '', senha: '', fone: '', localizacao: '', dataNascimento: '', termos: '' };
     let valido = true;
 
     if (!formUsuario.nome?.trim()) {
@@ -55,6 +55,9 @@ export default function Register2() {
     }
     if (!formUsuario.fone?.trim()) {
       novoErros.fone = 'Telefone é obrigatório'; valido = false;
+    }
+    if (!formUsuario.localizacao?.trim()) {
+      novoErros.localizacao = 'Localiza??o ? obrigat?ria'; valido = false;
     }
     if (!formUsuario.dataNascimento) {
       novoErros.dataNascimento = 'Data de nascimento é obrigatória'; valido = false;
@@ -81,6 +84,7 @@ export default function Register2() {
         nome: formUsuario.nome,
         email: formUsuario.email,
         fone: formUsuario.fone,
+        localizacao: formUsuario.localizacao,
         dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
         tipo: admin === 'sim' ? 'admin' : 'contratante',
         admin: admin === 'sim',
@@ -168,6 +172,15 @@ export default function Register2() {
                 mode="outlined"
                 keyboardType="phone-pad"
               />
+
+              <TextInput
+                label="Localização"
+                value={formUsuario.localizacao || ''}
+                onChangeText={(valor) => setFormUsuario({ ...formUsuario, localizacao: valor })}
+                style={styles.input}
+                mode="outlined"
+              />
+              {!!errors.localizacao && <Text style={styles.errorText}>{errors.localizacao}</Text>}
 
               <TouchableOpacity
                 style={[styles.input, styles.dateButton]}

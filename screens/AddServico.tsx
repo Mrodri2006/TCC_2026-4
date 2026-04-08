@@ -5,16 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Modal,
   TextInput,
   Image,
-} from "react-native";
-import { Camera } from "lucide-react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { useState, useEffect } from "react";
-import { auth, firestore, storage } from "../firebase";
+} from 'react-native';
+import { Camera, Trash2 } from 'lucide-react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useState, useEffect } from 'react';
+import { auth, firestore, storage } from '../firebase';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 
 export default function AddServico() {
   const navigation = useNavigation<any>();
@@ -33,7 +31,10 @@ export default function AddServico() {
     (async () => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para adicionar imagens.');
+        Alert.alert(
+          'Permissão necessária',
+          'Precisamos de acesso à galeria para você selecionar uma imagem.'
+        );
       }
     })();
   }, []);
@@ -43,9 +44,7 @@ export default function AddServico() {
 
     const estiloInicial = servico.estilo || servico.servico || '';
     const valorInicial =
-      servico.valor !== undefined && servico.valor !== null
-        ? String(servico.valor)
-        : '';
+      servico.valor !== undefined && servico.valor !== null ? String(servico.valor) : '';
     const imagemInicial =
       servico.imagem ||
       servico.imagemUrl ||
@@ -62,135 +61,141 @@ export default function AddServico() {
   }, [servico]);
 
   const selecionarImagem = async () => {
+    const mediaTypes =
+      ImagePicker?.MediaType?.Images ||
+      (ImagePicker as any)?.MediaTypeOptions?.Images ||
+      'Images';
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets.length > 0) {
       setImagem(result.assets[0].uri);
     }
+  };
+
+  const limparImagem = () => {
+    setImagem(null);
   };
 
   const uploadImagem = async (uri: string, prestId: string) => {
     const timestamp = Date.now();
     const caminho = `servicos/${prestId}/${timestamp}.jpg`;
-    
+
     try {
-      console.log('Verificando autenticação...');
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('Usuário não autenticado. Faça login primeiro.');
+      const response = await fetch(uri);
+      if (!response.ok) {
+        throw new Error(`Falha ao buscar imagem: ${response.status} ${response.statusText}`);
       }
-      console.log('Usuário autenticado:', user.uid);
-      
-      console.log('Iniciando upload de:', uri);
-      
-      // Ler arquivo como base64
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
-      });
-      
-      console.log('Base64 gerado, tamanho:', base64.length);
-      console.log('Caminho do upload:', caminho);
-      
+
+      const blob = await response.blob();
       const ref = storage.ref(caminho);
-      console.log('Referência criada. Fazendo upload...');
-      
-      await ref.putString(base64, 'base64', { contentType: 'image/jpeg' });
-      console.log('Upload concluído. Obtendo URL...');
-      
-      const downloadUrl = await ref.getDownloadURL();
-      console.log('Download URL obtida:', downloadUrl);
-      
-      return downloadUrl;
+      const metadata = { contentType: 'image/jpeg' };
+
+      await ref.put(blob, metadata);
+      return await ref.getDownloadURL();
     } catch (error) {
       const err: any = error;
-      console.error('Erro detalhado no upload:', {
+      console.error('Erro ao fazer upload da imagem:', {
         uri,
         message: err?.message,
         code: err?.code,
-        customMessage: err?.toString?.(),
+        name: err?.name,
+        stack: err?.stack,
       });
       throw error;
     }
   };
 
+  const validarCampos = () => {
+    if (!estilo.trim() || !valor.trim()) {
+      Alert.alert('Erro', 'Preencha todos os campos obrigatórios.');
+      return false;
+    }
+
+    const valorNumerico = Number(valor.replace(',', '.'));
+    if (Number.isNaN(valorNumerico) || valorNumerico <= 0) {
+      Alert.alert('Erro', 'Informe um valor válido maior que zero.');
+      return false;
+    }
+
+    return true;
+  };
+
   const salvarServico = async () => {
-    if (!estilo || !valor || !PrestId) {
-      Alert.alert('Erro', 'Preencha todos os campos obrigat?rios.');
+    if (!validarCampos()) {
+      return;
+    }
+
+    const prestadorId = PrestId || auth.currentUser?.uid;
+    if (!prestadorId) {
+      Alert.alert('Erro', 'Usuário não autenticado. Faça login novamente.');
       return;
     }
 
     setLoading(true);
+
     try {
       let imagemUrl: string | null = imagemOriginal;
 
       if (imagem && imagem !== imagemOriginal) {
-        if (imagem.startsWith('http')) {
-          imagemUrl = imagem;
-        } else {
-          imagemUrl = await uploadImagem(imagem, PrestId);
-        }
+        imagemUrl = imagem.startsWith('http') ? imagem : await uploadImagem(imagem, prestadorId);
       }
 
       const payload = {
-        estilo,
-        valor: parseFloat(valor),
+        estilo: estilo.trim(),
+        valor: Number(valor.replace(',', '.')),
         imagem: imagemUrl,
         imagemUrl,
       };
 
-      if (isEdit) {
-        await firestore
-          .collection('ServicosAdds')
-          .doc(PrestId)
-          .collection('ServicosOferecidos')
-          .doc(servicoId)
-          .set(
-            {
-              ...payload,
-              dataAtualizacao: new Date(),
-            },
-            { merge: true }
-          );
+      const servicoCollection = firestore
+        .collection('ServicosAdds')
+        .doc(prestadorId)
+        .collection('ServicosOferecidos');
 
-        Alert.alert('Sucesso', 'Servi?o atualizado com sucesso!');
-      } else {
-        await firestore
-          .collection('ServicosAdds')
-          .doc(PrestId)
-          .collection('ServicosOferecidos')
-          .add({
+      if (isEdit && servicoId) {
+        await servicoCollection.doc(servicoId).set(
+          {
             ...payload,
-            status: "Oferecido",
-            dataCriacao: new Date(),
-          });
-
-        Alert.alert('Sucessos', 'Servi?o adicionado com sucesso!');
+            dataAtualizacao: new Date(),
+          },
+          { merge: true }
+        );
+        Alert.alert('Sucesso', 'Serviço atualizado com sucesso!');
+      } else {
+        await servicoCollection.add({
+          ...payload,
+          status: 'Oferecido',
+          dataCriacao: new Date(),
+        });
+        Alert.alert('Sucesso', 'Serviço adicionado com sucesso!');
       }
+
       navigation.goBack();
     } catch (error) {
-      console.error('Erro ao salvar servi?o:', error);
-      Alert.alert('Erro', 'N?o foi poss?vel salvar o servi?o.');
+      console.error('Erro ao salvar serviço:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o serviço. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#000"}}>
-        {isEdit ? 'Editar Serviço' : 'Adicionar Serviço'}
-      </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>{isEdit ? 'Editar Serviço' : 'Adicionar Serviço'}</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Estilo do serviço (ex: Eletricista)"
         value={estilo}
         onChangeText={setEstilo}
+        placeholderTextColor="#999"
+        autoCapitalize="words"
       />
 
       <TextInput
@@ -199,22 +204,42 @@ export default function AddServico() {
         value={valor}
         onChangeText={setValor}
         keyboardType="numeric"
+        placeholderTextColor="#999"
       />
 
-      <TouchableOpacity style={styles.imageButton} onPress={selecionarImagem}>
-        <Camera size={24} color="#fff" />
-        <Text style={styles.imageButtonText}>Adicionar Imagem</Text>
-      </TouchableOpacity>
+      <View style={styles.imageRow}>
+        <TouchableOpacity style={styles.imageButton} onPress={selecionarImagem}>
+          <Camera size={20} color="#fff" />
+          <Text style={styles.imageButtonText}>
+            {imagem ? 'Alterar imagem' : 'Escolher imagem'}
+          </Text>
+        </TouchableOpacity>
 
-      {imagem && (
+        {imagem ? (
+          <TouchableOpacity style={styles.removeImageButton} onPress={limparImagem}>
+            <Trash2 size={20} color="#fff" />
+            <Text style={styles.imageButtonText}>Remover</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {imagem ? (
         <View style={styles.imagePreview}>
-          <Image source={{ uri: imagem }} style={styles.image} />
+          <Image source={{ uri: imagem }} style={styles.image} resizeMode="cover" />
+        </View>
+      ) : (
+        <View style={styles.placeholderBox}>
+          <Text style={styles.placeholderText}>Nenhuma imagem selecionada</Text>
         </View>
       )}
 
-      <TouchableOpacity style={styles.saveButton} onPress={salvarServico} disabled={loading}>
+      <TouchableOpacity
+        style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+        onPress={salvarServico}
+        disabled={loading}
+      >
         <Text style={styles.saveButtonText}>
-          {loading ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Serviço'}
+          {loading ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Salvar serviço'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -224,56 +249,92 @@ export default function AddServico() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
+  },
+  content: {
+    padding: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     marginBottom: 24,
-    textAlign: 'center',
-    color: '#333',
+    color: '#111',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 16,
     fontSize: 16,
+    color: '#111',
+    backgroundColor: '#fbfbfb',
+  },
+  imageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   imageButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1e90ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  removeImageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc2626',
+    paddingVertical: 14,
+    borderRadius: 10,
   },
   imageButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: 8,
+    fontWeight: '600',
+  },
+  placeholderBox: {
+    height: 150,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    backgroundColor: '#f8fafc',
+  },
+  placeholderText: {
+    color: '#6b7280',
+    fontSize: 15,
   },
   imagePreview: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   image: {
-    width: 200,
-    height: 150,
-    borderRadius: 8,
+    width: '100%',
+    height: 180,
+    borderRadius: 12,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: '#10b981',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
+  saveButtonDisabled: {
+    backgroundColor: '#6ee7b7',
+  },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

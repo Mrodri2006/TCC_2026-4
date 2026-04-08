@@ -81,7 +81,10 @@ export default function ServStatus() {
 
     return (
         <ImageBackground resizeMode='stretch' style={[styles.container, { backgroundColor: theme.background }]}>
-            <Text style={styles.title}>Histórico de Serviços</Text>
+            <View style={styles.headerCard}>
+                <Text style={styles.title}>Histórico de Serviços</Text>
+                <Text style={styles.subtitle}>Acompanhe os serviços finalizados</Text>
+            </View>
 
             {loading ? (
                 <View style={styles.loadingContainer}>
@@ -98,30 +101,31 @@ export default function ServStatus() {
                     keyExtractor={(item) => `${item.id}`}
                     renderItem={({ item }) => (
                         <View style={styles.card}>
-                            <Text style={styles.cardTitle}>
-                                {item.estilo || item.tipo}
-                            </Text>
-                            <Text style={styles.infoText}>
-                                📍 Local: {item.local}
-                            </Text>
-                            <Text style={styles.infoText}>
-                                📅 Data: {item.data}
-                            </Text>
-                            <Text style={styles.infoText}>
-                                Tipo: {item.tipo}
-                            </Text>
-
-                            <View style={styles.statusContainer}>
-                                <Text style={[
-                                    styles.statusText,
-                                    {
-                                        color: getStatusColor(item.status),
-                                        backgroundColor: getStatusColor(item.status) + '20',
-                                    }
-                                ]}>
-                                    {getStatusText(item.status)}
+                            <View style={styles.cardTopRow}>
+                                <Text style={styles.cardTitle}>
+                                    {item.estilo || item.tipo}
                                 </Text>
+                                <View
+                                    style={[
+                                        styles.statusBadge,
+                                        { backgroundColor: getStatusColor(item.status) + '22' },
+                                    ]}
+                                >
+                                    <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+                                        {getStatusText(item.status)}
+                                    </Text>
+                                </View>
                             </View>
+
+                            <Text style={styles.infoText}>
+                                Local: {item.local || "N?o informado"}
+                            </Text>
+                            <Text style={styles.infoText}>
+                                Data: {item.data || "N?o informada"}
+                            </Text>
+                            <Text style={styles.infoText}>
+                                Tipo: {item.tipo || "Servi?o"}
+                            </Text>
                         </View>
                     )}
                     scrollEnabled={true}
@@ -137,12 +141,27 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         padding: 16,
     },
+    headerCard: {
+        backgroundColor: "#E8F4FF",
+        borderRadius: 24,
+        padding: 18,
+        marginBottom: 20,
+        shadowColor: "#0F2937",
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
+    },
     title: {
-        fontSize: 18,
-        fontWeight: "700",
-        color: "#333",
-        marginBottom: 12,
-        marginTop: 10,
+        fontSize: 20,
+        fontWeight: "800",
+        color: "#0F2937",
+        marginBottom: 6,
+    },
+    subtitle: {
+        fontSize: 13,
+        color: "#64748B",
+        fontWeight: "500",
     },
     loadingContainer: {
         justifyContent: "center",
@@ -151,7 +170,7 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: 14,
-        color: "#666",
+        color: "#64748B",
         marginTop: 12,
     },
     emptyContainer: {
@@ -159,38 +178,51 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     emptyText: {
-        fontSize: 16,
-        color: "#999",
+        fontSize: 15,
+        color: "#64748B",
         fontWeight: "600",
     },
     card: {
-        backgroundColor: "#f9f9f9",
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 15,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
         marginBottom: 12,
+        shadowColor: "#0F2937",
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 3,
         borderLeftWidth: 4,
-        borderLeftColor: "#005362",
+        borderLeftColor: "#2563EB",
+    },
+    cardTopRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+        gap: 10,
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: "700",
-        color: "#333",
-        marginBottom: 6,
+        color: "#0F2937",
+        flex: 1,
     },
     infoText: {
-        fontSize: 14,
-        color: "#666",
+        fontSize: 13,
+        color: "#64748B",
         marginTop: 4,
     },
-    statusContainer: {
-        marginTop: 10,
+    statusBadge: {
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
     },
     statusText: {
         fontWeight: "700",
-        fontSize: 16,
-        padding: 8,
-        borderRadius: 5,
-        textAlign: "center",
+        fontSize: 12,
     },
 });

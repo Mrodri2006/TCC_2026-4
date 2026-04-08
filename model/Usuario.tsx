@@ -4,6 +4,7 @@ export class Usuario {
     public email:   string;
     public senha:   string;
     public fone:    string;
+    public localizacao: string;
     public datanascimento: Date;   
     public admin:   boolean;
 
@@ -14,6 +15,7 @@ export class Usuario {
             this.email  = obj.email
             this.senha  = obj.senha
             this.fone   = obj.fone
+            this.localizacao = obj.localizacao
             this.datanascimento   = obj.datanascimento
             this.admin  = obj.admin
         }
@@ -26,6 +28,7 @@ export class Usuario {
             "email" :   "${this.email}",
             "senha" :   "${this.senha}",
             "fone"  :   "${this.fone}",
+            "localizacao"  :   "${this.localizacao}",
             "datanascimento"  :   "${this.datanascimento}",
             "admin" :   "${this.admin}"
         }`
@@ -39,6 +42,7 @@ export class Usuario {
             email   : this.email,
             senha   : this.senha,
             fone    : this.fone,
+            localizacao : this.localizacao,
             datanascimento    : this.datanascimento,
             admin   : this.admin
         }

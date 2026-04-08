@@ -116,7 +116,7 @@ export default function Register() {
 
   const registrar = async () => {
 
-    if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento) {
+    if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento || !formUsuario.localizacao) {
       alert("Preencha todos os campos!");
       return;
     }
@@ -146,6 +146,7 @@ export default function Register() {
           nome: formUsuario.nome,
           email: formUsuario.email,
           fone: formUsuario.fone,
+          localizacao: formUsuario.localizacao,
           dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
           tipo: 'prestador',
           admin: false,
@@ -246,6 +247,16 @@ export default function Register() {
               style={styles.input}
               mode='outlined'
               keyboardType='phone-pad'
+            />
+
+            <TextInput
+              label='Localização'
+              value={formUsuario.localizacao || ''}
+              onChangeText={(valor) =>
+                setFormUsuario({ ...formUsuario, localizacao: valor })
+              }
+              style={styles.input}
+              mode='outlined'
             />
 
             <TouchableOpacity

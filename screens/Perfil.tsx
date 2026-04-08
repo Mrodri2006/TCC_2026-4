@@ -7,19 +7,16 @@ import React from "react";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function Perfil() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const [usuario, setUsuario] = useState({
     nome: "",
     email: "",
     telefone: "",
     localizacao: "São Paulo, SP",
-    historico: [
-      { id: 1, servico: "Reparo Elétrico", data: "20/11/2024", status: "Concluído", valor: "R$ 150" },
-      { id: 2, servico: "Desentupimento", data: "15/11/2024", status: "Concluído", valor: "R$ 200" },
-      { id: 3, servico: "Instalação Luminária", data: "10/11/2024", status: "Concluído", valor: "R$ 120" },
-    ],
   });
+  const [historico, setHistorico] = useState<any[]>([]);
+  const [mostrarTodos, setMostrarTodos] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,6 +41,54 @@ export default function Perfil() {
                 email: usuarioAutenticado.email || "",
               }));
             }
+
+            const servicosSnap = await firestore
+              .collection("ServicosClientes")
+              .doc(usuarioAutenticado.uid)
+              .collection("ServicoStatus")
+              .where("status", "==", "realizado")
+              .get();
+
+            const formatDate = (value: any) => {
+              if (!value) return "Data não informada";
+              if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString("pt-BR");
+              if (value instanceof Date) return value.toLocaleDateString("pt-BR");
+              return String(value);
+            };
+
+            const getTimestamp = (value: any) => {
+              if (!value) return 0;
+              if (value?.seconds) return value.seconds * 1000;
+              if (value instanceof Date) return value.getTime();
+              if (typeof value === "number") return value;
+              const parsed = Date.parse(String(value));
+              return Number.isNaN(parsed) ? 0 : parsed;
+            };
+
+            const listaHistorico = servicosSnap.docs
+              .map((doc) => {
+                const data = doc.data();
+                const dataFinalizado =
+                  data.dataFinalizado || data.data || data.dataSolicitacao;
+                return {
+                  id: doc.id,
+                  servico: data.titulo || data.estilo || data.tipo || "Serviço",
+                  data:
+                    formatDate(data.dataFinalizado) ||
+                    formatDate(data.data) ||
+                    formatDate(data.dataSolicitacao) ||
+                    "Data não informada",
+                  status: data.status || "realizado",
+                  valor:
+                    data.valor !== undefined && data.valor !== null
+                      ? `R$ ${Number(data.valor).toFixed(2)}`
+                      : "R$ 0",
+                  timestamp: getTimestamp(dataFinalizado),
+                };
+              })
+              .sort((a, b) => b.timestamp - a.timestamp);
+
+            setHistorico(listaHistorico);
           }
         } catch (erro) {
           console.log("Erro ao carregar dados do usuário:", erro);
@@ -143,10 +188,10 @@ export default function Perfil() {
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionHeading}>Serviços Solicitados</Text>
-          <Text style={styles.sectionMeta}>{usuario.historico.length} itens</Text>
+          <Text style={styles.sectionMeta}>{historico.length} itens</Text>
         </View>
 
-        {usuario.historico.map((item) => (
+        {historico.slice(0, mostrarTodos ? historico.length : 4).map((item) => (
           <View key={item.id} style={styles.serviceCard}>
             <View style={styles.serviceTopRow}>
               <Text style={styles.serviceTitle}>{item.servico}</Text>
@@ -160,6 +205,19 @@ export default function Perfil() {
             </View>
           </View>
         ))}
+
+        {historico.length > 4 && (
+          <TouchableOpacity
+            style={styles.viewMoreButton}
+            onPress={() => setMostrarTodos((prev) => !prev)}
+          >
+            <Text style={styles.viewMoreButtonText}>
+              {mostrarTodos
+                ? "Ver menos serviços"
+                : `Ver mais ${historico.length - 4} serviços`}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.footerSection}>
@@ -227,6 +285,18 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "800",
     color: "#0F2937",
+  },
+  viewMoreButton: {
+    marginTop: 12,
+    backgroundColor: "#2563EB",
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  viewMoreButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
   profileName: {
     fontSize: 24,
@@ -349,7 +419,7 @@ const styles = StyleSheet.create({
     color: "#276A45",
   },
   footerSection: {
-    marginBottom: 32,
+    marginBottom: 80,
   },
   footerTitle: {
     fontSize: 15,

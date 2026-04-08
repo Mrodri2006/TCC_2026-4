@@ -28,13 +28,14 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [localSolicitacao, setLocalSolicitacao] = useState("");
   const [descricaoSolicitacao, setDescricaoSolicitacao] = useState("");
   const [enviandoSolicitacao, setEnviandoSolicitacao] = useState(false);
-
-  const unsubscribeAceitosRef = useRef<any>(null);
+  const [userName, setUserName] = useState("");
+  const unsubscribeAceitosRef = useRef<null | (() => void)>(null);
 
   useFocusEffect(
     useCallback(() => {
       buscarDadosFirebase();
       carregarServicosAceitos();
+      fetchUserName();
       return () => {
         if (unsubscribeAceitosRef.current) {
           unsubscribeAceitosRef.current();
@@ -42,6 +43,24 @@ export default function TelaInicialCliente({ onLogout }: any) {
       };
     }, [])
   );
+
+  const fetchUserName = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const userDoc = await firestore.collection("Usuario").doc(user.uid).get();
+        if (userDoc.exists) {
+          const data = userDoc.data();
+          setUserName(data?.nome || user.email || "Usuário");
+        } else {
+          setUserName(user.email || "Usuário");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar nome do usuário:", error);
+        setUserName(user.email || "Usuário");
+      }
+    }
+  };
 
   const buscarDadosFirebase = async () => {
     setCarregando(true);
@@ -139,13 +158,13 @@ export default function TelaInicialCliente({ onLogout }: any) {
         (snapshot) => {
           const lista = snapshot.docs
             .map((doc) => {
-              const data = doc.data();
+              const data = doc.data() as any;
               return {
                 ...data,
                 id: doc.id,
               };
             });
-          const aceitos = lista.filter((item) => item.status === "a fazer" || item.status === "aceito");
+          const aceitos = lista.filter((item: any) => item.status === "a fazer" || item.status === "aceito");
           setServicosAceitos(aceitos);
           setCarregandoAceitos(false);
         },
@@ -223,7 +242,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
           .collection("ServicoStatus")
           .doc(requestId);
 
-        const novoServico = {
+        const novoServicoPrestador = {
           id: docRef.id,
           requestId: requestId,
           origem: "area",
@@ -240,16 +259,35 @@ export default function TelaInicialCliente({ onLogout }: any) {
           prestadorId: prestadorId,
         };
 
-        promises.push(docRef.set(novoServico));
-        promises.push(
-          firestore
-            .collection("ServicosClientes")
-            .doc(clienteId)
-            .collection("ServicoStatus")
-            .doc(novoServico.id)
-            .set(novoServico)
-        );
+        promises.push(docRef.set(novoServicoPrestador));
       });
+
+      const novoServicoCliente = {
+        id: requestId,
+        requestId: requestId,
+        origem: "area",
+        estilo: areaSelecionada,
+        tipo: areaSelecionada,
+        data: dataSolicitacao,
+        local: localSolicitacao,
+        descricao: descricaoSolicitacao,
+        status: "aguardando",
+        clienteId: clienteId,
+        nomeCliente: clienteNome || auth.currentUser?.email || "Cliente",
+        dataSolicitacao: agora,
+        criadoEm: agora,
+        prestadorId: null,
+        prestadoresIds,
+      };
+
+      promises.push(
+        firestore
+          .collection("ServicosClientes")
+          .doc(clienteId)
+          .collection("ServicoStatus")
+          .doc(requestId)
+          .set(novoServicoCliente)
+      );
 
       promises.push(
         firestore.collection("SolicitacoesArea").doc(requestId).set({
@@ -340,12 +378,10 @@ export default function TelaInicialCliente({ onLogout }: any) {
         {abaAtiva === "inicio" ? (
           <>
             <View style={styles.header}>
-              <Text style={styles.titulo}>Olá!</Text>
-              <View style={styles.headerButtons}>
-                <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Perfil")}>
-                  <User size={24} />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.titulo}>Olá, {userName}!</Text>
+              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Perfil")}>
+                <User size={24} />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.searchBox}>
@@ -666,53 +702,64 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: "#E8F4FF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
   titulo: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#333",
-  },
-
-  headerButtons: {
-    flexDirection: "row",
-    gap: 12,
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0F2937",
+    flex: 1,
   },
 
   iconButton: {
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: "#f1f1f1",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.08)",
+    marginLeft: 1,
   },
 
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eee",
-    padding: 12,
-    borderRadius: 16,
-    marginVertical: 16,
+    backgroundColor: "#F3F7FB",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 18,
+    marginVertical: 18,
   },
 
   searchInput: {
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
+    color: "#0F2937",
   },
 
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F2937",
+    marginBottom: 12,
   },
 
   solicitarAreaButton: {
-    backgroundColor: "#005362",
-    borderRadius: 14,
-    padding: 16,
+    backgroundColor: "#2563EB",
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 16,
   },
 
@@ -720,13 +767,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 6,
   },
 
   solicitarAreaSub: {
-    color: "#dff3f6",
+    color: "#DDEEFF",
     fontSize: 13,
     fontWeight: "500",
+    lineHeight: 18,
   },
 
   grid: {
@@ -737,42 +785,57 @@ const styles = StyleSheet.create({
 
   card: {
     width: "48%",
-    padding: 16,
-    backgroundColor: "#fafafa",
-    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
     alignItems: "center",
     marginBottom: 12,
-    elevation: 2,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
   iconCenter: {
-    marginBottom: 8,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "#E7F3FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
   },
 
   cardText: {
     fontSize: 15,
-    fontWeight: "500",
-    color: "#333",
+    fontWeight: "700",
+    color: "#0F2937",
+    textAlign: "center",
   },
 
   recomendadoCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f7f7f7",
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
-    elevation: 2,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#527954",
+    borderLeftColor: "#2563EB",
   },
 
   avatarRecomendado: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#527954",
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -786,96 +849,100 @@ const styles = StyleSheet.create({
 
   nomeProf: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "700",
+    color: "#0F2937",
   },
 
   profissaoBadge: {
     marginTop: 6,
-    backgroundColor: "#527954",
-    paddingVertical: 4,
+    backgroundColor: "#DDEEFF",
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: 10,
     alignSelf: "flex-start",
   },
 
   profissaoTexto: {
-    color: "#fff",
+    color: "#2563EB",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   infoLinha: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
-    gap: 6,
+    marginTop: 10,
   },
 
   infoTxt: {
     fontSize: 13,
-    color: "#666",
-    fontWeight: "500",
+    color: "#64748B",
+    marginLeft: 8,
   },
 
   botaoChamar: {
-    backgroundColor: "#527954",
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
+    backgroundColor: "#2563EB",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     alignSelf: "center",
-    elevation: 3,
+    elevation: 2,
   },
 
   botaoTxt: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   nenhumResultado: {
-    fontSize: 16,
-    color: "#999",
+    fontSize: 15,
+    color: "#64748B",
     textAlign: "center",
-    marginVertical: 20,
+    marginVertical: 24,
   },
 
   carregandoContainer: {
     justifyContent: "center",
     alignItems: "center",
-    marginVertical: 40,
+    marginVertical: 36,
   },
 
   carregandoTexto: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     marginTop: 12,
   },
 
   badgeContainer: {
-    marginTop: 8,
-    backgroundColor: "#000",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    marginTop: 10,
+    backgroundColor: "#2563EB",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 14,
     alignSelf: "center",
   },
 
   badgeTexto: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   sectionButtonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f0f8fa",
-    borderRadius: 14,
-    padding: 16,
-    marginVertical: 20,
+    backgroundColor: "#E8F4FF",
+    borderRadius: 20,
+    padding: 18,
+    marginVertical: 18,
     borderLeftWidth: 4,
-    borderLeftColor: "#005362",
+    borderLeftColor: "#2563EB",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
   sectionButtonContent: {
@@ -885,108 +952,120 @@ const styles = StyleSheet.create({
   sectionButtonTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#005362",
+    color: "#0F2937",
     marginBottom: 4,
   },
 
   sectionButtonSubtitle: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
     fontWeight: "500",
   },
 
   sectionButtonArrow: {
     fontSize: 24,
-    color: "#005362",
-    fontWeight: "600",
+    color: "#2563EB",
+    fontWeight: "700",
     marginLeft: 12,
   },
 
   servicosAceitosList: {
-    marginBottom: 8,
+    marginBottom: 12,
   },
 
   servicoAceitoCard: {
-    backgroundColor: "#f7fbff",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#1e90ff",
+    borderLeftColor: "#2563EB",
   },
 
   servicoAceitoTitulo: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#333",
-    marginBottom: 4,
+    color: "#0F2937",
+    marginBottom: 6,
   },
 
   servicoAceitoInfo: {
     fontSize: 13,
-    color: "#666",
-    marginBottom: 6,
+    color: "#64748B",
+    marginBottom: 8,
   },
 
   servicoAceitoAcoes: {
     fontSize: 12,
-    color: "#1e90ff",
-    fontWeight: "600",
+    color: "#2563EB",
+    fontWeight: "700",
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
+    padding: 20,
   },
 
   modalContainer: {
     width: "100%",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 22,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
   },
 
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#333",
-    marginBottom: 8,
+    color: "#0F2937",
+    marginBottom: 10,
   },
 
   modalServicoTitulo: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#005362",
-    marginBottom: 4,
+    fontWeight: "700",
+    color: "#2563EB",
+    marginBottom: 6,
   },
 
   modalInfo: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
     marginBottom: 14,
   },
 
   modalInputContainer: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
 
   modalLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 6,
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 8,
   },
 
   modalInput: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    padding: 10,
+    backgroundColor: "#F5F8FC",
+    borderRadius: 16,
+    padding: 14,
     minHeight: 70,
     textAlignVertical: "top",
-    fontSize: 13,
-    color: "#333",
+    fontSize: 14,
+    color: "#0F2937",
+    borderWidth: 1,
+    borderColor: "#E8F4FF",
   },
 
   modalInputLong: {
@@ -994,55 +1073,55 @@ const styles = StyleSheet.create({
   },
 
   pickerContainer: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    marginBottom: 12,
+    backgroundColor: "#F5F8FC",
+    borderRadius: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "#E8F4FF",
   },
 
   modalButtonsRow: {
-    marginTop: 6,
+    marginTop: 10,
   },
 
   modalProblemButton: {
-    backgroundColor: "#FFC107",
-    paddingVertical: 12,
-    borderRadius: 10,
+    backgroundColor: "#FBBF24",
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
   },
 
   modalProblemText: {
-    color: "#333",
+    color: "#0F2937",
     fontWeight: "700",
     fontSize: 14,
   },
 
   modalFinishButton: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 12,
-    borderRadius: 10,
+    backgroundColor: "#10B981",
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
   },
 
   modalFinishText: {
-    color: "#fff",
+    color: "#ffffff",
     fontWeight: "700",
     fontSize: 14,
   },
 
   modalCloseButton: {
-    marginTop: 10,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#eee",
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: "#F3F7FB",
     alignItems: "center",
   },
 
   modalCloseText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#64748B",
   },
 
   botaoDesabilitado: {
@@ -1052,9 +1131,9 @@ const styles = StyleSheet.create({
   searchBoxPrestadores: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eee",
-    padding: 12,
-    borderRadius: 16,
+    backgroundColor: "#F3F7FB",
+    padding: 14,
+    borderRadius: 18,
     marginBottom: 16,
   },
 
@@ -1065,20 +1144,24 @@ const styles = StyleSheet.create({
   prestadorCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
-    elevation: 2,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#005362",
+    borderLeftColor: "#2563EB",
   },
 
   prestadorAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#005362",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -1096,78 +1179,77 @@ const styles = StyleSheet.create({
 
   prestadorNome: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 2,
+    fontWeight: "700",
+    color: "#0F2937",
+    marginBottom: 4,
   },
 
   prestadorProfissao: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
     marginBottom: 6,
   },
 
   prestadorRating: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
 
   prestadorEstrela: {
     fontSize: 12,
-    color: "#FFD700",
-    fontWeight: "600",
+    color: "#F59E0B",
+    fontWeight: "700",
   },
 
   prestadorDistancia: {
     fontSize: 12,
-    color: "#666",
+    color: "#64748B",
   },
 
   bottomTabsContainer: {
     flexDirection: "row",
     backgroundColor: "#fff",
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: "#E5E7EB",
     elevation: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    paddingBottom: 36,
+    paddingBottom: 20,
   },
 
   bottomTab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
     backgroundColor: "#fff",
   },
 
   bottomTabActive: {
     borderTopWidth: 3,
-    borderTopColor: "#005362",
-    backgroundColor: "#f5f5f5",
+    borderTopColor: "#2563EB",
+    backgroundColor: "#F3F7FB",
   },
 
   bottomTabIcon: {
-    fontSize: 24,
+    fontSize: 22,
     marginBottom: 4,
   },
 
   bottomTabIconActive: {
-    fontSize: 26,
+    fontSize: 24,
   },
 
   bottomTabLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "500",
-    color: "#666",
+    color: "#64748B",
   },
 
   bottomTabLabelActive: {
-    color: "#005362",
+    color: "#2563EB",
     fontWeight: "700",
     fontSize: 12,
   },

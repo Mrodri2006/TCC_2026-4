@@ -120,6 +120,7 @@ export default function HomeTrabalhador() {
             {
               status: "a fazer",
               dataAceito: new Date(),
+              prestadorId: usuarioId,
             },
             { merge: true }
           );

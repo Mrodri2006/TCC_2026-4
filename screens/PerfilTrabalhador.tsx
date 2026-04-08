@@ -47,6 +47,7 @@ export default function PerfilTrabalhador() {
                 email: usuarioAutenticado.email || "",
                 telefone: dados.fone || "",
                 profissao: dados.profissao || "",
+                localizacao: dados.localizacao || prevState.localizacao,
                 fotoPerfil: dados.fotoPerfil || dados.foto || "",
               }));
             }
@@ -361,7 +362,7 @@ export default function PerfilTrabalhador() {
 
       <View style={localStyles.sectionBlock}>
         <View style={localStyles.sectionHeaderRow}>
-          <Text style={localStyles.sectionTitle}>Serviços com preço</Text>
+          <Text style={localStyles.sectionTitle}>Serviços feitos</Text>
           <Text style={localStyles.sectionMeta}>{historico.length}</Text>
         </View>
         {historico.length > 0 ? (
@@ -373,7 +374,9 @@ export default function PerfilTrabalhador() {
               <View style={localStyles.offerContent}>
                 <View style={localStyles.offerTopRow}>
                   <Text style={localStyles.offerTitle}>{item.servico || "Serviço"}</Text>
-                  <Text style={localStyles.offerPrice}>R$ {item.valor}</Text>
+                  <Text style={localStyles.offerPrice}>
+                    R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : item.valor}
+                  </Text>
                 </View>
                 <View style={localStyles.offerBottomRow}>
                   <Text style={localStyles.offerDate}>{item.data}</Text>
@@ -381,6 +384,22 @@ export default function PerfilTrabalhador() {
                     <Text style={localStyles.offerStatusText}>{item.status || "Oferecido"}</Text>
                   </View>
                 </View>
+                <TouchableOpacity
+                  style={localStyles.editServiceButton}
+                  onPress={() =>
+                    (navigation as any).navigate("AddServico", {
+                      PrestId: auth.currentUser?.uid,
+                      servicoId: item.id,
+                      servico: {
+                        estilo: item.servico,
+                        valor: item.valor,
+                        imagem: item.imagem,
+                      },
+                    })
+                  }
+                >
+                  <Text style={localStyles.editServiceButtonText}>Editar</Text>
+                </TouchableOpacity>
               </View>
             </View>
           ))
@@ -648,6 +667,19 @@ const localStyles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
+  },
+  editServiceButton: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: "#2563EB",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  editServiceButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
   offerStatusText: {
     color: "#276A45",
