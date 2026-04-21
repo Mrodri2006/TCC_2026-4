@@ -259,27 +259,28 @@ export default function HomeTrabalhador() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => (navigation as any).navigate("PerfilTrabalhador")}
-        >
-          <User size={24} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => (navigation as any).navigate("PerfilTrabalhador")}
+          >
+            <User size={24} />
+          </TouchableOpacity>
 
-        <View>
-        <TouchableOpacity
-         style={styles.iconButton}
-         onPress={() => (navigation as any).navigate("ServicosAgendados")}> 
-        <Calendar size={24} />
-       </TouchableOpacity>
-      </View>
-      </View>
+          <TouchableOpacity
+            style={[styles.iconButton, styles.iconButtonSpacing]}
+            onPress={() => (navigation as any).navigate("ServicosAgendados")}
+          >
+            <Calendar size={24} />
+          </TouchableOpacity>
+        </View>
+       </View>
 
       <Text style={styles.sectionTitle}>Serviços Solicitados</Text>
 
       {carregando ? (
         <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#005362" />
+          <ActivityIndicator size="large" color="#2563EB" />
           <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
         </View>
       ) : servicosSolicitados.length > 0 ? (
@@ -300,12 +301,12 @@ export default function HomeTrabalhador() {
               </View>
 
               <View style={styles.row}>
-                <MapPin size={18} color="#005362" />
+                <MapPin size={18} color="#0F2937" />
                 <Text style={styles.infoText}>{item.local}</Text>
               </View>
 
               <View style={styles.row}>
-                <Clock size={18} color="#005362" />
+                <Clock size={18} color="#0F2937" />
                 <Text style={styles.infoText}>{item.data}</Text>
               </View>
 
@@ -408,7 +409,6 @@ export default function HomeTrabalhador() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     padding: 16,
   },
 
@@ -416,7 +416,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    backgroundColor: "#E8F4FF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
 
   headerLeft: {
@@ -424,11 +432,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  iconButtonSpacing: {
+    marginLeft: 10,
+  },
+
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#005362",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -442,49 +459,56 @@ const styles = StyleSheet.create({
 
   hello: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "800",
+    color: "#0F2937",
   },
 
   welcome: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     marginTop: 2,
   },
 
   iconButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-    flexDirection: "row",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.08)",
   },
 
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#333",
+    color: "#0F2937",
     marginBottom: 12,
   },
 
   carregandoContainer: {
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40,
+    marginVertical: 36,
   },
 
   carregandoTexto: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     marginTop: 12,
   },
 
   card: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#005362",
+    borderLeftColor: "#2563EB",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
   cardHeader: {
@@ -497,7 +521,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#333",
+    color: "#0F2937",
     flex: 1,
   },
 
@@ -522,41 +546,41 @@ const styles = StyleSheet.create({
 
   infoText: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     marginLeft: 8,
   },
 
   descricaoContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 12,
     marginVertical: 10,
     borderLeftWidth: 3,
-    borderLeftColor: "#FFC107",
+    borderLeftColor: "#F59E0B",
   },
 
   descricaoTexto: {
     fontSize: 13,
-    color: "#555",
+    color: "#475569",
     fontStyle: "italic",
   },
 
   clienteInfo: {
-    backgroundColor: "#e8f4f8",
-    borderRadius: 8,
-    padding: 10,
+    backgroundColor: "rgba(37, 99, 235, 0.08)",
+    borderRadius: 14,
+    padding: 12,
     marginVertical: 10,
   },
 
   clienteLabel: {
     fontSize: 12,
-    color: "#666",
+    color: "#64748B",
     fontWeight: "600",
   },
 
   clienteNome: {
     fontSize: 14,
-    color: "#005362",
+    color: "#1D4ED8",
     fontWeight: "700",
     marginTop: 4,
   },
@@ -568,9 +592,9 @@ const styles = StyleSheet.create({
 
   acceptButton: {
     flex: 1,
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#2563EB",
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     flexDirection: "row",
@@ -586,19 +610,19 @@ const styles = StyleSheet.create({
 
   rejectButton: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#F44336",
+    borderColor: "rgba(15, 41, 55, 0.12)",
     flexDirection: "row",
     marginLeft: 5,
   },
 
   rejectText: {
-    color: "#F44336",
+    color: "#0F2937",
     fontWeight: "600",
     fontSize: 14,
     marginLeft: 6,
@@ -611,8 +635,8 @@ const styles = StyleSheet.create({
 
   nenhumTexto: {
     fontSize: 16,
-    color: "#999",
-    fontWeight: "600",
+    color: "#64748B",
+    fontWeight: "700",
     marginBottom: 8,
   },
 
@@ -622,12 +646,12 @@ const styles = StyleSheet.create({
   },
 
   addServiceButton: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginVertical: 20,
   },
 
@@ -640,17 +664,22 @@ const styles = StyleSheet.create({
 
   alertOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.7)",
+    backgroundColor: "rgba(15, 41, 55, 0.65)",
     justifyContent: "center",
     alignItems: "center",
   },
 
   alertContainer: {
     backgroundColor: "#fff",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     alignItems: "center",
     width: "85%",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
   },
 
   alertIconContainer: {
@@ -660,23 +689,23 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#333",
+    color: "#0F2937",
     marginBottom: 8,
     textAlign: "center",
   },
 
   alertMessage: {
     fontSize: 14,
-    color: "#666",
+    color: "#64748B",
     marginBottom: 20,
     textAlign: "center",
   },
 
   closeButton: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     paddingVertical: 12,
     paddingHorizontal: 32,
-    borderRadius: 8,
+    borderRadius: 16,
   },
 
   closeButtonText: {
@@ -685,10 +714,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   openButton: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     paddingVertical: 12,
     paddingHorizontal: 32,
-    borderRadius: 8,
+    borderRadius: 16,
   },
   openButtonText: {
     color: "#fff",

@@ -1,8 +1,17 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { ArrowLeft } from "lucide-react-native";
 
 export default function Avaliacao() {
   const navigation = useNavigation() as any;
@@ -115,8 +124,19 @@ export default function Avaliacao() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Text style={styles.title}>Avaliar Servico</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={24} color="#0c0c0c" />
+        </TouchableOpacity>
+
+        <Text style={styles.titulo}>Avaliar Serviço</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.servicoTitulo}>
@@ -127,106 +147,179 @@ export default function Avaliacao() {
         </Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Nota</Text>
-        <View style={styles.estrelasRow}>
-          {[1, 2, 3, 4, 5].map((valor) => {
-            const ativa = valor <= nota;
-            return (
-              <TouchableOpacity
-                key={valor}
-                style={styles.estrelaBotao}
-                onPress={() => setNota(valor)}
-                accessibilityRole="button"
-                accessibilityLabel={`Definir nota ${valor}`}
-              >
-                <Text style={[styles.estrela, ativa ? styles.estrelaAtiva : styles.estrelaInativa]}>
-                  {ativa ? "★" : "☆"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      <View style={styles.formCard}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Nota</Text>
+          <View style={styles.estrelasRow}>
+            {[1, 2, 3, 4, 5].map((valor) => {
+              const ativa = valor <= nota;
+              return (
+                <TouchableOpacity
+                  key={valor}
+                  style={styles.estrelaBotao}
+                  onPress={() => setNota(valor)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Definir nota ${valor}`}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.estrela,
+                      ativa ? styles.estrelaAtiva : styles.estrelaInativa,
+                    ]}
+                  >
+                    {ativa ? "★" : "☆"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {nota > 0 ? <Text style={styles.notaTexto}>Sua nota: {nota}</Text> : null}
         </View>
-        {nota > 0 ? <Text style={styles.notaTexto}>Sua nota: {nota}</Text> : null}
+
+        {/* 💬 NOVO CAMPO DE COMENTÁRIO */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Comentário (opcional)</Text>
+          <TextInput
+            style={[styles.input, styles.inputLongo]}
+            placeholder="Digite seu comentário..."
+            placeholderTextColor="#94A3B8"
+            value={comentario}
+            onChangeText={(text) => {
+              setComentario(text);
+              if (text.trim().length > 0 && contemPalavraProibida(text)) {
+                setComentarioError("Seu comentário contém palavras proibidas");
+              } else {
+                setComentarioError("");
+              }
+            }}
+            multiline
+            numberOfLines={4}
+          />
+          {comentarioError ? (
+            <Text style={styles.errorText}>{comentarioError}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.botoes}>
+          <TouchableOpacity
+            style={[styles.botao, styles.botaoCancelar]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.botaoTexto}>Cancelar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.botao, styles.botaoConfirmar]}
+            onPress={salvarAvaliacao}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.botaoTexto, styles.botaoTextoConfirmar]}>
+              Salvar Avaliação
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* 💬 NOVO CAMPO DE COMENTÁRIO */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Comentário (opcional)</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="Digite seu comentário..."
-          placeholderTextColor="#999"
-          value={comentario}
-          onChangeText={(text) => {
-            setComentario(text);
-            if (text.trim().length > 0 && contemPalavraProibida(text)) {
-              setComentarioError("Seu comentário contém palavras proibidas");
-            } else {
-              setComentarioError("");
-            }
-          }}
-          multiline
-        />
-        {comentarioError ? <Text style={styles.errorText}>{comentarioError}</Text> : null}
-      </View>
-
-      <TouchableOpacity style={styles.salvarButton} onPress={salvarAvaliacao}>
-        <Text style={styles.salvarButtonText}>Salvar Avaliacao</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.cancelarButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.cancelarButtonText}>Cancelar</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={{ height: 24 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     padding: 16,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#333",
-    marginTop: 40,
-    marginBottom: 12,
+
+  header: {
+    backgroundColor: "#E8F4FF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.08)",
+  },
+
+  titulo: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F2937",
+    flex: 1,
+    textAlign: "center",
   },
   card: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#005362",
+    borderLeftColor: "#2563EB",
     marginBottom: 16,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   servicoTitulo: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#333",
+    fontWeight: "800",
+    color: "#0F2937",
     marginBottom: 6,
   },
   servicoInfo: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
   },
+
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
+  },
+
   inputContainer: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 8,
   },
   input: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    padding: 10,
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.12)",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 12,
     fontSize: 14,
-    color: "#333",
+    color: "#0F2937",
+  },
+  inputLongo: {
+    minHeight: 100,
+    textAlignVertical: "top",
+    paddingTop: 12,
   },
   estrelasRow: {
     flexDirection: "row",
@@ -240,42 +333,55 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   estrelaAtiva: {
-    color: "#f5b301",
+    color: "#F59E0B",
   },
   estrelaInativa: {
-    color: "#c9c9c9",
+    color: "#CBD5E1",
   },
   notaTexto: {
     marginTop: 6,
     fontSize: 12,
-    color: "#666",
+    color: "#64748B",
+    fontWeight: "700",
   },
   errorText: {
-    color: "red",
+    color: "#EF4444",
     fontSize: 12,
-    marginTop: 4,
-  },
-  salvarButton: {
-    backgroundColor: "#005362",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  salvarButtonText: {
-    color: "#fff",
+    marginTop: 8,
     fontWeight: "700",
-    fontSize: 14,
   },
-  cancelarButton: {
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#eee",
+
+  botoes: {
+    flexDirection: "row",
+    marginTop: 8,
+  },
+
+  botao: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 16,
+    justifyContent: "center",
     alignItems: "center",
   },
-  cancelarButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
+
+  botaoCancelar: {
+    marginRight: 12,
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.12)",
+  },
+
+  botaoConfirmar: {
+    backgroundColor: "#2563EB",
+  },
+
+  botaoTexto: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F2937",
+  },
+
+  botaoTextoConfirmar: {
+    color: "#fff",
   },
 });

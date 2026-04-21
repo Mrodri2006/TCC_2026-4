@@ -4,7 +4,6 @@ import { ArrowLeft, Calendar, MapPin, FileText } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
 import { firestore, auth } from "../firebase";
-import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function SolicitarServico() {
@@ -90,7 +89,7 @@ export default function SolicitarServico() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={24} color="#005362" />
+          <ArrowLeft size={24} color="#0c0c0c" />
         </TouchableOpacity>
         <Text style={estilos.titulo}>Solicitar Serviço</Text>
         <View style={{ width: 24 }} />
@@ -104,7 +103,9 @@ export default function SolicitarServico() {
         </View>
         <View style={estilos.infoPrestador}>
           <Text style={estilos.nomePrestador}>{prestadorNome}</Text>
-          <Text style={estilos.tipoPrestador}>{servico}</Text>
+          <View style={estilos.profissaoBadge}>
+            <Text style={estilos.profissaoTexto}>{servico}</Text>
+          </View>
         </View>
       </View>
 
@@ -112,12 +113,12 @@ export default function SolicitarServico() {
 
         <View style={estilos.campoGrupo}>
           <Text style={estilos.label}>
-            <Calendar size={16} color="#005362" /> Data do Serviço *
+            <Calendar size={16} color="#0F2937" /> Data do Serviço *
           </Text>
           <TextInput
             style={estilos.input}
             placeholder="DD/MM/YYYY"
-            placeholderTextColor="#999"
+            placeholderTextColor="#94A3B8"
             value={data}
             onChangeText={setData}
             editable={!carregando}
@@ -129,12 +130,12 @@ export default function SolicitarServico() {
 
         <View style={estilos.campoGrupo}>
           <Text style={estilos.label}>
-            <MapPin size={16} color="#005362" /> Local do Serviço *
+            <MapPin size={16} color="#0F2937" /> Local do Serviço *
           </Text>
           <TextInput
             style={estilos.input}
             placeholder="Rua, número, bairro..."
-            placeholderTextColor="#999"
+            placeholderTextColor="#94A3B8"
             value={local}
             onChangeText={setLocal}
             editable={!carregando}
@@ -143,12 +144,12 @@ export default function SolicitarServico() {
 
         <View style={estilos.campoGrupo}>
           <Text style={estilos.label}>
-            <FileText size={16} color="#005362" /> Descrição (opcional)
+            <FileText size={16} color="#0F2937" /> Descrição (opcional)
           </Text>
           <TextInput
             style={[estilos.input, estilos.inputLongo]}
             placeholder="Descreva detalhes do serviço desejado..."
-            placeholderTextColor="#999"
+            placeholderTextColor="#94A3B8"
             value={descricao}
             onChangeText={setDescricao}
             multiline
@@ -189,38 +190,51 @@ const estilos = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#fff",
   },
 
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#E8F4FF",
+    borderRadius: 24,
+    padding: 18,
     marginBottom: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
   },
 
   titulo: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F2937",
+    flex: 1,
+    textAlign: "center",
   },
 
   cardPrestador: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f8fa",
+    backgroundColor: "#FFFFFF",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: "#005362",
+    borderLeftColor: "#2563EB",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
   avatarPrestador: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -228,7 +242,7 @@ const estilos = StyleSheet.create({
 
   avatarTexto: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: "700",
   },
 
@@ -238,18 +252,35 @@ const estilos = StyleSheet.create({
 
   nomePrestador: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 6,
   },
 
-  tipoPrestador: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
+  profissaoBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+  },
+
+  profissaoTexto: {
+    fontSize: 12,
+    color: "#1D4ED8",
+    fontWeight: "700",
   },
 
   formulario: {
     marginBottom: 30,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
 
   campoGrupo: {
@@ -258,19 +289,19 @@ const estilos = StyleSheet.create({
 
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "800",
+    color: "#0F2937",
     marginBottom: 8,
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: "rgba(15, 41, 55, 0.12)",
+    borderRadius: 14,
     padding: 12,
     fontSize: 14,
-    color: "#333",
-    backgroundColor: "#f9f9f9",
+    color: "#0F2937",
+    backgroundColor: "#F8FAFC",
   },
 
   inputLongo: {
@@ -281,38 +312,38 @@ const estilos = StyleSheet.create({
 
   hint: {
     fontSize: 12,
-    color: "#999",
+    color: "#64748B",
     marginTop: 6,
   },
 
   botoes: {
     flexDirection: "row",
-    gap: 12,
     marginTop: 24,
   },
 
   botao: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
 
   botaoCancelar: {
-    backgroundColor: "#f0f0f0",
+    marginRight: 12,
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "rgba(15, 41, 55, 0.12)",
   },
 
   botaoConfirmar: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
   },
 
   botaoTexto: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "800",
+    color: "#0F2937",
   },
 
   botaoTextoConfirmar: {
