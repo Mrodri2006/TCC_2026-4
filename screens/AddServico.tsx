@@ -24,6 +24,7 @@ export default function AddServico() {
   const [loading, setLoading] = useState(false);
   const [imagem, setImagem] = useState<string | null>(null);
   const [imagemOriginal, setImagemOriginal] = useState<string | null>(null);
+  const [imagemBase64, setImagemBase64] = useState<string | null>(null);
 
   const isEdit = Boolean(servicoId);
 
@@ -61,42 +62,45 @@ export default function AddServico() {
   }, [servico]);
 
   const selecionarImagem = async () => {
-    const mediaTypes =
-      ImagePicker?.MediaType?.Images ||
-      (ImagePicker as any)?.MediaTypeOptions?.Images ||
-      'Images';
-
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
+      base64: true,
     });
 
     if (!result.canceled && result.assets.length > 0) {
-      setImagem(result.assets[0].uri);
+      const asset = result.assets[0];
+      setImagem(asset.uri);
+      setImagemBase64(asset.base64 || null);
     }
   };
 
   const limparImagem = () => {
     setImagem(null);
+    setImagemBase64(null);
   };
 
-  const uploadImagem = async (uri: string, prestId: string) => {
+  const uploadImagem = async (uri: string, prestId: string, base64?: string | null) => {
     const timestamp = Date.now();
     const caminho = `servicos/${prestId}/${timestamp}.jpg`;
 
     try {
-      const response = await fetch(uri);
-      if (!response.ok) {
-        throw new Error(`Falha ao buscar imagem: ${response.status} ${response.statusText}`);
-      }
-
-      const blob = await response.blob();
       const ref = storage.ref(caminho);
       const metadata = { contentType: 'image/jpeg' };
 
-      await ref.put(blob, metadata);
+      if (base64) {
+        await ref.putString(base64, 'base64', metadata);
+      } else {
+        const response = await fetch(uri);
+        if (!response.ok) {
+          throw new Error(`Falha ao buscar imagem: ${response.status} ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        await ref.put(blob, metadata);
+      }
+
       return await ref.getDownloadURL();
     } catch (error) {
       const err: any = error;
@@ -143,7 +147,9 @@ export default function AddServico() {
       let imagemUrl: string | null = imagemOriginal;
 
       if (imagem && imagem !== imagemOriginal) {
-        imagemUrl = imagem.startsWith('http') ? imagem : await uploadImagem(imagem, prestadorId);
+        imagemUrl = imagem.startsWith('http')
+          ? imagem
+          : await uploadImagem(imagem, prestadorId, imagemBase64);
       }
 
       const payload = {

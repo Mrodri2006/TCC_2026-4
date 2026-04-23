@@ -6,7 +6,7 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function EditarPerfil() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const [formDados, setFormDados] = useState({
     nome: "",
@@ -17,7 +17,7 @@ export default function EditarPerfil() {
   });
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     carregarDadosUsuario();
@@ -31,7 +31,7 @@ export default function EditarPerfil() {
         const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
         
         if (docSnap.exists) {
-          const dados = docSnap.data();
+          const dados: any = docSnap.data() || {};
           setFormDados({
             nome: dados.nome || "",
             email: usuarioAutenticado.email || "",
@@ -54,7 +54,7 @@ export default function EditarPerfil() {
   };
 
   const validarFormulario = () => {
-    let novoErros = {};
+    let novoErros: Record<string, string> = {};
     
     if (!formDados.nome?.trim()) {
       novoErros.nome = "Nome é obrigatório";

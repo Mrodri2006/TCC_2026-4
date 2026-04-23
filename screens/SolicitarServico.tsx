@@ -7,7 +7,7 @@ import { firestore, auth } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function SolicitarServico() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute() as any;
   const { prestadorId, prestadorNome, servico } = route.params || {};
   const { theme } = useTheme();

@@ -7,13 +7,13 @@ import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function DetalheProfissional() {
-  const navigation = useNavigation();
-  const route = useRoute();
+  const navigation = useNavigation<any>();
+  const route = useRoute() as any;
   const { profissional } = route.params || {};
   const { theme } = useTheme();
 
-  const [servicos, setServicos] = useState([]);
-  const [usuarioData, setUsuarioData] = useState({});
+  const [servicos, setServicos] = useState<any[]>([]);
+  const [usuarioData, setUsuarioData] = useState<any>({});
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function DetalheProfissional() {
         .collection("Serv")
         .get();
 
-      const servicosData = [];
+      const servicosData: any[] = [];
       servicosSnapshot.forEach((doc) => {
         servicosData.push({
           id: doc.id,
@@ -90,7 +90,7 @@ export default function DetalheProfissional() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerDetalhe}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoVoltar}>
-          <ArrowLeft size={24} color="#2563EB" marginTop={37} />
+          <ArrowLeft size={24} color="#2563EB" />
         </TouchableOpacity>
         <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#0F2937"}}>Detalhes do Profissional</Text>
         <View style={{ width: 40 }} />
@@ -152,7 +152,7 @@ export default function DetalheProfissional() {
         </View>
 
         {servicos.length > 0 ? (
-          servicos.map((servico, index) => (
+          servicos.map((servico) => (
             <TouchableOpacity 
               key={servico.id} 
               style={styles.servicoCard}

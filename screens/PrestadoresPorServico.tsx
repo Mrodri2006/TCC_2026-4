@@ -8,12 +8,12 @@ import { useTheme } from "../theme/ThemeContext";
 
 
 export default function PrestadoresPorServico() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const route = useRoute() as any;
   const { servico } = route.params || { servico: "" };
 
-  const [usuariosPrestadores, setUsuariosPrestadores] = useState([]);
+  const [usuariosPrestadores, setUsuariosPrestadores] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   useFocusEffect(
@@ -26,7 +26,7 @@ export default function PrestadoresPorServico() {
     setCarregando(true);
     try {
       const users = await firestore.collection("Usuario").get();
-      const prestadores = [];
+      const prestadores: any[] = [];
 
       for (const userDoc of users.docs) {
         const userData = userDoc.data();
@@ -45,7 +45,7 @@ export default function PrestadoresPorServico() {
         }
       }
       
-      prestadores.sort((a, b) => {
+      prestadores.sort((a: any, b: any) => {
         const dateA = a.criadoEm?.toDate?.() || new Date(0);
         const dateB = b.criadoEm?.toDate?.() || new Date(0);
         return dateB.getTime() - dateA.getTime();

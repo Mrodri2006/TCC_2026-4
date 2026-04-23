@@ -18,7 +18,7 @@ import { Calendar } from "lucide-react-native";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function HomeTrabalhador() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);

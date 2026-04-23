@@ -16,7 +16,6 @@ import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { Usuario } from '../model/Usuario';
-import { Picker } from '@react-native-picker/picker';
 
 export default function Register2() {
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
@@ -25,7 +24,6 @@ export default function Register2() {
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosVisivel, setTermosVisivel] = useState(false);
   const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', localizacao: '', dataNascimento: '', termos: '' });
-  const [admin, setAdmin] = useState<'nao' | 'sim'>('nao');
 
   const navigation = useNavigation<any>();
 // Função para calcular a idade com base na data de nascimento
@@ -77,7 +75,7 @@ export default function Register2() {
 
     setLoading(true);
     try {
-      const userCredentials = await auth.createUserWithEmailAndPassword(formUsuario.email!, formUsuario.senha!);
+      await auth.createUserWithEmailAndPassword(formUsuario.email!, formUsuario.senha!);
 
       await firestore.collection('Usuario').doc(auth.currentUser!.uid).set({
         id: auth.currentUser!.uid,
@@ -86,12 +84,12 @@ export default function Register2() {
         fone: formUsuario.fone,
         localizacao: formUsuario.localizacao,
         dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
-        tipo: admin === 'sim' ? 'admin' : 'contratante',
-        admin: admin === 'sim',
+        tipo: 'contratante',
+        admin: false,
         criadoEm: new Date(),
       });
 
-      navigation.replace(admin === 'sim' ? 'Adm' : 'Home');
+      navigation.replace('Home');
     } catch (erro: any) {
       alert(erro.message);
     } finally {
@@ -200,19 +198,6 @@ export default function Register2() {
                 onCancel={() => setDataPickerVisivel(false)}
                 maximumDate={new Date()}
               />
-
-              <Text style={styles.adminLabel}>Conta de administrador?</Text>
-
-              <View style={styles.adminContainer}>
-                <Picker
-                  selectedValue={admin}
-                  onValueChange={(valor) => setAdmin(valor)}
-                  style={styles.select}
-                >
-                  <Picker.Item label="Nao" value="nao" />
-                  <Picker.Item label="Sim" value="sim" />
-                </Picker>
-              </View>
 
               <View style={styles.termosRow}>
                 <TouchableOpacity

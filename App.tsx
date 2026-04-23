@@ -73,7 +73,7 @@ function AppInner() {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator>
+      <Stack.Navigator id="RootStack">
         <Stack.Screen name='Login'    component={ThemedLogin} options={{ headerShown: false }} /> 
         <Stack.Screen name='Register' component={ThemedRegister} options={{ headerShown: false }} />
         <Stack.Screen name='Register2' component={ThemedRegister2} options={{ headerShown: false }}/>

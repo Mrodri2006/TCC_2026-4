@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight } from "lucide-react-native";
+import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
@@ -8,7 +8,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function PerfilTrabalhador() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
 
   const [usuario, setUsuario] = useState({
@@ -16,13 +16,14 @@ export default function PerfilTrabalhador() {
     email: "",
     telefone: "",
     profissao: "",
+    fotoPerfil: "",
     avaliacao: 4.8,
     numeroAvaliacoes: 45,
     localizacao: "São Paulo, SP",
     descricao: "Profissional com experiência em serviços",
   });
 
-  const [historico, setHistorico] = useState([]);
+  const [historico, setHistorico] = useState<any[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
 
   useFocusEffect(
@@ -279,6 +280,54 @@ export default function PerfilTrabalhador() {
     }
   };
 
+  const handleDeleteServico = (item: any) => {
+    Alert.alert(
+      "Excluir servico",
+      `Deseja excluir "${item?.servico || "este servico"}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const userId = auth.currentUser?.uid;
+              if (!userId || !item?.id) {
+                Alert.alert("Erro", "Nao foi possivel identificar o servico.");
+                return;
+              }
+
+              await firestore
+                .collection("ServicosAdds")
+                .doc(userId)
+                .collection("ServicosOferecidos")
+                .doc(item.id)
+                .delete();
+
+              if (
+                item?.imagem &&
+                typeof item.imagem === "string" &&
+                item.imagem.includes("firebasestorage.googleapis.com")
+              ) {
+                try {
+                  await storage.refFromURL(item.imagem).delete();
+                } catch (erroImagem) {
+                  console.log("Aviso ao remover imagem antiga:", erroImagem);
+                }
+              }
+
+              setHistorico((prev) => prev.filter((serv) => serv.id !== item.id));
+              Alert.alert("Sucesso", "Servico excluido com sucesso.");
+            } catch (erro) {
+              console.log("Erro ao excluir servico:", erro);
+              Alert.alert("Erro", "Nao foi possivel excluir o servico.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={localStyles.scrollContent}>
       <View style={localStyles.headerCard}>
@@ -384,22 +433,33 @@ export default function PerfilTrabalhador() {
                     <Text style={localStyles.offerStatusText}>{item.status || "Oferecido"}</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={localStyles.editServiceButton}
-                  onPress={() =>
-                    (navigation as any).navigate("AddServico", {
-                      PrestId: auth.currentUser?.uid,
-                      servicoId: item.id,
-                      servico: {
-                        estilo: item.servico,
-                        valor: item.valor,
-                        imagem: item.imagem,
-                      },
-                    })
-                  }
-                >
-                  <Text style={localStyles.editServiceButtonText}>Editar</Text>
-                </TouchableOpacity>
+                <View style={localStyles.serviceActionRow}>
+                  <TouchableOpacity
+                    style={localStyles.editServiceButton}
+                    onPress={() =>
+                      (navigation as any).navigate("AddServico", {
+                        PrestId: auth.currentUser?.uid,
+                        servicoId: item.id,
+                        servico: {
+                          estilo: item.servico,
+                          valor: item.valor,
+                          imagem: item.imagem,
+                        },
+                      })
+                    }
+                  >
+                    <Edit2 size={14} color="#fff" />
+                    <Text style={localStyles.editServiceButtonText}>Editar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={localStyles.deleteServiceButton}
+                    onPress={() => handleDeleteServico(item)}
+                  >
+                    <Trash2 size={14} color="#fff" />
+                    <Text style={localStyles.deleteServiceButtonText}>Excluir</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))
@@ -669,14 +729,40 @@ const localStyles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   editServiceButton: {
-    marginTop: 10,
-    alignSelf: "flex-start",
+    flex: 1,
     backgroundColor: "#2563EB",
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
   },
   editServiceButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  serviceActionRow: {
+    marginTop: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  deleteServiceButton: {
+    flex: 1,
+    backgroundColor: "#DC2626",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  deleteServiceButtonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
