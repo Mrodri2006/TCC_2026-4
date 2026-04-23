@@ -80,7 +80,7 @@ export default function DetalheProfissional() {
   if (carregando) {
     return (
       <View style={[styles.carregandoContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color="#527954" />
+        <ActivityIndicator size="large" color="#2563EB" />
         <Text style={styles.carregandoTexto}>Carregando informações...</Text>
       </View>
     );
@@ -90,9 +90,9 @@ export default function DetalheProfissional() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.headerDetalhe}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoVoltar}>
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color="#2563EB" marginTop={37} />
         </TouchableOpacity>
-        <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#000"}}>Detalhes do Profissional</Text>
+        <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#0F2937"}}>Detalhes do Profissional</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -147,7 +147,7 @@ export default function DetalheProfissional() {
 
       <View style={styles.servicosSection}>
         <View style={styles.sectionHeader}>
-          <Award size={20} color="#527954" />
+          <Award size={20} color="#2563EB" />
           <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
         </View>
 
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
 
   headerDetalhe: {
-    backgroundColor: "#527954",
+    backgroundColor: "#E8F4FF",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
 
   cardPrincipal: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#FFFFFF",
     margin: 16,
     borderRadius: 16,
     padding: 20,
@@ -251,12 +251,12 @@ const styles = StyleSheet.create({
   nomePrincipal: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#000",
+    color: "#0F2937",
     marginBottom: 8,
   },
 
   profissaoBadgePrincipal: {
-    backgroundColor: "#527954",
+    backgroundColor: "#DDEEFF",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
 
   profissaoTextoPrincipal: {
-    color: "#fff",
+    color: "#2563EB",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -286,13 +286,13 @@ const styles = StyleSheet.create({
 
   infoLabel: {
     fontSize: 12,
-    color: "#999",
+    color: "#64748B",
     fontWeight: "500",
   },
 
   infoValor: {
     fontSize: 14,
-    color: "#000",
+    color: "#0F2937",
     fontWeight: "600",
     marginTop: 2,
   },
@@ -312,34 +312,34 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000",
+    color: "#0F2937",
   },
 
   servicoCard: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: "#527954",
+    borderLeftColor: "#2563EB",
   },
 
   servicoNome: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#000",
+    color: "#0F2937",
     marginBottom: 6,
   },
 
   servicoTipo: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
     marginBottom: 4,
   },
 
   servicoLocal: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
     marginBottom: 4,
   },
 
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
 
   servicoAcao: {
     fontSize: 12,
-    color: "#527954",
+    color: "#2563EB",
     fontWeight: "600",
     marginTop: 8,
   },
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
 
   botaoContratar: {
-    backgroundColor: "#527954",
+    backgroundColor: "#2563EB",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
 
   botaoChat: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     marginTop: 10,
     paddingVertical: 12,
     borderRadius: 12,

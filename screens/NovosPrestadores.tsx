@@ -118,7 +118,7 @@ export default function NovosPrestadores() {
 
       {carregando ? (
         <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#005362" />
+          <ActivityIndicator size="large" color="#03505e" />
           <Text style={styles.carregandoTexto}>Carregando prestadores...</Text>
         </View>
       ) : usuariosPrestadores.length > 0 ? (
@@ -134,7 +134,7 @@ export default function NovosPrestadores() {
               <TouchableOpacity
                 key={prestador.id}
                 style={styles.prestadorCard}
-                activeOpacity={0.8}
+                activeOpacity={0}
                 onPress={() => abrirModal(prestador)}
               >
                 <View style={styles.avatarContainer}>
@@ -231,12 +231,12 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#005362",
+    color: "#0F2937",
   },
   infoSection: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f8fa",
+    backgroundColor: "#F3F7FB",
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: "#005362",
+    color: "#0F2937",
     fontWeight: "500",
     flex: 1,
   },
@@ -269,13 +269,13 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "#D7E7F0",
+    backgroundColor: "#2563EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
   },
   avatarText: {
-    color: "#1A3145",
+    color: "#fff",
     fontSize: 22,
     fontWeight: "700",
   },
@@ -295,18 +295,18 @@ const styles = StyleSheet.create({
   nomePrestador: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#11213B",
+    color: "#0F2937",
     marginBottom: 8,
   },
   profissaoBadge: {
-    backgroundColor: "rgba(0, 83, 98, 0.08)",
+    backgroundColor: "#DDEEFF",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 999,
     alignSelf: "flex-start",
   },
   profissaoTexto: {
-    color: "#005362",
+    color: "#2563EB",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -335,13 +335,13 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: 14,
-    color: "#005362",
+    color: "#0F2937",
     fontWeight: "700",
   },
   actionIcon: {
     marginLeft: 8,
     fontSize: 16,
-    color: "#005362",
+    color: "#0F2937",
   },
   carregandoContainer: {
     justifyContent: "center",
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#005362",
+    color: "#0F2937",
     marginBottom: 8,
     textAlign: "center",
   },

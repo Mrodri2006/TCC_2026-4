@@ -64,27 +64,37 @@ export default function Chat() {
 
     setTexto("");
 
-    const chatRef = firestore.collection("Chats").doc(chatId);
-    const msgRef = chatRef.collection("Messages").doc();
+    try {
+      const chatRef = firestore.collection("Chats").doc(chatId);
+      const msgRef = chatRef.collection("Messages").doc();
+      const timestamp = firebase.firestore.FieldValue.serverTimestamp();
 
-    const batch = firestore.batch();
-    batch.set(msgRef, {
-      text,
-      senderId: uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    batch.set(
-      chatRef,
-      {
-        participants: [uid, otherUserId],
-        lastMessage: text,
-        lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+      const batch = firestore.batch();
+      
+      // Adicionar mensagem
+      batch.set(msgRef, {
+        text,
+        senderId: uid,
+        createdAt: timestamp,
+      });
+      
+      // Atualizar documento do chat com merge true
+      batch.set(
+        chatRef,
+        {
+          participants: [uid, otherUserId].sort(),
+          lastMessage: text,
+          lastMessageAt: timestamp,
+          createdAt: timestamp,
+        },
+        { merge: true }
+      );
 
-    await batch.commit();
+      await batch.commit();
+    } catch (erro) {
+      console.error("Erro ao enviar mensagem:", erro);
+      setTexto(texto);
+    }
   };
 
   const renderItem = ({ item }: { item: Message }) => {
@@ -111,7 +121,7 @@ export default function Chat() {
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#005362" />
+          <ArrowLeft size={24} color="#0F2937" />
         </TouchableOpacity>
         <Text style={styles.title}>{otherUserName || "Chat"}</Text>
         <View style={{ width: 24 }} />
@@ -157,7 +167,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#005362",
+    color: "#0F2937",
   },
   listContent: {
     padding: 16,
@@ -171,11 +181,11 @@ const styles = StyleSheet.create({
   },
   bubbleMine: {
     alignSelf: "flex-end",
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
   },
   bubbleOther: {
     alignSelf: "flex-start",
-    backgroundColor: "#f1f1f1",
+    backgroundColor: "#F3F7FB",
   },
   bubbleText: {
     fontSize: 14,
@@ -184,7 +194,7 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   textOther: {
-    color: "#333",
+    color: "#0F2937",
   },
   inputRow: {
     flexDirection: "row",
@@ -195,7 +205,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: "#f7f7f7",
+    backgroundColor: "#F3F7FB",
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -204,7 +214,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     padding: 12,
     borderRadius: 20,
     alignItems: "center",
