@@ -79,7 +79,7 @@ function AppInner() {
         <Stack.Screen name='Register2' component={ThemedRegister2} options={{ headerShown: false }}/>
         <Stack.Screen name='Menu'     component={ThemedMenu} options={{ headerShown: false }}/>
         <Stack.Screen name="LoginTrabalhador" component={ThemedLoginTrabalhador} options={{ headerShown: false }}/>
-        <Stack.Screen name="HomeTrabalhador" component={ThemedHomeTrabalhador} />
+        <Stack.Screen name="HomeTrabalhador" component={ThemedHomeTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name="Home" component={ThemedMenu} options={{ headerShown: false }} />
         <Stack.Screen name="MenuTrabalhador" component={ThemedMenuTrabalhador} options={{ headerShown: false }} />
         <Stack.Screen name="ServicosAgendados" component={ThemedServicosAgendados} options={{ headerShown: false }}/>

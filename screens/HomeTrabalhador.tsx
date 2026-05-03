@@ -1,25 +1,41 @@
-
+import { useCallback, useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  Modal,
-  FlatList,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { MapPin, Clock, Plus, User, CheckCircle, X } from "lucide-react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useState, useCallback, useRef } from "react";
-import { auth, firestore } from "../firebase";
+import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
+import {
+  BarChart3,
+  Bell,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  FileText,
+  HelpCircle,
+  MapPin,
+  Menu,
+  Plus,
+  Settings,
+  X,
+} from "lucide-react-native";
 import { Calendar } from "lucide-react-native";
+import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function HomeTrabalhador() {
   const navigation = useNavigation();
   const { theme } = useTheme();
+
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
@@ -109,7 +125,7 @@ export default function HomeTrabalhador() {
           status: "a fazer",
           dataAceito: new Date(),
         });
-// Atualiza o status ao cliente e ao trabalhador também
+
       if (servico.clienteId) {
         await firestore
           .collection("ServicosClientes")
@@ -127,7 +143,9 @@ export default function HomeTrabalhador() {
       }
 
       if (servico.origem === "area" && servico.requestId) {
-        const reqRef = firestore.collection("SolicitacoesArea").doc(servico.requestId);
+        const reqRef = firestore
+          .collection("SolicitacoesArea")
+          .doc(servico.requestId);
         const reqSnap = await reqRef.get();
 
         if (reqSnap.exists) {
@@ -192,8 +210,7 @@ export default function HomeTrabalhador() {
           ...servico,
           status: "rejeitado",
           dataRejeicao: new Date(),
-        })
-        ;
+        });
 
       await firestore
         .collection("ServicosAgendados")
@@ -223,9 +240,7 @@ export default function HomeTrabalhador() {
           );
       }
 
-      setServicosSolicitados((prev) =>
-        prev.filter((s) => s.id !== servico.id)
-      );
+      setServicosSolicitados((prev) => prev.filter((s) => s.id !== servico.id));
       setServicoRejeitado(servico);
       setServicoAceito(null);
       setAlertVisivel(true);
@@ -241,178 +256,301 @@ export default function HomeTrabalhador() {
     setServicoRejeitado(null);
   };
 
+  const iniciais =
+    auth.currentUser?.email?.charAt(0).toUpperCase() ??
+    auth.currentUser?.displayName?.charAt(0).toUpperCase() ??
+    "U";
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {auth.currentUser?.email
-                ? auth.currentUser.email.charAt(0).toUpperCase()
-                : "U"}
-            </Text>
-          </View>
-
-          <View>
-            <Text style={styles.hello}>Olá, prestador</Text>
-            <Text style={styles.welcome}>Novos serviços solicitados</Text>
-          </View>
-        </View>
-
-        <View style={styles.headerActions}>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => (navigation as any).navigate("PerfilTrabalhador")}
+            style={styles.topBarIcon}
+            onPress={() => {
+              const anyNav = navigation as any;
+              if (typeof anyNav?.openDrawer === "function") {
+                anyNav.openDrawer();
+                return;
+              }
+              anyNav?.dispatch?.(DrawerActions.openDrawer());
+            }}
           >
-            <User size={24} />
+            <Menu size={24} color="#0F2937"  />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.iconButton, styles.iconButtonSpacing]}
-            onPress={() => (navigation as any).navigate("ServicosAgendados")}
-          >
-            <Calendar size={24} />
-          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>Página Inicial</Text>
+
+          <View style={styles.topBarRight}>
+            <TouchableOpacity
+              style={styles.topBarIcon}
+              onPress={() => Alert.alert("Notificações", "Em breve")}
+            >
+              <Bell size={22} color="#0F2937" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.topBarIcon, styles.topBarIconSpacing]}
+              onPress={() => (navigation as any).navigate("ServicosAgendados")}
+            >
+              <Calendar size={22} color="#0F2937" />
+            </TouchableOpacity>
+          </View>
         </View>
-       </View>
 
-      <Text style={styles.sectionTitle}>Serviços Solicitados</Text>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.greetingCard}
+          onPress={() => (navigation as any).navigate("PerfilTrabalhador")}
+        >
+          <View style={styles.greetingLeft}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{iniciais}</Text>
+            </View>
 
-      {carregando ? (
-        <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
-        </View>
-      ) : servicosSolicitados.length > 0 ? (
-        <FlatList
-          data={servicosSolicitados}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>
-                  {item.estilo || item.tipo}
-                </Text>
-
-                <View style={styles.badgeNovo}>
-                  <Text style={styles.badgeTexto}>🔔 NOVO</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.hello}>Olá, prestador!</Text>
+              <View style={styles.newRow}>
+                <Text style={styles.welcome}>Novos serviços solicitados</Text>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {servicosSolicitados.length}
+                  </Text>
                 </View>
-              </View>
-
-              <View style={styles.row}>
-                <MapPin size={18} color="#0F2937" />
-                <Text style={styles.infoText}>{item.local}</Text>
-              </View>
-
-              <View style={styles.row}>
-                <Clock size={18} color="#0F2937" />
-                <Text style={styles.infoText}>{item.data}</Text>
-              </View>
-
-              {item.descricao && (
-                <View style={styles.descricaoContainer}>
-                  <Text style={styles.descricaoTexto}>{item.descricao}</Text>
-                </View>
-              )}
-
-              <View style={styles.clienteInfo}>
-                <Text style={styles.clienteLabel}>Cliente:</Text>
-                <Text style={styles.clienteNome}>
-                  {item.nomeCliente || item.clienteId}
-                </Text>
-              </View>
-
-              <View style={styles.buttonsRow}>
-                <TouchableOpacity
-                  style={styles.acceptButton}
-                  onPress={() => handleAceitarServico(item)}
-                >
-                  <CheckCircle size={20} color="#fff" />
-                  <Text style={styles.buttonText}>Aceitar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.rejectButton}
-                  onPress={() => handleRejeitarServico(item)}
-                >
-                  <X size={20} color="#F44336" />
-                  <Text style={styles.rejectText}>Recusar</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          )}
-        />
-      ) : (
-        <View style={styles.nenhumContainer}>
-          <Text style={styles.nenhumTexto}>
-            Nenhum serviço solicitado no momento
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={styles.addServiceButton}
-        onPress={() =>
-          (navigation as any).navigate("AddServico", {
-            PrestId: auth.currentUser?.uid,
-          })
-        }
-      >
-        <Plus size={24} color="#fff" />
-        <Text style={styles.addServiceText}>Adicionar Serviço</Text>
-      </TouchableOpacity>
-
-      {/* MODAL */}
-      <Modal visible={alertVisivel} transparent animationType="fade">
-        <View style={styles.alertOverlay}>
-          <View style={styles.alertContainer}>
-
-            {servicoAceito && (
-              <>
-                <CheckCircle size={60} color="#4CAF50" />
-                <Text style={styles.alertTitle}>Serviço Aceito</Text>
-
-                <TouchableOpacity
-                  style={styles.openButton}
-                  onPress={() => {
-                    handleFecharAlert();
-                    (navigation as any).navigate("ServicosAgendados");
-                  }}
-                >
-                  <Text style={styles.openButtonText}>Ver Agendados</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-            {servicoRejeitado && (
-              <>
-                <X size={60} color="#F44336" />
-                <Text style={styles.alertTitle}>Serviço Rejeitado</Text>
-
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={handleFecharAlert}
-                >
-                  <Text style={styles.closeButtonText}>Fechar</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
           </View>
-        </View>
-      </Modal>
 
-    </ScrollView>
+          <ChevronRight size={22} color="#0F2937" />
+        </TouchableOpacity>
+
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Serviços solicitados</Text>
+
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => Alert.alert("Filtro", "Em breve")}
+          >
+            <Text style={styles.filterText}>Todos</Text>
+            <ChevronDown size={18} color="#0F2937" />
+          </TouchableOpacity>
+        </View>
+
+        {carregando ? (
+          <View style={styles.carregandoContainer}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
+          </View>
+        ) : servicosSolicitados.length > 0 ? (
+          <FlatList
+            data={servicosSolicitados}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>{item.estilo || item.tipo}</Text>
+
+                  <View style={styles.badgeNovo}>
+                    <Text style={styles.badgeTexto}>NOVO</Text>
+                  </View>
+                </View>
+
+                <View style={styles.row}>
+                  <MapPin size={18} color="#0F2937" />
+                  <Text style={styles.infoText}>{item.local}</Text>
+                </View>
+
+                <View style={styles.row}>
+                  <Clock size={18} color="#0F2937" />
+                  <Text style={styles.infoText}>{item.data}</Text>
+                </View>
+
+                {item.descricao && (
+                  <View style={styles.descricaoContainer}>
+                    <Text style={styles.descricaoTexto}>{item.descricao}</Text>
+                  </View>
+                )}
+
+                <View style={styles.clienteInfo}>
+                  <Text style={styles.clienteLabel}>Cliente:</Text>
+                  <Text style={styles.clienteNome}>
+                    {item.nomeCliente || item.clienteId}
+                  </Text>
+                </View>
+
+                <View style={styles.buttonsRow}>
+                  <TouchableOpacity
+                    style={styles.acceptButton}
+                    onPress={() => handleAceitarServico(item)}
+                  >
+                    <CheckCircle size={20} color="#fff" />
+                    <Text style={styles.buttonText}>Aceitar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.rejectButton}
+                    onPress={() => handleRejeitarServico(item)}
+                  >
+                    <X size={20} color="#F44336" />
+                    <Text style={styles.rejectText}>Recusar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconWrap}>
+              <ClipboardList size={44} color="#2563EB" />
+            </View>
+            <Text style={styles.emptyTitle}>
+              Nenhum serviço solicitado no momento
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              Quando novos serviços forem solicitados, eles aparecerão aqui.
+            </Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.addServiceButton}
+          onPress={() =>
+            (navigation as any).navigate("AddServico", {
+              PrestId: auth.currentUser?.uid,
+            })
+          }
+        >
+          <Plus size={24} color="#fff" />
+          <Text style={styles.addServiceText}>Adicionar Serviço</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.quickTitle}>Ações rápidas</Text>
+        <View style={styles.quickGrid}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.quickCard}
+            onPress={() => (navigation as any).navigate("ServicosAgendados")}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: "#EAF2FF" }]}>
+              <FileText size={22} color="#2563EB" />
+            </View>
+            <Text style={styles.quickLabel}>Meus serviços</Text>
+            <Text style={styles.quickSub}>Ver todos</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.quickCard}
+            onPress={() => Alert.alert("Relatórios", "Em breve")}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: "#E9FBF1" }]}>
+              <BarChart3 size={22} color="#16A34A" />
+            </View>
+            <Text style={styles.quickLabel}>Relatórios</Text>
+            <Text style={styles.quickSub}>Acompanhar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.quickCard}
+            onPress={() => Alert.alert("Ajuda", "Em breve")}
+          >
+            <View style={[styles.quickIcon, { backgroundColor: "#FFF5E6" }]}>
+              <HelpCircle size={22} color="#F59E0B" />
+            </View>
+            <Text style={styles.quickLabel}>Ajuda</Text>
+            <Text style={styles.quickSub}>Central de ajuda</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Modal visible={alertVisivel} transparent animationType="fade">
+          <View style={styles.alertOverlay}>
+            <View style={styles.alertContainer}>
+              {servicoAceito && (
+                <>
+                  <CheckCircle size={60} color="#4CAF50" />
+                  <Text style={styles.alertTitle}>Serviço aceito</Text>
+
+                  <TouchableOpacity
+                    style={styles.openButton}
+                    onPress={() => {
+                      handleFecharAlert();
+                      (navigation as any).navigate("ServicosAgendados");
+                    }}
+                  >
+                    <Text style={styles.openButtonText}>Ver agendados</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {servicoRejeitado && (
+                <>
+                  <X size={60} color="#F44336" />
+                  <Text style={styles.alertTitle}>Serviço rejeitado</Text>
+
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={handleFecharAlert}
+                  >
+                    <Text style={styles.closeButtonText}>Fechar</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </ScrollView>
+    </View>
   );
 }
+
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    padding: 16,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 140,
+    paddingTop: Platform.OS === "android" ? 10 : 0,
   },
 
-  header: {
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? 16 : 10,
+    paddingBottom: 10,
+    marginTop:40,
+  },
+  topBarTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F2937",
+  },
+  topBarRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  topBarIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+  topBarIconSpacing: {
+    marginLeft: 10,
+  },
+
+  greetingCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -426,21 +564,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 4,
   },
-
-  headerLeft: {
+  greetingLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: 12,
   },
-
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  iconButtonSpacing: {
-    marginLeft: 10,
-  },
-
   avatar: {
     width: 56,
     height: 56,
@@ -450,39 +579,68 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
-
   avatarText: {
     color: "#fff",
     fontSize: 24,
     fontWeight: "700",
   },
-
   hello: {
     fontSize: 16,
     fontWeight: "800",
     color: "#0F2937",
   },
-
+  newRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    gap: 8,
+    flexWrap: "wrap",
+  },
   welcome: {
     fontSize: 14,
     color: "#64748B",
-    marginTop: 2,
   },
-
-  iconButton: {
-    width: 44,
-    height: 44,
+  countBadge: {
+    minWidth: 28,
+    height: 28,
     borderRadius: 14,
-    justifyContent: "center",
+    backgroundColor: "rgba(37, 99, 235, 0.12)",
     alignItems: "center",
-    backgroundColor: "rgba(15, 41, 55, 0.08)",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  countBadgeText: {
+    color: "#1D4ED8",
+    fontWeight: "800",
+    fontSize: 13,
   },
 
+  sectionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#0F2937",
-    marginBottom: 12,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.08)",
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F2937",
   },
 
   carregandoContainer: {
@@ -490,7 +648,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginVertical: 36,
   },
-
   carregandoTexto: {
     fontSize: 14,
     color: "#64748B",
@@ -510,46 +667,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
   },
-
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#0F2937",
     flex: 1,
   },
-
   badgeNovo: {
-    backgroundColor: "#FF6B6B",
+    backgroundColor: "#2563EB",
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    marginLeft: 10,
   },
-
   badgeTexto: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "800",
   },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 6,
   },
-
   infoText: {
     fontSize: 14,
     color: "#64748B",
     marginLeft: 8,
   },
-
   descricaoContainer: {
     backgroundColor: "#F8FAFC",
     borderRadius: 14,
@@ -558,38 +709,32 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "#F59E0B",
   },
-
   descricaoTexto: {
     fontSize: 13,
     color: "#475569",
     fontStyle: "italic",
   },
-
   clienteInfo: {
     backgroundColor: "rgba(37, 99, 235, 0.08)",
     borderRadius: 14,
     padding: 12,
     marginVertical: 10,
   },
-
   clienteLabel: {
     fontSize: 12,
     color: "#64748B",
     fontWeight: "600",
   },
-
   clienteNome: {
     fontSize: 14,
     color: "#1D4ED8",
     fontWeight: "700",
     marginTop: 4,
   },
-
   buttonsRow: {
     flexDirection: "row",
     marginTop: 12,
   },
-
   acceptButton: {
     flex: 1,
     backgroundColor: "#2563EB",
@@ -600,14 +745,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginRight: 5,
   },
-
   buttonText: {
     color: "#fff",
     fontWeight: "600",
     fontSize: 14,
     marginLeft: 6,
   },
-
   rejectButton: {
     flex: 1,
     backgroundColor: "rgba(15, 41, 55, 0.06)",
@@ -620,7 +763,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginLeft: 5,
   },
-
   rejectText: {
     color: "#0F2937",
     fontWeight: "600",
@@ -628,21 +770,37 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  nenhumContainer: {
+  emptyState: {
     alignItems: "center",
-    paddingVertical: 40,
+    paddingVertical: 38,
+    paddingHorizontal: 18,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(15, 41, 55, 0.12)",
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
-
-  nenhumTexto: {
+  emptyIconWrap: {
+    width: 86,
+    height: 86,
+    borderRadius: 24,
+    backgroundColor: "#EAF2FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  emptyTitle: {
     fontSize: 16,
-    color: "#64748B",
-    fontWeight: "700",
+    fontWeight: "800",
+    color: "#0F2937",
+    textAlign: "center",
     marginBottom: 8,
   },
-
-  nenhumSubtexto: {
+  emptySubtitle: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 20,
   },
 
   addServiceButton: {
@@ -654,12 +812,58 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginVertical: 20,
   },
-
   addServiceText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 16,
     marginLeft: 8,
+  },
+
+  quickTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  quickGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  quickCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.06)",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
+  },
+  quickIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  quickLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F2937",
+    textAlign: "center",
+  },
+  quickSub: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 4,
+    textAlign: "center",
   },
 
   alertOverlay: {
@@ -668,7 +872,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   alertContainer: {
     backgroundColor: "#fff",
     borderRadius: 20,
@@ -681,33 +884,20 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 16 },
     elevation: 8,
   },
-
-  alertIconContainer: {
-    marginBottom: 16,
-  },
-
   alertTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#0F2937",
-    marginBottom: 8,
+    marginTop: 14,
+    marginBottom: 18,
     textAlign: "center",
   },
-
-  alertMessage: {
-    fontSize: 14,
-    color: "#64748B",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-
   closeButton: {
     backgroundColor: "#2563EB",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 16,
   },
-
   closeButtonText: {
     color: "#fff",
     fontWeight: "700",
@@ -723,5 +913,22 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
+  },
+
+  fab: {
+    position: "absolute",
+    right: 18,
+    bottom: 26,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 6,
   },
 });
