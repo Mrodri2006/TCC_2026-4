@@ -33,7 +33,7 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function HomeTrabalhador() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
 
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);

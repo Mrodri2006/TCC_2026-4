@@ -275,7 +275,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         nomeCliente: clienteNome || auth.currentUser?.email || "Cliente",
         dataSolicitacao: agora,
         criadoEm: agora,
-        prestadorId: null,
+        prestadorId: null as string | null,
         prestadoresIds,
       };
 
@@ -1260,4 +1260,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

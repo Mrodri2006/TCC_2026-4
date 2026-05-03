@@ -5,7 +5,7 @@ export class Usuario {
     public senha:   string;
     public fone:    string;
     public localizacao: string;
-    public datanascimento: Date;   
+    public dataNascimento: Date;   
     public admin:   boolean;
 
     constructor(obj?: Partial<Usuario>){
@@ -16,7 +16,7 @@ export class Usuario {
             this.senha  = obj.senha
             this.fone   = obj.fone
             this.localizacao = obj.localizacao
-            this.datanascimento   = obj.datanascimento
+            this.dataNascimento   = obj.dataNascimento
             this.admin  = obj.admin
         }
     }
@@ -29,7 +29,7 @@ export class Usuario {
             "senha" :   "${this.senha}",
             "fone"  :   "${this.fone}",
             "localizacao"  :   "${this.localizacao}",
-            "datanascimento"  :   "${this.datanascimento}",
+            "dataNascimento"  :   "${this.dataNascimento}",
             "admin" :   "${this.admin}"
         }`
         return objeto
@@ -43,7 +43,7 @@ export class Usuario {
             senha   : this.senha,
             fone    : this.fone,
             localizacao : this.localizacao,
-            datanascimento    : this.datanascimento,
+            dataNascimento    : this.dataNascimento,
             admin   : this.admin
         }
         return usuario

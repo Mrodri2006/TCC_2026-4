@@ -9,6 +9,7 @@ const Drawer = createDrawerNavigator();
 export default function MenuTrabalhador() {
   return (
             <Drawer.Navigator
+                id="MenuTrabalhadorDrawer"
                 initialRouteName="Pagina Inicial"
                 screenOptions={{ headerShown: false }}
             >

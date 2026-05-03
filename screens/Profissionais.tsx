@@ -7,13 +7,13 @@ import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function TelaProfissionais() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
-  const route = useRoute();
+  const route = useRoute() as any;
   const { servico } = route.params || { servico: "" };
 
   const [searchText, setSearchText] = useState("");
-  const [profissionais, setProfissionais] = useState([]);
+  const [profissionais, setProfissionais] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   useFocusEffect(
@@ -26,7 +26,7 @@ export default function TelaProfissionais() {
     setCarregando(true);
     try {
       const querySnapshot = await firestore.collectionGroup("Serv").get();
-      const profissionaisEncontrados = [];
+      const profissionaisEncontrados: any[] = [];
 
       querySnapshot.forEach((doc) => {
         const servicoDados = doc.data();
@@ -47,7 +47,7 @@ export default function TelaProfissionais() {
                 tipo: servicoDados.tipo,
               };
 
-              if (!profissionaisEncontrados.find(p => p.id === profissional.id)) {
+              if (!profissionaisEncontrados.find((p: any) => p.id === profissional.id)) {
                 profissionaisEncontrados.push(profissional);
               }
             }
@@ -65,11 +65,11 @@ export default function TelaProfissionais() {
     }
   };
 
-  const profissionaisFiltrados = profissionais.filter((pro) =>
+  const profissionaisFiltrados = profissionais.filter((pro: any) =>
     pro.nome.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const handleChamar = (profissional) => {
+  const handleChamar = (profissional: any) => {
     alert(`Você solicitou ${profissional.nome} para ${servico}`);
   };
 

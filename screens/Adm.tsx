@@ -12,7 +12,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import { firestore } from '../firebase';
+import { auth, firestore } from '../firebase';
 
 export default function Adm() {
   const navigation = useNavigation<any>();
@@ -21,6 +21,7 @@ export default function Adm() {
   const [busca, setBusca] = useState('');
   const [modalVisivel, setModalVisivel] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
+  const [acessoLiberado, setAcessoLiberado] = useState(false);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -45,12 +46,39 @@ export default function Adm() {
   };
 
   useEffect(() => {
-    buscarUsuarios();
+    const validarAcesso = async () => {
+      try {
+        const uid = auth.currentUser?.uid;
+        if (!uid) {
+          Alert.alert('Acesso negado', 'Faça login para acessar o painel.');
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          return;
+        }
+
+        const userSnap = await firestore.collection('Usuario').doc(uid).get();
+        const userData = userSnap.data() as any;
+        const ehAdmin = userData?.admin === true || userData?.tipo === 'admin';
+        if (!ehAdmin) {
+          Alert.alert('Acesso negado', 'Somente administradores podem acessar esta tela.');
+          navigation.goBack();
+          return;
+        }
+
+        setAcessoLiberado(true);
+        buscarUsuarios();
+      } catch (erro) {
+        console.error('Erro ao validar acesso admin:', erro);
+        Alert.alert('Erro', 'Nao foi possivel validar suas permissoes.');
+        navigation.goBack();
+      }
+    };
+
+    validarAcesso();
   }, []);
 
   const usuariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return usuarios;
+    if (!termo || !acessoLiberado) return usuarios;
     return usuarios.filter((u) =>
       [u.nome, u.email, u.fone, u.tipo, u.profissao]
         .filter(Boolean)

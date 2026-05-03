@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Text, TextInput } from "react-native";
+import React, { createContext, useContext, useMemo, useState } from "react";
 
 type ThemeColors = {
   background: string;
@@ -52,24 +51,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
 
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
-
-  useEffect(() => {
-    Text.defaultProps = Text.defaultProps || {};
-    const existingStyle = Text.defaultProps.style;
-    Text.defaultProps.style = [
-      { color: theme.textPrimary },
-      existingStyle,
-    ].filter(Boolean);
-
-    TextInput.defaultProps = TextInput.defaultProps || {};
-    const existingInputStyle = TextInput.defaultProps.style;
-    TextInput.defaultProps.style = [
-      { color: theme.textPrimary },
-      existingInputStyle,
-    ].filter(Boolean);
-    TextInput.defaultProps.placeholderTextColor =
-      theme.textMuted;
-  }, [theme.textPrimary, theme.textMuted]);
 
   return (
     <ThemeContext.Provider value={{ isDark, setIsDark, theme }}>

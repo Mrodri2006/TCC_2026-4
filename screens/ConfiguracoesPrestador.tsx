@@ -11,17 +11,13 @@ import {
 } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { auth, firestore } from "../firebase";
+import { auth, firestore, functions } from "../firebase";
 import QRCode from "react-native-qrcode-svg";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function ConfiguracoesPrestador() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const MENSALIDADE_VALOR = 28.9;
-  const PIX_CHAVE = "05475674051";
-  const PIX_NOME = "MIGUEL MACHADO";
-  const PIX_CIDADE = "BAGE";
-  const PIX_VALOR = MENSALIDADE_VALOR;
   const [notificacoes, setNotificacoes] = useState(true);
   const [privacidade, setPrivacidade] = useState(true);
   const [qrCopiaCola, setQrCopiaCola] = useState("");
@@ -63,32 +59,6 @@ export default function ConfiguracoesPrestador() {
     const data = valor?.toDate ? valor.toDate() : new Date(valor);
     if (Number.isNaN(data.getTime())) return "Nao informado";
     return data.toLocaleDateString("pt-BR");
-  };
-
-  const pagarMensalidade = async () => {
-    if (mensalidade.status === "paga") return;
-    setSalvando(true);
-    try {
-
-      const usuarioAutenticado = auth.currentUser;
-      if (!usuarioAutenticado) return;
-      const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
-      const pagoEm = new Date();
-      await refUsuario.update({
-        mensalidadeStatus: "paga",
-        mensalidadePagoEm: pagoEm,
-      });
-      setMensalidade((prev) => ({
-        ...prev,
-        status: "paga",
-        pagoEm,
-      }));
-    } catch (erro) {
-      console.log("Erro ao pagar mensalidade:", erro);
-      Alert.alert("Pagamento", "Falha ao processar pagamento. Tente novamente.");
-    } finally {
-      setSalvando(false);
-    }
   };
 
   const handleDeleteAccount = async () => {
@@ -146,127 +116,43 @@ export default function ConfiguracoesPrestador() {
 // Função principal para gerar o QR Code Pix, 
 // incluindo validação da chave, construção do payload e tratamento de erros.
   const gerarQrPix = async () => {
-    const chave = normalizarChavePix(PIX_CHAVE);
-    if (!chave || chave === "SUA_CHAVE_PIX_AQUI") {
-      const mensagem = "Informe sua chave PIX no código para gerar o QR.";
-      setErroPix(mensagem);
-      Alert.alert("PIX", mensagem);
-      return;
-    }
-// Gerar uma chave de idempotência para evitar cobranças duplicadas
-// A chave de idempotência é uma string única que identifica a transação de pagamento.
     setCarregandoPix(true);
+    setSalvando(true);
     try {
-      const payload = gerarPixCopiaECola({
-        chave,
-        nome: PIX_NOME,
-        cidade: PIX_CIDADE,
-        valor: PIX_VALOR,
-        txid: "***",
+      const gerarPixMensalidade = functions.httpsCallable("gerarPixMensalidade");
+      const response = await gerarPixMensalidade({
+        amount: MENSALIDADE_VALOR,
+        description: "Mensalidade prestador",
+        idempotencyKey: gerarIdempotencyKey(),
       });
-// Atualiza o estado com o payload do QR Code e limpa qualquer URL de ticket anterior
-      setQrCopiaCola(payload);
-      setQrTicketUrl("");
-      if (!payload) {
-        setErroPix("Não foi possível obter o QR Code.");
+      const payload = (response as any)?.data || {};
+      setQrCopiaCola(payload.qr_code || "");
+      setQrTicketUrl(payload.ticket_url || "");
+      if (!payload.qr_code) {
+        setErroPix("Nao foi possivel obter o QR Code de pagamento.");
       }
     } catch (erro: any) {
       console.log("Erro ao gerar Pix:", erro);
-      const mensagem = "Falha ao gerar o QR Code. Tente novamente.";
+      const mensagem = "Falha ao gerar o QR Code no backend. Tente novamente.";
       setErroPix(mensagem);
       Alert.alert("PIX", mensagem);
     } finally {
       setCarregandoPix(false);
+      setSalvando(false);
     }
-  };
-// Função para gerar o payload do QR Code Pix no formato "Copia e Cola",
-// seguindo as especificações do Banco Central para garantir compatibilidade com leitores de QR Code.
-  const gerarPixCopiaECola = ({
-    chave,
-    nome,
-    cidade,
-    valor,
-    txid,
-  }: {
-    chave: string;
-    nome: string;
-    cidade: string;
-    valor?: number;
-    txid: string;
-  }) => {
-    const nomeFormatado = limparTextoPix(nome).toUpperCase().slice(0, 25);
-    const cidadeFormatada = limparTextoPix(cidade).toUpperCase().slice(0, 15);
-    const valorFormatado =
-      typeof valor === "number" && valor > 0 ? valor.toFixed(2) : "";
-// O payload do Pix é construído utilizando o formato TLV (Tag-Length-Value), 
-// onde cada campo é representado por uma tag (ID), seguida pelo comprimento do valor e pelo próprio valor.
-    const merchantAccount =
-      "0014br.gov.bcb.pix" + montarTLV("01", chave);
-    const additionalData = montarTLV("05", txid || "***");
-// 54 é a tag para o valor da transação, 
-// 58 para o país, 
-// 59 para o nome do recebedor, 
-// 60 para a cidade e 62 para dados adicionais como o txid.
-    let payload =
-      montarTLV("00", "01") +
-      montarTLV("26", merchantAccount) +
-      montarTLV("52", "0000") +
-      montarTLV("53", "986") +
-      (valorFormatado ? montarTLV("54", valorFormatado) : "") +
-      montarTLV("58", "BR") +
-      montarTLV("59", nomeFormatado) +
-      montarTLV("60", cidadeFormatada) +
-      montarTLV("62", additionalData);
-    const crc = calcularCRC16(payload + "6304");
-    payload += "6304" + crc;
-    return payload;
-  };
-// Função auxiliar para montar o formato TLV (Tag-Length-Value) utilizado no payload do Pix,
-// onde "id" é a tag, "valor" é o conteúdo e o comprimento é calculado automaticamente.
-  const montarTLV = (id: string, valor: string) => {
-    const tamanho = valor.length.toString().padStart(2, "0");
-    return `${id}${tamanho}${valor}`;
   };
 
-  const limparTextoPix = (texto: string) => {
-    return texto
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9 .-]/g, "")
-      .trim();
-  };
-// Função para normalizar a chave Pix, garantindo que ela esteja 
-// no formato correto para geração do QR Code,
-  const normalizarChavePix = (chave: string) => {
-    const valor = String(chave || "").trim();
-    if (!valor) return "";
-    if (valor.includes("@")) {
-      return valor.toLowerCase();
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "LoginTrabalhador" }],
+      });
+    } catch (erro) {
+      console.log("Erro ao sair:", erro);
+      Alert.alert("Erro", "Nao foi possivel sair da conta.");
     }
-    if (valor.startsWith("+")) {
-      return "+" + valor.replace(/[^\d]/g, "");
-    }
-    const somenteDigitos = valor.replace(/[^\d]/g, "");
-    if (somenteDigitos.length === 11 || somenteDigitos.length === 14) {
-      return somenteDigitos;
-    }
-    return valor.replace(/\s+/g, "");
-  };
-
-  const calcularCRC16 = (payload: string) => {
-    let crc = 0xffff;
-    for (let i = 0; i < payload.length; i++) {
-      crc ^= payload.charCodeAt(i) << 8;
-      for (let j = 0; j < 8; j++) {
-        if ((crc & 0x8000) !== 0) {
-          crc = (crc << 1) ^ 0x1021;
-        } else {
-          crc = crc << 1;
-        }
-        crc &= 0xffff;
-      }
-    }
-    return crc.toString(16).toUpperCase().padStart(4, "0");
   };
 
   return (
@@ -445,7 +331,7 @@ export default function ConfiguracoesPrestador() {
 
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
-          onPress={() => navigation.navigate("LoginTrabalhador")}
+          onPress={handleLogout}
         >
           <LogOut size={18} color="#1e90ff" />
           <Text style={styles.logoutText}>Sair</Text>

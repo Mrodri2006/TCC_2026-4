@@ -23,7 +23,7 @@ type Message = {
 };
 
 export default function Chat() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute() as any;
   const { otherUserId, otherUserName } = route.params || {};
   const { theme } = useTheme();

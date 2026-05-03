@@ -12,7 +12,7 @@ const Drawer = createDrawerNavigator();
 export default function Menu() {
 
     return (
-        <Drawer.Navigator initialRouteName="Página Inicial">
+        <Drawer.Navigator id="MenuDrawer" initialRouteName="Página Inicial">
             <Drawer.Screen name='Página Inicial' component={Home} />
             <Drawer.Screen name='Status de Serviços' component={ServStatus} />
             <Drawer.Screen name='Conversas' component={ChatList} />

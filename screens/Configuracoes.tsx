@@ -6,7 +6,7 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function Configuracoes() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [notificacoes, setNotificacoes] = useState(true);
   const [privacidade, setPrivacidade] = useState(true);
   const { isDark, setIsDark, theme } = useTheme();
@@ -49,6 +49,19 @@ export default function Configuracoes() {
         },
       ]
     );
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    } catch (erro) {
+      console.log("Erro ao sair:", erro);
+      Alert.alert("Erro", "Nao foi possivel sair da conta.");
+    }
   };
 
   return (
@@ -150,7 +163,7 @@ export default function Configuracoes() {
 
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
-          onPress={() => navigation.navigate("Login")}
+          onPress={handleLogout}
         >
           <LogOut size={18} color="#1e90ff" />
           <Text style={styles.logoutText}>Sair</Text>

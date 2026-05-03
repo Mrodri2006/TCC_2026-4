@@ -14,9 +14,9 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function ServicosAgendados() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
-  const [servicosAgendados, setServicosAgendados] = useState([]);
+  const [servicosAgendados, setServicosAgendados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
   useFocusEffect(
