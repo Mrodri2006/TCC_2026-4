@@ -1,22 +1,24 @@
 import * as React from "react";
-import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 
 import Home from "./Home";
+import Servicos from "./Servicos";
 import ServStatus from "./ServStatus";
 import ChatList from "./ChatList";
-
 
 const Drawer = createDrawerNavigator();
 
 export default function Menu() {
-
-    return (
-        <Drawer.Navigator id="MenuDrawer" initialRouteName="Página Inicial">
-            <Drawer.Screen name='Página Inicial' component={Home} />
-            <Drawer.Screen name='Status de Serviços' component={ServStatus} />
-            <Drawer.Screen name='Conversas' component={ChatList} />
-        </Drawer.Navigator>
-
-    )
+  return (
+    <Drawer.Navigator id="MenuDrawer" initialRouteName="Página Inicial">
+      <Drawer.Screen name="Página Inicial" component={Home} />
+      <Drawer.Screen
+        name="Servicos"
+        component={Servicos}
+        options={{ title: "Serviços" }}
+      />
+      <Drawer.Screen name="Status de Serviços" component={ServStatus} />
+      <Drawer.Screen name="Conversas" component={ChatList} />
+    </Drawer.Navigator>
+  );
 }

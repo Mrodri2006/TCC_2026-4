@@ -1,335 +1,281 @@
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
-  StyleSheet,
+  View,
 } from "react-native";
-import { ArrowLeft, Clock, CheckCircle, X } from "lucide-react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useState, useCallback } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { Calendar, ChevronLeft, Clock, MapPin, X } from "lucide-react-native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+
+type ServicoAgendado = {
+  firestoreId: string;
+  clienteId?: string;
+  nomeCliente?: string;
+  titulo?: string;
+  tipo?: string;
+  estilo?: string;
+  local?: string;
+  endereco?: string;
+  data?: string;
+  horario?: string;
+  status?: string;
+  descricao?: string;
+};
 
 export default function ServicosAgendados() {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
-  const [servicosAgendados, setServicosAgendados] = useState<any[]>([]);
+  const unsubscribeRef = useRef<null | (() => void)>(null);
+
   const [carregando, setCarregando] = useState(true);
+  const [servicos, setServicos] = useState<ServicoAgendado[]>([]);
 
   useFocusEffect(
     useCallback(() => {
-      carregarServicosAgendados();
+      carregar();
+      return () => {
+        if (unsubscribeRef.current) unsubscribeRef.current();
+      };
     }, [])
   );
 
-  const carregarServicosAgendados = async () => {
-    try {
-      const usuarioId = auth.currentUser?.uid;
-      if (!usuarioId) return;
-
-      const docSnap = await firestore
-        .collection("ServicosAgendados")
-        .doc(usuarioId)
-        .collection("ServicoStatus")
-        .get();
-
-      const servicos = docSnap.docs.map((doc) => ({
-        ...doc.data(),
-        firestoreId: doc.id,
-      }));
-
-      setServicosAgendados(servicos);
-    } catch (erro) {
-      console.log("Erro ao carregar serviços agendados:", erro);
-    } finally {
+  const carregar = () => {
+    const usuarioId = auth.currentUser?.uid;
+    if (!usuarioId) {
       setCarregando(false);
+      return;
     }
-  };
 
-  const handleCancelarServico = async (firestoreId: string, titulo: string) => {
-    Alert.alert(
-      "Cancelar Serviço",
-      `Deseja cancelar o serviço "${titulo}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              const usuarioId = auth.currentUser?.uid;
-              if (!usuarioId) return;
+    setCarregando(true);
 
-              await firestore
-                .collection("ServicosAgendados")
-                .doc(usuarioId)
-                .collection("ServicoStatus")
-                .doc(firestoreId)
-                .delete();
-
-              setServicosAgendados((prev) =>
-                prev.filter((item) => item.firestoreId !== firestoreId)
-              );
-
-              Alert.alert("Sucesso", "Serviço cancelado com sucesso!");
-            } catch (erro) {
-              console.log("Erro ao cancelar serviço:", erro);
-              Alert.alert("Erro", "Não foi possível cancelar o serviço");
-            }
-          },
+    unsubscribeRef.current = firestore
+      .collection("ServicosAgendados")
+      .doc(usuarioId)
+      .collection("ServicoStatus")
+      .onSnapshot(
+        (snapshot) => {
+          const lista: ServicoAgendado[] = snapshot.docs.map((doc) => ({
+            firestoreId: doc.id,
+            ...(doc.data() as any),
+          }));
+          setServicos(lista);
+          setCarregando(false);
         },
-      ]
-    );
+        (erro) => {
+          console.log("Erro ao carregar serviços agendados:", erro);
+          setCarregando(false);
+        }
+      );
   };
 
-  const handleAbrirChatCliente = (servicoStatus: any) => {
-    navigation.navigate("Chat", {
-      otherUserId: servicoStatus.clienteId,
-      otherUserName: servicoStatus.nomeCliente || "Cliente",
-    });
+  const servicosFiltrados = useMemo(
+    () => servicos.filter((s) => (s.status || "").toLowerCase() === "a fazer"),
+    [servicos]
+  );
+
+  const cancelar = (item: ServicoAgendado) => {
+    Alert.alert("Cancelar serviço", "Deseja cancelar este serviço?", [
+      { text: "Voltar", style: "cancel" },
+      {
+        text: "Cancelar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const usuarioId = auth.currentUser?.uid;
+            if (!usuarioId) return;
+
+            await firestore
+              .collection("ServicosAgendados")
+              .doc(usuarioId)
+              .collection("ServicoStatus")
+              .doc(item.firestoreId)
+              .set({ status: "cancelado", dataCancelado: new Date() }, { merge: true });
+
+            if (item.clienteId) {
+              await firestore
+                .collection("ServicosClientes")
+                .doc(item.clienteId)
+                .collection("ServicoStatus")
+                .doc(item.firestoreId)
+                .set({ status: "cancelado", dataCancelado: new Date() }, { merge: true });
+            }
+          } catch (erro) {
+            console.log("Erro ao cancelar serviço:", erro);
+            Alert.alert("Erro", "Não foi possível cancelar o serviço");
+          }
+        },
+      },
+    ]);
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <ArrowLeft size={24} color="#0c0c0c" />
-        </TouchableOpacity>
+    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.85}
+          >
+            <ChevronLeft size={22} color="#0F2937" />
+          </TouchableOpacity>
 
-        <Text style={styles.titulo}>Serviços Agendados</Text>
+          <Text style={styles.headerTitle}>Agendados</Text>
 
-        <View style={{ width: 24 }} />
-      </View>
-
-      {carregando ? (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={styles.emptyText}>Carregando serviços...</Text>
+          <View style={{ width: 40 }} />
         </View>
-      ) : servicosAgendados.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <CheckCircle size={64} color="#2563EB" />
-          <Text style={styles.emptyTitle}>Nenhum serviço agendado</Text>
-          <Text style={styles.emptyText}>
-            Quando você aceitar um serviço, ele aparecerá aqui
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.content}>
 
-          {servicosAgendados
-              .filter((servico) => servico.status === "a fazer")
-              .map((servicoStatus) => (
-                <View key={servicoStatus.firestoreId} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>
-                      {servicoStatus.titulo ||
-                        servicoStatus.tipo ||
-                        servicoStatus.estilo}
-                    </Text>
-
-                    <View style={styles.statusBadge}>
-                      <CheckCircle size={16} color="#fff" />
-                      <Text style={styles.statusText}>Agendado</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.row}>
-                    <Clock size={18} color="#0F2937" />
-                    <Text style={styles.infoText}>
-                      {servicoStatus.horario || "Horário não informado"}
-                    </Text>
-                  </View>
-
-                  <View style={styles.buttonsRow}>
-                    <TouchableOpacity
-                      style={styles.contatoButton}
-                      onPress={() => handleAbrirChatCliente(servicoStatus)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.buttonText}>Conversar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.cancelButton}
-                      onPress={() =>
-                        handleCancelarServico(
-                          servicoStatus.firestoreId,
-                          servicoStatus.titulo
-                        )
-                      }
-                      activeOpacity={0.85}
-                    >
-                      <X size={18} color="#ff5252" />
-                    </TouchableOpacity>
-                  </View>
+        {carregando ? (
+          <View style={styles.loading}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.loadingText}>Carregando...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={servicosFiltrados}
+            keyExtractor={(i) => i.firestoreId}
+            scrollEnabled={false}
+            ListEmptyComponent={
+              <View style={styles.empty}>
+                <Text style={styles.emptyTitle}>Nenhum serviço agendado</Text>
+                <Text style={styles.emptySub}>
+                  Quando você aceitar um serviço, ele aparece aqui.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <View style={styles.cardTop}>
+                  <Text style={styles.cardTitle}>
+                    {item.titulo || item.estilo || item.tipo || "Serviço"}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => cancelar(item)}
+                    activeOpacity={0.85}
+                  >
+                    <X size={16} color="#991B1B" />
+                  </TouchableOpacity>
                 </View>
-              ))}
-        </View>
-      )}
-    </ScrollView>
+
+                <View style={styles.metaRow}>
+                  <MapPin size={16} color="#64748B" />
+                  <Text style={styles.metaText} numberOfLines={1}>
+                    {item.endereco || item.local || "Endereço não informado"}
+                  </Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Calendar size={16} color="#64748B" />
+                  <Text style={styles.metaText}>
+                    {item.data || "Data"}{" "}
+                    {item.horario ? `• ${item.horario}` : ""}
+                  </Text>
+                </View>
+                <View style={styles.metaRow}>
+                  <Clock size={16} color="#64748B" />
+                  <Text style={styles.metaText}>{item.status || "a fazer"}</Text>
+                </View>
+              </View>
+            )}
+          />
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
+  screen: { flex: 1 },
+  container: { flex: 1 },
+  content: {
+    paddingHorizontal: 16,
+    paddingBottom: 28,
+    paddingTop: Platform.OS === "android" ? 10 : 0,
   },
-
   header: {
-    backgroundColor: "#E8F4FF",
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 20,
-    shadowColor: "#0F2937",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? 16 : 10,
+    paddingBottom: 10,
   },
-
-  iconButton: {
-    width: 44,
-    height: 44,
+  headerBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 14,
-    justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(15, 41, 55, 0.08)",
-    marginRight: 10,
-  },
-
-  titulo: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#0F2937",
-    flex: 1,
-    textAlign: "center",
-  },
-
-  content: {
-    paddingBottom: 8,
-  },
-
-  emptyContainer: {
     justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 36,
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
   },
+  headerTitle: { fontSize: 20, fontWeight: "900", color: "#0F2937" },
 
-  emptyTitle: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#0F2937",
-    textAlign: "center",
-  },
+  loading: { alignItems: "center", paddingVertical: 40 },
+  loadingText: { marginTop: 10, color: "#64748B", fontWeight: "700" },
 
-  emptyText: {
+  empty: {
     marginTop: 10,
-    fontSize: 14,
+    paddingVertical: 30,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(15, 41, 55, 0.12)",
+    backgroundColor: "rgba(255,255,255,0.8)",
+    alignItems: "center",
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "900", color: "#0F2937" },
+  emptySub: {
+    marginTop: 8,
+    fontSize: 13,
     color: "#64748B",
     textAlign: "center",
+    lineHeight: 18,
   },
 
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
-    marginBottom: 12,
+    marginTop: 12,
     shadowColor: "#0F2937",
     shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-    borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.06)",
   },
-
-  cardHeader: {
+  cardTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 10,
   },
-
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#0F2937",
-    flex: 1,
-    marginRight: 10,
-  },
-
-  statusBadge: {
-    backgroundColor: "#2563EB",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    flexDirection: "row",
+  cardTitle: { flex: 1, fontSize: 16, fontWeight: "900", color: "#0F2937" },
+  cancelBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
     alignItems: "center",
-  },
-
-  statusText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "800",
-    marginLeft: 6,
-  },
-
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 6,
-  },
-
-  infoText: {
-    fontSize: 14,
-    color: "#64748B",
-    marginLeft: 8,
-    flex: 1,
-  },
-
-  buttonsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 14,
-  },
-
-  contatoButton: {
-    flex: 1,
-    backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    borderRadius: 16,
     justifyContent: "center",
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-
-  cancelButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
-    backgroundColor: "rgba(15, 41, 55, 0.06)",
+    backgroundColor: "#FEF2F2",
     borderWidth: 1,
-    borderColor: "rgba(15, 41, 55, 0.12)",
+    borderColor: "#FECACA",
   },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  metaText: { flex: 1, fontSize: 13, color: "#64748B", fontWeight: "600" },
 });
+

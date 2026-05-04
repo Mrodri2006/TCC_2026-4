@@ -23,6 +23,8 @@ import ConfiguracoesPrestador from './screens/ConfiguracoesPrestador';
 import ChatList from './screens/ChatList';
 import Chat from './screens/Chat';
 import Adm from './screens/Adm';
+import Servicos from './screens/Servicos';
+import RelatoriosPrestador    from './screens/RelatoriosPrestador';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -57,6 +59,8 @@ const ThemedChatList = withThemeScreen(ChatList);
 const ThemedChat = withThemeScreen(Chat);
 const ThemedAdm = withThemeScreen(Adm);
 const ThemedServicosEmAndamento = withThemeScreen(ServicosEmAndamento);
+const ThemedServicos = withThemeScreen(Servicos);
+const ThemedRelatoriosPrestador = withThemeScreen(RelatoriosPrestador);
 
 function AppInner() {
   const { theme } = useTheme();
@@ -97,9 +101,11 @@ function AppInner() {
         <Stack.Screen name='Configuracoes' component={ThemedConfiguracoes} options={{ headerShown: false }}/>
         <Stack.Screen name='ConfiguracoesPrestador' component={ThemedConfiguracoesPrestador} options={{ headerShown: false }}/>
         <Stack.Screen name='ServicosEmAndamento'    component={ThemedServicosEmAndamento} options={{ headerShown: false }} /> 
+        <Stack.Screen name='Servicos' component={ThemedServicos} options={{ headerShown: false }} />
         <Stack.Screen name='Chat' component={ThemedChat} options={{ headerShown: false }} />
         <Stack.Screen name='ChatList' component={ThemedChatList} options={{ headerShown: false }} />
         <Stack.Screen name='Adm' component={ThemedAdm} options={{ headerShown: false }} />
+        <Stack.Screen name='RelatoriosPrestador' component={ThemedRelatoriosPrestador} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     

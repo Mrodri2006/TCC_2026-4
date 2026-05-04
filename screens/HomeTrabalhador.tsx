@@ -15,7 +15,7 @@ import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/
 import {
   BarChart3,
   Bell,
-  CheckCircle,
+  CircleCheck,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -292,12 +292,6 @@ export default function HomeTrabalhador() {
             >
               <Bell size={22} color="#0F2937" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.topBarIcon, styles.topBarIconSpacing]}
-              onPress={() => (navigation as any).navigate("ServicosAgendados")}
-            >
-              <Calendar size={22} color="#0F2937" />
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -387,7 +381,7 @@ export default function HomeTrabalhador() {
                     style={styles.acceptButton}
                     onPress={() => handleAceitarServico(item)}
                   >
-                    <CheckCircle size={20} color="#fff" />
+                    <CircleCheck size={20} color="#fff" />
                     <Text style={styles.buttonText}>Aceitar</Text>
                   </TouchableOpacity>
 
@@ -433,7 +427,7 @@ export default function HomeTrabalhador() {
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.quickCard}
-            onPress={() => (navigation as any).navigate("ServicosAgendados")}
+            onPress={() => navigation.navigate("Servicos")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#EAF2FF" }]}>
               <FileText size={22} color="#2563EB" />
@@ -445,7 +439,7 @@ export default function HomeTrabalhador() {
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.quickCard}
-            onPress={() => Alert.alert("Relatórios", "Em breve")}
+            onPress={() => navigation.navigate("RelatoriosPrestador")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#E9FBF1" }]}>
               <BarChart3 size={22} color="#16A34A" />
@@ -472,7 +466,7 @@ export default function HomeTrabalhador() {
             <View style={styles.alertContainer}>
               {servicoAceito && (
                 <>
-                  <CheckCircle size={60} color="#4CAF50" />
+                  <CircleCheck size={60} color="#4CAF50" />
                   <Text style={styles.alertTitle}>Serviço aceito</Text>
 
                   <TouchableOpacity
