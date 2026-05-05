@@ -28,4 +28,5 @@ const auth = firebase.auth();
 const firestore = firebase.firestore();
 const storage = firebase.storage();
 const functions = firebase.app().functions("us-central1");
-export { auth, firestore, storage, functions };
+const getFunctionsByRegion = (region = "us-central1") => firebase.app().functions(region);
+export { auth, firestore, storage, functions, getFunctionsByRegion };

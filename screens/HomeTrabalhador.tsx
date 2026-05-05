@@ -323,14 +323,6 @@ export default function HomeTrabalhador() {
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Serviços solicitados</Text>
-
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => Alert.alert("Filtro", "Em breve")}
-          >
-            <Text style={styles.filterText}>Todos</Text>
-            <ChevronDown size={18} color="#0F2937" />
-          </TouchableOpacity>
         </View>
 
         {carregando ? (

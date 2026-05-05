@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet, ActivityIndicator } from "react-native";
 import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
@@ -25,6 +25,9 @@ export default function PerfilTrabalhador() {
 
   const [historico, setHistorico] = useState<any[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
+  const [mensalidadeStatus, setMensalidadeStatus] = useState("em_aberto");
+  const [mensalidadeVencimento, setMensalidadeVencimento] = useState<any>(null);
+  const [verificandoPagamento, setVerificandoPagamento] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,6 +54,8 @@ export default function PerfilTrabalhador() {
                 localizacao: dados.localizacao || prevState.localizacao,
                 fotoPerfil: dados.fotoPerfil || dados.foto || "",
               }));
+              setMensalidadeStatus(dados.mensalidadeStatus || "em_aberto");
+              setMensalidadeVencimento(dados.mensalidadeVencimento || null);
             }
 
             const snapshot = await firestore
@@ -132,6 +137,51 @@ export default function PerfilTrabalhador() {
       carregarDados();
     }, [])
   );
+
+  const getDateFromField = (valor: any) => {
+    if (!valor) return null;
+    if (typeof valor?.toDate === "function") return valor.toDate();
+    if (valor?.seconds) return new Date(valor.seconds * 1000);
+    const data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? null : data;
+  };
+
+  const vencimentoData = getDateFromField(mensalidadeVencimento);
+  const mensalidadeVencida = !!vencimentoData && vencimentoData.getTime() < Date.now();
+  const bloqueadoPorMensalidade = mensalidadeVencida && mensalidadeStatus !== "paga";
+
+  const verificarConfirmacaoPagamento = async () => {
+    try {
+      const usuarioAutenticado = auth.currentUser;
+      if (!usuarioAutenticado) {
+        Alert.alert("Erro", "Usuário não autenticado.");
+        return;
+      }
+
+      setVerificandoPagamento(true);
+      const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
+      if (!docSnap.exists) {
+        Alert.alert("Pagamento", "Não foi possível localizar os dados da mensalidade.");
+        return;
+      }
+
+      const dados = docSnap.data() || {};
+      const statusAtual = dados.mensalidadeStatus || "em_aberto";
+      setMensalidadeStatus(statusAtual);
+      setMensalidadeVencimento(dados.mensalidadeVencimento || null);
+
+      if (statusAtual === "paga") {
+        Alert.alert("Pagamento confirmado", "Acesso liberado com sucesso.");
+      } else {
+        Alert.alert("Aguardando confirmação", "O pagamento ainda não foi confirmado.");
+      }
+    } catch (erro) {
+      console.log("Erro ao verificar pagamento:", erro);
+      Alert.alert("Erro", "Não foi possível verificar o pagamento agora.");
+    } finally {
+      setVerificandoPagamento(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -328,6 +378,44 @@ export default function PerfilTrabalhador() {
     );
   };
 
+  if (bloqueadoPorMensalidade) {
+    return (
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={localStyles.blockedContent}
+      >
+        <View style={localStyles.blockedCard}>
+          <Text style={localStyles.blockedTitle}>Acesso temporariamente bloqueado</Text>
+          <Text style={localStyles.blockedText}>
+            Seu período de uso expirou. O app será liberado apenas após a confirmação do pagamento da mensalidade.
+          </Text>
+          <Text style={localStyles.blockedDate}>
+            Vencimento: {vencimentoData ? vencimentoData.toLocaleDateString("pt-BR") : "não informado"}
+          </Text>
+
+          <TouchableOpacity
+            style={localStyles.primaryBlockedButton}
+            onPress={() => navigation.navigate("ConfiguracoesPrestador")}
+          >
+            <Text style={localStyles.primaryBlockedButtonText}>Pagar com Pix</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={localStyles.secondaryBlockedButton}
+            onPress={verificarConfirmacaoPagamento}
+            disabled={verificandoPagamento}
+          >
+            {verificandoPagamento ? (
+              <ActivityIndicator color="#0F2937" />
+            ) : (
+              <Text style={localStyles.secondaryBlockedButtonText}>Já paguei, verificar liberação</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={localStyles.scrollContent}>
       <View style={localStyles.headerCard}>
@@ -502,6 +590,64 @@ export default function PerfilTrabalhador() {
 }
 
 const localStyles = StyleSheet.create({
+  blockedContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  blockedCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  blockedTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 10,
+  },
+  blockedText: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  blockedDate: {
+    fontSize: 13,
+    color: "#64748B",
+    marginBottom: 18,
+  },
+  primaryBlockedButton: {
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  primaryBlockedButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  secondaryBlockedButton: {
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 46,
+  },
+  secondaryBlockedButtonText: {
+    color: "#0F2937",
+    fontWeight: "700",
+    fontSize: 14,
+  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,

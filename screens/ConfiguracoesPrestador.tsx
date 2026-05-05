@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { auth, firestore, functions } from "../firebase";
+import { auth, firestore, functions, getFunctionsByRegion } from "../firebase";
 import QRCode from "react-native-qrcode-svg";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -119,13 +119,37 @@ export default function ConfiguracoesPrestador() {
     setCarregandoPix(true);
     setSalvando(true);
     try {
-      const gerarPixMensalidade = functions.httpsCallable("gerarPixMensalidade");
-      const response = await gerarPixMensalidade({
+      const payloadRequest = {
         amount: MENSALIDADE_VALOR,
         description: "Mensalidade prestador",
         idempotencyKey: gerarIdempotencyKey(),
-      });
-      const payload = (response as any)?.data || {};
+      };
+
+      const regioesTentativa = ["us-central1", "southamerica-east1"];
+      let response: any = null;
+      let ultimoErro: any = null;
+
+      for (const regiao of regioesTentativa) {
+        try {
+          const instanciaFunctions =
+            regiao === "us-central1" ? functions : getFunctionsByRegion(regiao);
+          const gerarPixMensalidade = instanciaFunctions.httpsCallable("gerarPixMensalidade");
+          response = await gerarPixMensalidade(payloadRequest);
+          break;
+        } catch (erroRegiao: any) {
+          ultimoErro = erroRegiao;
+          const codigo = erroRegiao?.code || "";
+          if (codigo !== "not-found" && codigo !== "functions/not-found") {
+            throw erroRegiao;
+          }
+        }
+      }
+
+      if (!response) {
+        throw ultimoErro || new Error("Falha ao localizar a função de geração Pix.");
+      }
+
+      const payload = response?.data || {};
       setQrCopiaCola(payload.qr_code || "");
       setQrTicketUrl(payload.ticket_url || "");
       if (!payload.qr_code) {
@@ -133,7 +157,11 @@ export default function ConfiguracoesPrestador() {
       }
     } catch (erro: any) {
       console.log("Erro ao gerar Pix:", erro);
-      const mensagem = "Falha ao gerar o QR Code no backend. Tente novamente.";
+      const codigo = erro?.code || "";
+      const mensagem =
+        codigo === "not-found" || codigo === "functions/not-found"
+          ? "Funcao de pagamento nao encontrada no backend. Publique a Cloud Function gerarPixMensalidade."
+          : "Falha ao gerar o QR Code no backend. Tente novamente.";
       setErroPix(mensagem);
       Alert.alert("PIX", mensagem);
     } finally {
