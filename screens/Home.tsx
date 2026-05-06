@@ -163,7 +163,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 id: doc.id,
               };
             });
-          const aceitos = lista.filter((item: any) => item.status === "a fazer" || item.status === "aceito");
+          const aceitos = lista.filter((item: any) =>
+            item.status === "valor_pendente" ||
+            item.status === "a fazer" ||
+            item.status === "aceito"
+          );
           setServicosAceitos(aceitos);
           setCarregandoAceitos(false);
         },
@@ -184,6 +188,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
     setModalVisivel(false);
     setServicoSelecionado(null);
     setProblemaTexto("");
+  };
+
+  const formatarValor = (valor: any) => {
+    const numero = Number(valor);
+    if (Number.isNaN(numero)) return "Valor não informado";
+    return `R$ ${numero.toFixed(2).replace(".", ",")}`;
   };
 
   const abrirModalArea = () => {
@@ -371,6 +381,101 @@ export default function TelaInicialCliente({ onLogout }: any) {
     }
   };
 
+  const responderPropostaValor = async (aceitou: boolean) => {
+    if (!servicoSelecionado?.prestadorId || !servicoSelecionado?.clienteId) {
+      Alert.alert("Erro", "Informações da proposta incompletas");
+      return;
+    }
+
+    try {
+      const agora = new Date();
+      const novoStatus = aceitou ? "a fazer" : "rejeitado";
+      const statusUpdate = {
+        status: novoStatus,
+        dataRespostaValor: agora,
+        ...(aceitou
+          ? { dataAceito: agora, valorAceito: true }
+          : { dataRejeicao: agora, valorAceito: false }),
+      };
+
+      await firestore
+        .collection("ServicosAgendados")
+        .doc(servicoSelecionado.prestadorId)
+        .collection("ServicoStatus")
+        .doc(servicoSelecionado.id)
+        .set(
+          {
+            ...servicoSelecionado,
+            ...statusUpdate,
+          },
+          { merge: true }
+        );
+
+      await firestore
+        .collection("ServicosClientes")
+        .doc(servicoSelecionado.clienteId)
+        .collection("ServicoStatus")
+        .doc(servicoSelecionado.id)
+        .set(
+          {
+            ...servicoSelecionado,
+            ...statusUpdate,
+          },
+          { merge: true }
+        );
+
+      if (servicoSelecionado.origem === "area" && servicoSelecionado.requestId) {
+        const reqRef = firestore
+          .collection("SolicitacoesArea")
+          .doc(servicoSelecionado.requestId);
+
+        if (aceitou) {
+          const reqSnap = await reqRef.get();
+          const reqData: any = reqSnap.exists ? reqSnap.data() : {};
+          const prestadoresIds: string[] = reqData?.prestadoresIds || [];
+          const deletePromises = prestadoresIds
+            .filter((prestadorId) => prestadorId !== servicoSelecionado.prestadorId)
+            .map((prestadorId) =>
+              firestore
+                .collection("ServicosAgendados")
+                .doc(prestadorId)
+                .collection("ServicoStatus")
+                .doc(servicoSelecionado.requestId)
+                .delete()
+            );
+
+          await Promise.all(deletePromises);
+        }
+
+        await reqRef.set(
+          aceitou
+            ? {
+                status: "aceito",
+                aceitoPor: servicoSelecionado.prestadorId,
+                dataAceito: agora,
+                valor: servicoSelecionado.valor,
+                valorAceito: true,
+              }
+            : {
+                status: "valor_recusado",
+                dataRespostaValor: agora,
+                valorAceito: false,
+              },
+          { merge: true }
+        );
+      }
+
+      Alert.alert(
+        "Sucesso",
+        aceitou ? "Valor aceito. Serviço confirmado." : "Valor recusado. Serviço rejeitado."
+      );
+      fecharModal();
+    } catch (erro) {
+      console.error("Erro ao responder proposta de valor:", erro);
+      Alert.alert("Erro", "Não foi possível responder a proposta.");
+    }
+  };
+
   return (
     <View style={[styles.containerFull, { backgroundColor: theme.background }]}>
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -415,7 +520,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
             )}
 
             <View>
-              <Text style={styles.sectionTitle}>Serviços em andamento</Text>
+              <Text style={styles.sectionTitle}>Serviços e propostas</Text>
             </View>
 
             {carregandoAceitos ? (
@@ -438,12 +543,21 @@ export default function TelaInicialCliente({ onLogout }: any) {
                     <Text style={styles.servicoAceitoInfo}>
                       {serv.data || "Data não informada"} • {serv.local || "Local não informado"}
                     </Text>
-                    <Text style={styles.servicoAceitoAcoes}>Toque para gerenciar</Text>
+                    {serv.status === "valor_pendente" && (
+                      <Text style={styles.servicoAceitoValor}>
+                        Proposta: {formatarValor(serv.valorProposto ?? serv.valor)}
+                      </Text>
+                    )}
+                    <Text style={styles.servicoAceitoAcoes}>
+                      {serv.status === "valor_pendente"
+                        ? "Toque para aceitar ou recusar"
+                        : "Toque para gerenciar"}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             ) : (
-              <Text style={styles.nenhumResultado}>Nenhum serviço aceito no momento</Text>
+              <Text style={styles.nenhumResultado}>Nenhum serviço ou proposta no momento</Text>
             )}
 
             {!carregando && (
@@ -571,35 +685,66 @@ export default function TelaInicialCliente({ onLogout }: any) {
               {servicoSelecionado?.data || "Data não informada"} • {servicoSelecionado?.local || "Local não informado"}
             </Text>
 
-            <View style={styles.modalInputContainer}>
-              <Text style={styles.modalLabel}>Reportar problema (opcional)</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Descreva o problema..."
-                placeholderTextColor="#999"
-                value={problemaTexto}
-                onChangeText={setProblemaTexto}
-                multiline
-              />
-            </View>
+            {servicoSelecionado?.status === "valor_pendente" ? (
+              <>
+                <View style={styles.propostaValorBox}>
+                  <Text style={styles.propostaValorLabel}>Valor proposto</Text>
+                  <Text style={styles.propostaValorTexto}>
+                    {formatarValor(servicoSelecionado?.valorProposto ?? servicoSelecionado?.valor)}
+                  </Text>
+                </View>
 
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={styles.modalProblemButton}
-                onPress={() => atualizarStatusServico("problema")}
-              >
-                <Text style={styles.modalProblemText}>Reportar Problema</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.modalButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.modalFinishButton}
+                    onPress={() => responderPropostaValor(true)}
+                  >
+                    <Text style={styles.modalFinishText}>Aceitar valor</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={styles.modalFinishButton}
-                onPress={() => atualizarStatusServico("realizado")}
-              >
-                <Text style={styles.modalFinishText}>Finalizar Serviço</Text>
-              </TouchableOpacity>
-            </View>
+                <View style={styles.modalButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.modalProblemButton}
+                    onPress={() => responderPropostaValor(false)}
+                  >
+                    <Text style={styles.modalProblemText}>Recusar valor</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.modalInputContainer}>
+                  <Text style={styles.modalLabel}>Reportar problema (opcional)</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Descreva o problema..."
+                    placeholderTextColor="#999"
+                    value={problemaTexto}
+                    onChangeText={setProblemaTexto}
+                    multiline
+                  />
+                </View>
+
+                <View style={styles.modalButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.modalProblemButton}
+                    onPress={() => atualizarStatusServico("problema")}
+                  >
+                    <Text style={styles.modalProblemText}>Reportar Problema</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.modalFinishButton}
+                    onPress={() => atualizarStatusServico("realizado")}
+                  >
+                    <Text style={styles.modalFinishText}>Finalizar Serviço</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
 
             <TouchableOpacity style={styles.modalCloseButton} onPress={fecharModal}>
               <Text style={styles.modalCloseText}>Fechar</Text>
@@ -1015,6 +1160,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  servicoAceitoValor: {
+    fontSize: 14,
+    color: "#166534",
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+
   servicoAceitoAcoes: {
     fontSize: 12,
     color: "#2563EB",
@@ -1059,6 +1211,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#64748B",
     marginBottom: 14,
+  },
+
+  propostaValorBox: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    padding: 14,
+    marginBottom: 8,
+  },
+
+  propostaValorLabel: {
+    fontSize: 12,
+    color: "#166534",
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  propostaValorTexto: {
+    fontSize: 22,
+    color: "#166534",
+    fontWeight: "800",
   },
 
   modalInputContainer: {

@@ -6,6 +6,8 @@ export class Serv {
     public data:    string;
     public aval:    number;
     public status:  string;
+    public valor?: number;
+    public valorProposto?: number;
     public nomeCliente?: string;
     public emailCliente?: string;
     public prestadorId?: string;
@@ -19,6 +21,8 @@ export class Serv {
             this.tipo   = obj.tipo
             this.data   = obj.data
             this.status = obj.status || 'não realizado'
+            this.valor = obj.valor
+            this.valorProposto = obj.valorProposto
             this.nomeCliente = obj.nomeCliente
             this.emailCliente = obj.emailCliente
             this.prestadorId = obj.prestadorId
@@ -34,6 +38,7 @@ export class Serv {
             "tipo"  :   "${this.tipo}" ,
             "data"  :   "${this.data}",
             "status" : "${this.status}",
+            "valor" : "${this.valor}",
             "prestadorId" : "${this.prestadorId}"
         }`
         return objeto
@@ -47,6 +52,8 @@ export class Serv {
             tipo    : this.tipo,
             data    : this.data,
             status  : this.status,
+            valor : this.valor,
+            valorProposto : this.valorProposto,
             nomeCliente : this.nomeCliente,
             emailCliente : this.emailCliente,
             prestadorId : this.prestadorId,
@@ -57,4 +64,3 @@ export class Serv {
 
 
 }
-

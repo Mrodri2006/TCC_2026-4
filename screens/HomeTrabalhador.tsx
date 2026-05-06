@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -42,6 +43,10 @@ export default function HomeTrabalhador() {
   const [alertVisivel, setAlertVisivel] = useState(false);
   const [servicoAceito, setServicoAceito] = useState<any>(null);
   const [servicoRejeitado, setServicoRejeitado] = useState<any>(null);
+  const [modalValorVisivel, setModalValorVisivel] = useState(false);
+  const [servicoParaValor, setServicoParaValor] = useState<any>(null);
+  const [valorServico, setValorServico] = useState("");
+  const [enviandoValor, setEnviandoValor] = useState(false);
 
   const unsubscribeRef = useRef<any>(null);
 
@@ -107,7 +112,33 @@ export default function HomeTrabalhador() {
       );
   };
 
-  const handleAceitarServico = async (servico: any) => {
+  const abrirModalValor = (servico: any) => {
+    setServicoParaValor(servico);
+    setValorServico("");
+    setModalValorVisivel(true);
+  };
+
+  const fecharModalValor = () => {
+    if (enviandoValor) return;
+    setModalValorVisivel(false);
+    setServicoParaValor(null);
+    setValorServico("");
+  };
+
+  const handleAceitarServico = async () => {
+    const servico = servicoParaValor;
+    const valorNumerico = Number(valorServico.replace(",", "."));
+
+    if (!servico) {
+      Alert.alert("Erro", "Serviço não selecionado");
+      return;
+    }
+
+    if (!valorServico.trim() || Number.isNaN(valorNumerico) || valorNumerico <= 0) {
+      Alert.alert("Erro", "Informe um valor válido maior que zero.");
+      return;
+    }
+
     try {
       const usuarioId = auth.currentUser?.uid;
 
@@ -116,15 +147,22 @@ export default function HomeTrabalhador() {
         return;
       }
 
+      setEnviandoValor(true);
+      const agora = new Date();
+      const propostaValor = {
+        status: "valor_pendente",
+        valor: valorNumerico,
+        valorProposto: valorNumerico,
+        dataPropostaValor: agora,
+        prestadorId: usuarioId,
+      };
+
       await firestore
         .collection("ServicosAgendados")
         .doc(usuarioId)
         .collection("ServicoStatus")
         .doc(servico.id)
-        .update({
-          status: "a fazer",
-          dataAceito: new Date(),
-        });
+        .set(propostaValor, { merge: true });
 
       if (servico.clienteId) {
         await firestore
@@ -134,61 +172,39 @@ export default function HomeTrabalhador() {
           .doc(servico.id)
           .set(
             {
-              status: "a fazer",
-              dataAceito: new Date(),
-              prestadorId: usuarioId,
+              ...propostaValor,
             },
             { merge: true }
           );
       }
 
       if (servico.origem === "area" && servico.requestId) {
-        const reqRef = firestore
+        await firestore
           .collection("SolicitacoesArea")
-          .doc(servico.requestId);
-        const reqSnap = await reqRef.get();
-
-        if (reqSnap.exists) {
-          const reqData: any = reqSnap.data();
-          const prestadoresIds: string[] = reqData?.prestadoresIds || [];
-          const deletePromises: Promise<any>[] = [];
-
-          prestadoresIds.forEach((prestadorId) => {
-            if (prestadorId !== usuarioId) {
-              deletePromises.push(
-                firestore
-                  .collection("ServicosAgendados")
-                  .doc(prestadorId)
-                  .collection("ServicoStatus")
-                  .doc(servico.requestId)
-                  .delete()
-              );
-            }
-          });
-
-          deletePromises.push(
-            reqRef.set(
-              {
-                status: "aceito",
-                aceitoPor: usuarioId,
-                dataAceito: new Date(),
-              },
-              { merge: true }
-            )
+          .doc(servico.requestId)
+          .set(
+            {
+              status: "valor_pendente",
+              valor: valorNumerico,
+              valorProposto: valorNumerico,
+              propostoPor: usuarioId,
+              dataPropostaValor: agora,
+            },
+            { merge: true }
           );
-
-          if (deletePromises.length > 0) {
-            await Promise.all(deletePromises);
-          }
-        }
       }
 
       setServicoAceito(servico);
       setServicoRejeitado(null);
+      setModalValorVisivel(false);
+      setServicoParaValor(null);
+      setValorServico("");
       setAlertVisivel(true);
     } catch (erro) {
       console.error("Erro ao aceitar serviço:", erro);
       Alert.alert("Erro", "Não foi possível aceitar o serviço");
+    } finally {
+      setEnviandoValor(false);
     }
   };
 
@@ -371,7 +387,7 @@ export default function HomeTrabalhador() {
                 <View style={styles.buttonsRow}>
                   <TouchableOpacity
                     style={styles.acceptButton}
-                    onPress={() => handleAceitarServico(item)}
+                    onPress={() => abrirModalValor(item)}
                   >
                     <CircleCheck size={20} color="#fff" />
                     <Text style={styles.buttonText}>Aceitar</Text>
@@ -459,16 +475,13 @@ export default function HomeTrabalhador() {
               {servicoAceito && (
                 <>
                   <CircleCheck size={60} color="#4CAF50" />
-                  <Text style={styles.alertTitle}>Serviço aceito</Text>
+                  <Text style={styles.alertTitle}>Valor enviado ao cliente</Text>
 
                   <TouchableOpacity
                     style={styles.openButton}
-                    onPress={() => {
-                      handleFecharAlert();
-                      (navigation as any).navigate("ServicosAgendados");
-                    }}
+                    onPress={handleFecharAlert}
                   >
-                    <Text style={styles.openButtonText}>Ver agendados</Text>
+                    <Text style={styles.openButtonText}>Fechar</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -486,6 +499,45 @@ export default function HomeTrabalhador() {
                   </TouchableOpacity>
                 </>
               )}
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={modalValorVisivel} transparent animationType="fade">
+          <View style={styles.alertOverlay}>
+            <View style={styles.alertContainer}>
+              <Text style={styles.alertTitle}>Informe o valor do serviço</Text>
+              <Text style={styles.valorModalSubtitle}>
+                {servicoParaValor?.estilo || servicoParaValor?.tipo || "Serviço"}
+              </Text>
+
+              <TextInput
+                style={styles.valorInput}
+                placeholder="Ex: 150,00"
+                placeholderTextColor="#94A3B8"
+                value={valorServico}
+                onChangeText={setValorServico}
+                keyboardType="decimal-pad"
+                editable={!enviandoValor}
+              />
+
+              <TouchableOpacity
+                style={[styles.openButton, enviandoValor && styles.disabledButton]}
+                onPress={handleAceitarServico}
+                disabled={enviandoValor}
+              >
+                <Text style={styles.openButtonText}>
+                  {enviandoValor ? "Enviando..." : "Enviar valor"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.valorCancelButton}
+                onPress={fecharModalValor}
+                disabled={enviandoValor}
+              >
+                <Text style={styles.valorCancelText}>Cancelar</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -899,6 +951,39 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
+  },
+  valorModalSubtitle: {
+    color: "#64748B",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 14,
+    textAlign: "center",
+  },
+  valorInput: {
+    width: "100%",
+    backgroundColor: "#F5F8FC",
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F2937",
+    borderWidth: 1,
+    borderColor: "#DDEEFF",
+    marginBottom: 16,
+  },
+  valorCancelButton: {
+    marginTop: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+  },
+  valorCancelText: {
+    color: "#64748B",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 
   fab: {
