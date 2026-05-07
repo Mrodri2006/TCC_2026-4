@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-nativ
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Configuracoes() {
   const navigation = useNavigation<any>();
@@ -65,40 +66,26 @@ export default function Configuracoes() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{
-            padding: 8,
-            borderRadius: 10,
-            backgroundColor: theme.headerBtnBg,
-            marginTop: 40,
-          }}
-        >
-          <ArrowLeft size={20} color="#005362" />
-        </TouchableOpacity>
-        <Text
-          style={{
-            marginTop: 40,
-            marginBottom: 4,
-            fontSize: 28,
-            fontWeight: "600",
-            color: theme.textPrimary,
-            alignItems: "center",
-          }}
-        >
-          Configurações
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.topBarBtn, { backgroundColor: theme.headerBtnBg }]} activeOpacity={0.7}>
+            <ArrowLeft size={20} color="#2563EB" />
+          </TouchableOpacity>
+          <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>Configurações</Text>
+          <View style={styles.topBarSpacer} />
+        </View>
 
-      <View style={[styles.section, { backgroundColor: theme.card }]}>
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Preferências</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Preferências</Text>
+          <View style={styles.sectionUnderline} />
+        </View>
+
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Bell size={18} color="#005362" />
+            <Bell size={18} color="#2563EB" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Notificações</Text>
           </View>
           <Switch
@@ -112,7 +99,7 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Moon size={18} color="#005362" />
+            <Moon size={18} color="#2563EB" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Modo escuro</Text>
           </View>
           <Switch
@@ -126,19 +113,23 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Globe size={18} color="#005362" />
+            <Globe size={18} color="#2563EB" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Idioma</Text>
           </View>
           <Text style={[styles.itemValue, { color: theme.textMuted }]}>Português (BR)</Text>
         </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.card }]}>
+      <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Privacidade</Text>
+        <View style={styles.sectionUnderline} />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Shield size={18} color="#005362" />
+            <Shield size={18} color="#2563EB" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Perfil visível</Text>
           </View>
           <Switch
@@ -151,14 +142,18 @@ export default function Configuracoes() {
         </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.card }]}>
+      <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Conta</Text>
+        <View style={styles.sectionUnderline} />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("EditarPerfil")}
         >
-          <Text style={[styles.actionText, { color: "#005362" }]}>Editar perfil</Text>
+          <Text style={[styles.actionText, { color: "#2563EB" }]}>Editar perfil</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -176,7 +171,8 @@ export default function Configuracoes() {
           <Text style={styles.deleteButtonText}>Deletar Conta</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -189,23 +185,53 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 24,
   },
-  header: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
+    paddingVertical: 10,
+    marginBottom: 6,
   },
-  headerSpacer: {
-    width: 36,
+  topBarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  topBarSpacer: {
+    width: 44,
+    height: 44,
+  },
+  sectionHeader: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  sectionUnderline: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#2563EB",
+    marginTop: -4,
   },
   section: {
     backgroundColor: "#f7f7f7",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
     color: "#000",
     marginBottom: 12,

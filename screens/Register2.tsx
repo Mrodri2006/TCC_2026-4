@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from "react";
 import {
-  Text,
-  View,
-  KeyboardAvoidingView,
-  TouchableOpacity,
-  ImageBackground,
   ActivityIndicator,
-  StyleSheet,
-  ScrollView,
   Image,
-  Modal
-} from 'react-native';
-import { TextInput } from 'react-native-paper';
+  ImageBackground,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Briefcase, Calendar, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from 'react-native-modal-datetime-picker';
@@ -21,11 +25,21 @@ export default function Register2() {
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
   const [dataPickerVisivel, setDataPickerVisivel] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosVisivel, setTermosVisivel] = useState(false);
   const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', localizacao: '', dataNascimento: '', termos: '' });
 
   const navigation = useNavigation<any>();
+
+  const headerTitle = useMemo(() => {
+    return (
+      <>
+        <Text style={styles.headerTitleAqua}>CADASTRO</Text>
+        <Text style={styles.headerTitleWhite}> CONTRATANTE</Text>
+      </>
+    );
+  }, []);
 // Função para calcular a idade com base na data de nascimento
   const calcularIdade = (data: Date) => {
     const hoje = new Date();
@@ -104,92 +118,120 @@ export default function Register2() {
   };
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={styles.container}>
-        <View style={styles.overlay}>
-          <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={styles.safe}>
+        <LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.9)"]} style={styles.overlay} />
 
-            <View style={styles.headerSection}>
-              <Text style={styles.titulo}>CADASTRO DE USUÁRIOS</Text>
-                  <Image
-                    source={require('../assets/logo8.jpg')}
-                    style={{ 
-                      width: 400, 
-                      height: 100, 
-                      marginVertical: 10, 
-                      marginTop: 40, 
-                    }}
-                  />
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>{headerTitle}</Text>
+              <View style={styles.headerUnderline} />
             </View>
 
-            <View style={styles.tabContainer}>
-              <TouchableOpacity style={styles.activeTab}>
-                <Text style={styles.activeTabText}>Contratante</Text>
+            <View style={styles.logoRow}>
+              <Image source={require("../assets/logo8.jpg")} style={styles.logo} resizeMode="contain" />
+            </View>
+
+            <View style={styles.segmented}>
+              <TouchableOpacity style={styles.segmentedActive} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={["#0EA5A8", "#0B7280"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.segmentedActiveBg}
+                >
+                  <User size={18} color="#EAFBFF" />
+                  <Text style={styles.segmentedActiveText}>Contratante</Text>
+                </LinearGradient>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.inactiveTab}
-                onPress={() => navigation.replace('Register')}
+                style={styles.segmentedInactive}
+                activeOpacity={0.85}
+                onPress={() => navigation.replace("Register")}
               >
-                <Text style={styles.inactiveTabText}>Prestador</Text>
+                <Briefcase size={18} color="#9CA3AF" />
+                <Text style={styles.segmentedInactiveText}>Prestador</Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.card}>
-              <TextInput
-                label="Nome"
-                value={formUsuario.nome || ''}
-                onChangeText={(valor) => setFormUsuario({ ...formUsuario, nome: valor })}
-                style={styles.input}
-                mode="outlined"
-              />
+              <View style={styles.inputWrap}>
+                <User size={18} color="#0EA5A8" />
+                <TextInput
+                  placeholder="Nome"
+                  placeholderTextColor="#6B7280"
+                  value={formUsuario.nome || ""}
+                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, nome: valor })}
+                  style={styles.input}
+                />
+              </View>
+              {!!errors.nome && <Text style={styles.errorText}>{errors.nome}</Text>}
 
-              <TextInput
-                label="E-mail"
-                value={formUsuario.email || ''}
-                onChangeText={(valor) => setFormUsuario({ ...formUsuario, email: valor })}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+              <View style={styles.inputWrap}>
+                <Mail size={18} color="#0EA5A8" />
+                <TextInput
+                  placeholder="E-mail"
+                  placeholderTextColor="#6B7280"
+                  value={formUsuario.email || ""}
+                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, email: valor })}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+              </View>
+              {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-              <TextInput
-                label="Senha"
-                value={formUsuario.senha || ''}
-                onChangeText={(valor) => setFormUsuario({ ...formUsuario, senha: valor })}
-                secureTextEntry
-                style={styles.input}
-                mode="outlined"
-              />
+              <View style={styles.inputWrap}>
+                <Lock size={18} color="#0EA5A8" />
+                <TextInput
+                  placeholder="Senha"
+                  placeholderTextColor="#6B7280"
+                  value={formUsuario.senha || ""}
+                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, senha: valor })}
+                  secureTextEntry={!mostrarSenha}
+                  style={styles.input}
+                />
+                <TouchableOpacity onPress={() => setMostrarSenha((v) => !v)} activeOpacity={0.8} style={styles.eyeBtn}>
+                  {mostrarSenha ? <EyeOff size={18} color="#9CA3AF" /> : <Eye size={18} color="#9CA3AF" />}
+                </TouchableOpacity>
+              </View>
+              {!!errors.senha && <Text style={styles.errorText}>{errors.senha}</Text>}
 
-              <TextInput
-                label="Telefone"
-                value={formUsuario.fone || ''}
-                onChangeText={(valor) => setFormUsuario({ ...formUsuario, fone: valor })}
-                style={styles.input}
-                mode="outlined"
-                keyboardType="phone-pad"
-              />
+              <View style={styles.inputWrap}>
+                <Phone size={18} color="#0EA5A8" />
+                <TextInput
+                  placeholder="Telefone"
+                  placeholderTextColor="#6B7280"
+                  value={formUsuario.fone || ""}
+                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, fone: valor })}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+              </View>
+              {!!errors.fone && <Text style={styles.errorText}>{errors.fone}</Text>}
 
-              <TextInput
-                label="Localização"
-                value={formUsuario.localizacao || ''}
-                onChangeText={(valor) => setFormUsuario({ ...formUsuario, localizacao: valor })}
-                style={styles.input}
-                mode="outlined"
-              />
+              <View style={styles.inputWrap}>
+                <MapPin size={18} color="#0EA5A8" />
+                <TextInput
+                  placeholder="Localização"
+                  placeholderTextColor="#6B7280"
+                  value={formUsuario.localizacao || ""}
+                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, localizacao: valor })}
+                  style={styles.input}
+                />
+              </View>
               {!!errors.localizacao && <Text style={styles.errorText}>{errors.localizacao}</Text>}
 
-              <TouchableOpacity
-                style={[styles.input, styles.dateButton]}
-                onPress={() => setDataPickerVisivel(true)}
-              >
-                <Text style={styles.dateButtonText}>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setDataPickerVisivel(true)} activeOpacity={0.85}>
+                <Calendar size={18} color="#0EA5A8" />
+                <Text style={styles.dateText}>
                   {formUsuario.dataNascimento
-                    ? formUsuario.dataNascimento.toLocaleDateString('pt-BR')
-                    : 'Selecionar data de nascimento'}
+                    ? formUsuario.dataNascimento.toLocaleDateString("pt-BR")
+                    : "Selecionar data de nascimento"}
                 </Text>
               </TouchableOpacity>
+              {!!errors.dataNascimento && <Text style={styles.errorText}>{errors.dataNascimento}</Text>}
 
               <DateTimePicker
                 isVisible={dataPickerVisivel}
@@ -204,7 +246,7 @@ export default function Register2() {
                   style={[styles.checkbox, aceitouTermos && styles.checkboxChecked]}
                   onPress={() => {
                     setAceitouTermos(!aceitouTermos);
-                    if (errors.termos) setErrors({ ...errors, termos: '' });
+                    if (errors.termos) setErrors({ ...errors, termos: "" });
                   }}
                 >
                   {aceitouTermos ? <Text style={styles.checkboxMark}>✓</Text> : null}
@@ -217,190 +259,243 @@ export default function Register2() {
                   </Text>{" "}
                   e as{" "}
                   <Text style={styles.termosLink} onPress={() => setTermosVisivel(true)}>
-                    especificacoes do app
+                    especificações do app
                   </Text>
                   .
                 </Text>
               </View>
               {!!errors.termos && <Text style={styles.errorText}>{errors.termos}</Text>}
 
-              <TouchableOpacity
-                style={styles.registerButton}
-                onPress={registrar}
-                disabled={loading}
-              >
-                {loading
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={styles.buttonText}>Registrar</Text>
-                }
+              <TouchableOpacity style={styles.primaryBtnWrap} onPress={registrar} disabled={loading} activeOpacity={0.9}>
+                <LinearGradient
+                  colors={["#0EA5A8", "#0B7280"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.primaryBtn}
+                >
+                  {loading ? <ActivityIndicator color="#EAFBFF" /> : <Text style={styles.primaryBtnText}>Registrar</Text>}
+                </LinearGradient>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.replace('Login')}
-              >
+              <TouchableOpacity style={styles.backButton} onPress={() => navigation.replace("Login")} activeOpacity={0.8}>
                 <Text style={styles.backButtonText}>Voltar ao Login</Text>
               </TouchableOpacity>
-
             </View>
 
             <Modal
               visible={termosVisivel}
-              animationType="slide"
+              animationType="fade"
               transparent
               onRequestClose={() => setTermosVisivel(false)}
             >
               <View style={styles.modalBackdrop}>
                 <View style={styles.modalCard}>
                   <Text style={styles.modalTitle}>Termos de uso</Text>
-                  <ScrollView style={styles.modalContent}>
+                  <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
                     <Text style={styles.modalText}>
-                      1. Ao criar a conta, voce declara que as informacoes fornecidas sao verdadeiras.
+                      1. Ao criar a conta, você declara que as informações fornecidas são verdadeiras.
                       {"\n\n"}
-                      2. O app conecta contratantes e prestadores. Nao garantimos a execucao do servico.
+                      2. O app conecta contratantes e prestadores. Não garantimos a execução do serviço.
                       {"\n\n"}
-                      3. Conteudos ofensivos, fraudulentos ou ilegais podem resultar em bloqueio da conta.
+                      3. Conteúdos ofensivos, fraudulentos ou ilegais podem resultar em bloqueio da conta.
                     </Text>
 
-                    <Text style={styles.modalTitle}>Especificacoes do app</Text>
+                    <Text style={styles.modalTitle}>Especificações do app</Text>
                     <Text style={styles.modalText}>
                       1. O app utiliza seus dados de cadastro para criar seu perfil e facilitar contatos.
                       {"\n\n"}
-                      2. As mensagens e solicitacoes podem ser registradas para fins de seguranca.
+                      2. As mensagens e solicitações podem ser registradas para fins de segurança.
                       {"\n\n"}
-                      3. Atualizacoes do app podem alterar funcionalidades sem aviso previo.
+                      3. Atualizações do app podem alterar funcionalidades sem aviso prévio.
                     </Text>
                   </ScrollView>
 
-                  <TouchableOpacity
-                    style={styles.modalButton}
-                    onPress={() => setTermosVisivel(false)}
-                  >
+                  <TouchableOpacity style={styles.modalButton} onPress={() => setTermosVisivel(false)} activeOpacity={0.85}>
                     <Text style={styles.modalButtonText}>Fechar</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </Modal>
-
           </ScrollView>
-        </View>
-    </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 ,
-    backgroundColor: '#000',
+  safe: {
+    flex: 1,
+    backgroundColor: "#000",
   },
-  overlay: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.55)' 
+
+  bg: {
+    flex: 1,
   },
-  scroll: { 
-    paddingHorizontal: 25, 
-    paddingVertical: 40 
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
-  headerSection:{ 
-    alignItems: 'center', 
-    marginBottom: 25 
+
+  container: {
+    flex: 1,
   },
-  titulo: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#fff', 
-    textAlign: 'center',
-    marginTop: 10, 
+
+  scroll: {
+    paddingHorizontal: 26,
+    paddingTop: 18,
+    paddingBottom: 30,
   },
-  subtitulo: { 
-    fontSize: 14, 
-    color: '#ddd', 
-    marginTop: 5 
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 30,
-    marginBottom: 25,
-    overflow: 'hidden',
-    margin: 20,
-  },
-  activeTab: { 
-    flex: 1, 
-    backgroundColor: '#005362', 
-    padding: 12, 
-    alignItems: 'center'
-  },
-  inactiveTab: { 
-    flex: 1, 
-    padding: 12, 
-    alignItems: 'center' 
-  },
-  activeTabText: { 
-    color: '#fff', 
-    fontWeight: 'bold' 
-  },
-  inactiveTabText: { 
-    color: '#005362', 
-    fontWeight: 'bold' 
-  },
-  card: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    borderRadius: 20, 
-    elevation: 6 
-  },
-  input: { 
-    marginBottom: 12, 
-    backgroundColor: '#fff' 
-  },
-  dateButton: { 
-    justifyContent: 'center', 
-    paddingVertical: 12 
-  },
-  dateButtonText: { 
-    color: '#555' 
-  },
-  adminLabel: {
+
+  header: {
+    alignItems: "center",
     marginTop: 10,
-    marginBottom: 8,
-    fontWeight: '600',
-    color: '#333',
+    marginBottom: 18,
   },
-  adminContainer: {
+
+  headerTitle: {
+    flexDirection: "row",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+
+  headerTitleAqua: {
+    color: "#0EA5A8",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 1.2,
+  },
+
+  headerTitleWhite: {
+    color: "#E5E7EB",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 1.2,
+  },
+
+  headerUnderline: {
+    width: 44,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#0EA5A8",
+    marginTop: 10,
+    opacity: 0.9,
+  },
+
+  logoRow: {
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  logo: {
+    width: "100%",
+    height: 200,
+  },
+
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: "rgba(17, 24, 39, 0.55)",
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
+    borderColor: "rgba(255,255,255,0.10)",
+    borderRadius: 28,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+
+  segmentedActive: {
+    flex: 1,
+  },
+
+  segmentedActiveBg: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  segmentedActiveText: {
+    color: "#EAFBFF",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  segmentedInactive: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  segmentedInactiveText: {
+    color: "#D1D5DB",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+
+  card: {
+    backgroundColor: "rgba(17, 24, 39, 0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    padding: 18,
+    borderRadius: 26,
+    shadowColor: "#000",
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
     marginBottom: 12,
   },
-  registerButton: { 
-    backgroundColor: '#005362', 
-    padding: 14, 
-    borderRadius: 12, 
-    alignItems: 'center', 
-    marginTop: 10 
+
+  input: {
+    flex: 1,
+    color: "#E5E7EB",
+    fontSize: 15,
+    paddingVertical: 0,
   },
-  buttonText: { 
-    color: '#fff', 
-    fontWeight: 'bold', 
-    fontSize: 16 
+
+  dateText: {
+    flex: 1,
+    color: "#E5E7EB",
+    fontSize: 15,
+    fontWeight: "600",
   },
-  backButton: { 
-    marginTop: 15, 
-    alignItems: 'center' 
+
+  eyeBtn: {
+    padding: 6,
+    marginRight: -6,
   },
-  backButtonText: { 
-    color: '#005362', 
-    fontWeight: '600' 
-  },
-  errorText: { 
-    color: '#ff4d4d', 
-    marginBottom: 6 
+
+  errorText: {
+    color: "#FCA5A5",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 10,
+    marginTop: -6,
+    paddingLeft: 4,
   },
 
   termosRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     marginTop: 6,
     marginBottom: 6,
   },
@@ -409,52 +504,86 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#005362',
+    borderColor: "rgba(14,165,168,0.85)",
     borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 10,
     marginTop: 2,
+    backgroundColor: "rgba(0,0,0,0.15)",
   },
 
   checkboxChecked: {
-    backgroundColor: '#005362',
+    backgroundColor: "#0EA5A8",
   },
 
   checkboxMark: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#001518",
+    fontWeight: "900",
   },
 
   termosText: {
     flex: 1,
-    color: '#333',
+    color: "rgba(229,231,235,0.86)",
+    fontWeight: "600",
+    lineHeight: 18,
   },
 
   termosLink: {
-    color: '#005362',
-    fontWeight: '600',
+    color: "#0EA5A8",
+    fontWeight: "900",
+  },
+
+  primaryBtnWrap: {
+    borderRadius: 18,
+    overflow: "hidden",
+    marginTop: 10,
+  },
+
+  primaryBtn: {
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  primaryBtnText: {
+    color: "#EAFBFF",
+    fontWeight: "900",
+    fontSize: 16,
+  },
+
+  backButton: {
+    alignItems: "center",
+    marginTop: 16,
+  },
+
+  backButtonText: {
+    color: "#0EA5A8",
+    fontWeight: "800",
   },
 
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
     padding: 20,
   },
 
   modalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: "rgba(17, 24, 39, 0.95)",
+    borderRadius: 18,
     padding: 16,
-    maxHeight: '85%',
+    maxHeight: "85%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
   },
 
   modalTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#111',
+    fontWeight: "900",
+    marginBottom: 10,
+    color: "#E5E7EB",
   },
 
   modalContent: {
@@ -462,19 +591,20 @@ const styles = StyleSheet.create({
   },
 
   modalText: {
-    color: '#333',
+    color: "rgba(229,231,235,0.85)",
     marginBottom: 12,
+    lineHeight: 18,
   },
 
   modalButton: {
-    backgroundColor: '#005362',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
+    backgroundColor: "#0EA5A8",
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
   },
 
   modalButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#001518",
+    fontWeight: "900",
   },
 });

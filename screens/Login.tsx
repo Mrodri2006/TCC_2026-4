@@ -1,25 +1,39 @@
-import { useState } from 'react';
-import { 
-  Text, 
-  View, 
-  KeyboardAvoidingView, 
-  TouchableOpacity, 
-  //ImageBackground, 
+import { useMemo, useState } from "react";
+import {
   ActivityIndicator,
+  Image,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
-  Image 
-} from 'react-native';
-import { TextInput } from 'react-native-paper';
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Briefcase, Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', senha: '' });
 
   const navigation = useNavigation<any>();
+
+  const headerTitle = useMemo(() => {
+    return (
+      <>
+        <Text style={styles.headerTitleAqua}>TELA DE</Text>
+        <Text style={styles.headerTitleWhite}> LOGIN</Text>
+      </>
+    );
+  }, []);
 
   const validarEmail = (email: string) => {
     const valida = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,212 +88,337 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView behavior='padding' style={styles.container}>
-        <View style={styles.overlay}>
-          <View style={styles.content}>
+    <SafeAreaView style={styles.safe}>
 
-          <View style={styles.headerSection}>
-            <Text style={{ fontSize: 20, 
-              color: '#fff', 
-              marginTop: 10, 
-              justifyContent:'flex-start', 
-              alignItems:'flex-start', 
-              marginBottom: 90, 
-              fontWeight: 'bold',}}
-              >
-                TELA DE LOGIN
-            </Text>
+        <LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.9)"]} style={styles.overlay} />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.container}
+        >
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>{headerTitle}</Text>
+            <View style={styles.headerUnderline} />
           </View>
 
-            <View style={styles.headerSection}>
-             
-              <Image
-                source={require('../assets/logo8.jpg')}
-                style={{ width: 400, height: 100, marginBottom: 20, }}
-                />
-            </View>
+          <View style={styles.logoRow}>
+            <Image source={require("../assets/logo8.jpg")} style={styles.logo} resizeMode="contain" />
+          </View>
 
-            <View style={styles.tabContainer}>
-              <TouchableOpacity style={styles.activeTab}>
-                <Text style={styles.activeTabText}>Contratante</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.inactiveTab}
-                onPress={() => navigation.replace('LoginTrabalhador')}
+          <View style={styles.segmented}>
+            <TouchableOpacity style={styles.segmentedActive} activeOpacity={0.85}>
+              <LinearGradient
+                colors={["#0EA5A8", "#0B7280"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.segmentedActiveBg}
               >
-                <Text style={styles.inactiveTabText}>Prestador</Text>
-              </TouchableOpacity>
-            </View>
+                <User size={18} color="#EAFBFF" />
+                <Text style={styles.segmentedActiveText}>Contratante</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.segmentedInactive}
+              activeOpacity={0.85}
+              onPress={() => navigation.replace("LoginTrabalhador")}
+            >
+              <Briefcase size={18} color="#9CA3AF" />
+              <Text style={styles.segmentedInactiveText}>Prestador</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.inputWrap}>
+              <Mail size={18} color="#0EA5A8" />
               <TextInput
-                label='E-mail'
+                placeholder="E-mail"
+                placeholderTextColor="#6B7280"
                 value={email}
                 onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
                 style={styles.input}
-                mode='outlined'
-                keyboardType='email-address'
-                autoCapitalize='none'
               />
-              {errors.email ? <Text style={styles.error}>{errors.email}</Text> : null}
+            </View>
+            {errors.email ? <Text style={styles.error}>{errors.email}</Text> : null}
 
+            <View style={styles.inputWrap}>
+              <Lock size={18} color="#0EA5A8" />
               <TextInput
-                label='Senha'
+                placeholder="Senha"
+                placeholderTextColor="#6B7280"
                 value={senha}
                 onChangeText={setSenha}
-                secureTextEntry
+                secureTextEntry={!mostrarSenha}
                 style={styles.input}
-                mode='outlined'
               />
-              {errors.senha ? <Text style={styles.error}>{errors.senha}</Text> : null}
-
-              <TouchableOpacity 
-                style={styles.loginButton}
-                onPress={logar}
-                disabled={loading}
+              <TouchableOpacity
+                onPress={() => setMostrarSenha((v) => !v)}
+                activeOpacity={0.8}
+                style={styles.eyeBtn}
               >
-                {loading 
-                  ? <ActivityIndicator color='#fff' /> 
-                  : <Text style={styles.buttonText}>Entrar</Text>
-                }
+                {mostrarSenha ? (
+                  <EyeOff size={18} color="#9CA3AF" />
+                ) : (
+                  <Eye size={18} color="#9CA3AF" />
+                )}
               </TouchableOpacity>
+            </View>
+            {errors.senha ? <Text style={styles.error}>{errors.senha}</Text> : null}
 
-              <View style={styles.registerRow}>
-                <Text>Não tem login? </Text>
-                <TouchableOpacity onPress={() => navigation.replace('Register')}>
-                  <Text style={styles.link}>Registre-se</Text>
-                </TouchableOpacity>
-              </View>
+            <TouchableOpacity style={styles.loginBtnWrap} onPress={logar} disabled={loading} activeOpacity={0.9}>
+              <LinearGradient
+                colors={["#0EA5A8", "#0B7280"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.loginBtn}
+              >
+                {loading ? <ActivityIndicator color="#EAFBFF" /> : <Text style={styles.loginBtnText}>Entrar</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
 
-              <TouchableOpacity>
-                <Text style={styles.forgot}>Esqueceu a senha?</Text>
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.registerRow}>
+              <Text style={styles.registerText}>Não tem login? </Text>
+              <TouchableOpacity onPress={() => navigation.replace("Register")} activeOpacity={0.8}>
+                <Text style={styles.link}>Registre-se</Text>
               </TouchableOpacity>
             </View>
 
+            <TouchableOpacity activeOpacity={0.8}>
+              <Text style={styles.forgot}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-    </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: "#000",
+  },
+
+  bg: {
+    flex: 1,
   },
 
   overlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  container: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 26,
+    paddingTop: 18,
   },
 
-  content: {
-    flex: 1,
-    paddingHorizontal: 40, // espaçamento lateral unificado
-    paddingTop: 50,        // topo da tela
+  header: {
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 24,
   },
 
-  headerSection: {
-    alignItems: 'center',
-    marginBottom: 30,       // espaço entre seção de topo e conteúdo
+  headerTitle: {
+    flexDirection: "row",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 1.2,
   },
 
-  tituloTopo: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 25,      // espaço entre TELA DE LOGIN e logo
+  headerTitleAqua: {
+    color: "#0EA5A8",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 1.2,
+  },
+
+  headerTitleWhite: {
+    color: "#E5E7EB",
+    fontWeight: "900",
+    fontSize: 18,
+    letterSpacing: 1.2,
+  },
+
+  headerUnderline: {
+    width: 44,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#0EA5A8",
+    marginTop: 10,
+    opacity: 0.9,
+  },
+
+  logoRow: {
+    alignItems: "center",
+    marginBottom: 22,
   },
 
   logo: {
-    width: 230,
-    height: 100,
-    marginBottom: 20,       // espaço entre logo e subtítulo
+    width: "100%",
+    height: 200,
   },
 
-  subtitulo: {
-    fontSize: 14,
-    color: '#ddd',
+  segmented: {
+    flexDirection: "row",
+    backgroundColor: "rgba(17, 24, 39, 0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    borderRadius: 28,
+    overflow: "hidden",
+    marginBottom: 18,
   },
 
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 30,
-    marginBottom: 25,
-    overflow: 'hidden',
-    margin: 20,
-  },
-
-  activeTab: {
+  segmentedActive: {
     flex: 1,
-    backgroundColor: '#005362',
-    padding: 12,
-    alignItems: 'center',
   },
 
-  inactiveTab: {
+  segmentedActiveBg: {
     flex: 1,
-    padding: 12,
-    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
 
-  activeTabText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  segmentedActiveText: {
+    color: "#EAFBFF",
+    fontWeight: "800",
+    fontSize: 15,
   },
 
-  inactiveTabText: {
-    color: '#005362',
-    fontWeight: 'bold',
+  segmentedInactive: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  segmentedInactiveText: {
+    color: "#D1D5DB",
+    fontWeight: "800",
+    fontSize: 15,
   },
 
   card: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 20,
-    elevation: 6,
+    backgroundColor: "rgba(17, 24, 39, 0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    padding: 18,
+    borderRadius: 26,
+    shadowColor: "#000",
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 8,
+  },
+
+  inputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    marginBottom: 12,
   },
 
   input: {
-    marginBottom: 10,
-    backgroundColor: '#fff',
+    flex: 1,
+    color: "#E5E7EB",
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+
+  eyeBtn: {
+    padding: 6,
+    marginRight: -6,
   },
 
   error: {
-    color: 'red',
+    color: "#FCA5A5",
     fontSize: 12,
-    marginBottom: 5,
+    fontWeight: "700",
+    marginBottom: 10,
+    marginTop: -6,
+    paddingLeft: 4,
   },
 
-  loginButton: {
-    backgroundColor: '#005362',
-    padding: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 10,
+  loginBtnWrap: {
+    borderRadius: 18,
+    overflow: "hidden",
+    marginTop: 6,
   },
 
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  loginBtn: {
+    paddingVertical: 16,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  loginBtnText: {
+    color: "#EAFBFF",
+    fontWeight: "900",
     fontSize: 16,
   },
 
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 10,
+  },
+
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.10)",
+  },
+
+  dividerText: {
+    color: "rgba(229, 231, 235, 0.55)",
+    fontWeight: "800",
+  },
+
   registerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 15,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+  },
+
+  registerText: {
+    color: "rgba(229,231,235,0.85)",
+    fontWeight: "600",
   },
 
   link: {
-    color: '#005362',
-    fontWeight: 'bold',
+    color: "#0EA5A8",
+    fontWeight: "900",
   },
 
   forgot: {
-    textAlign: 'center',
-    marginTop: 10,
-    color: '#005362',
+    textAlign: "center",
+    marginTop: 14,
+    color: "#0EA5A8",
+    fontWeight: "700",
   },
 });

@@ -11,7 +11,11 @@ const Drawer = createDrawerNavigator();
 export default function Menu() {
   return (
     <Drawer.Navigator id="MenuDrawer" initialRouteName="Página Inicial">
-      <Drawer.Screen name="Página Inicial" component={Home} />
+      <Drawer.Screen
+        name="Página Inicial"
+        component={Home}
+        options={{ headerShown: false }}
+      />
       <Drawer.Screen
         name="Servicos"
         component={Servicos}

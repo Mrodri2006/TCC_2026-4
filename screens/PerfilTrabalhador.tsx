@@ -3,9 +3,9 @@ import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRi
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
-import styles from "../estilo";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../theme/ThemeContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation<any>();
@@ -380,87 +380,87 @@ export default function PerfilTrabalhador() {
 
   if (bloqueadoPorMensalidade) {
     return (
-      <ScrollView
-        style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={localStyles.blockedContent}
-      >
-        <View style={localStyles.blockedCard}>
-          <Text style={localStyles.blockedTitle}>Acesso temporariamente bloqueado</Text>
-          <Text style={localStyles.blockedText}>
-            Seu período de uso expirou. O app será liberado apenas após a confirmação do pagamento da mensalidade.
-          </Text>
-          <Text style={localStyles.blockedDate}>
-            Vencimento: {vencimentoData ? vencimentoData.toLocaleDateString("pt-BR") : "não informado"}
-          </Text>
+      <SafeAreaView style={[localStyles.container, { backgroundColor: theme.background }]}>
+        <ScrollView contentContainerStyle={localStyles.blockedContent}>
+          <View style={localStyles.blockedCard}>
+            <Text style={localStyles.blockedTitle}>Acesso temporariamente bloqueado</Text>
+            <Text style={localStyles.blockedText}>
+              Seu período de uso expirou. O app será liberado apenas após a confirmação do pagamento da mensalidade.
+            </Text>
+            <Text style={localStyles.blockedDate}>
+              Vencimento: {vencimentoData ? vencimentoData.toLocaleDateString("pt-BR") : "não informado"}
+            </Text>
 
-          <TouchableOpacity
-            style={localStyles.primaryBlockedButton}
-            onPress={() => navigation.navigate("ConfiguracoesPrestador")}
-          >
-            <Text style={localStyles.primaryBlockedButtonText}>Pagar com Pix</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={localStyles.primaryBlockedButton}
+              onPress={() => navigation.navigate("ConfiguracoesPrestador")}
+            >
+              <Text style={localStyles.primaryBlockedButtonText}>Pagar com Pix</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={localStyles.secondaryBlockedButton}
-            onPress={verificarConfirmacaoPagamento}
-            disabled={verificandoPagamento}
-          >
-            {verificandoPagamento ? (
-              <ActivityIndicator color="#0F2937" />
-            ) : (
-              <Text style={localStyles.secondaryBlockedButtonText}>Já paguei, verificar liberação</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            <TouchableOpacity
+              style={localStyles.secondaryBlockedButton}
+              onPress={verificarConfirmacaoPagamento}
+              disabled={verificandoPagamento}
+            >
+              {verificandoPagamento ? (
+                <ActivityIndicator color="#0F2937" />
+              ) : (
+                <Text style={localStyles.secondaryBlockedButtonText}>Já paguei, verificar liberação</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={localStyles.scrollContent}>
-      <View style={localStyles.headerCard}>
-        <View style={localStyles.topRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.iconButton}>
-            <ArrowLeft size={20} color="#0F2937" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={localStyles.editButton}>
-            <Edit2 size={18} color="#0F2937" />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={[localStyles.container, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={localStyles.scrollContent}>
+        <View style={localStyles.headerCard}>
+          <View style={localStyles.topRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.iconButton}>
+              <ArrowLeft size={20} color="#0F2937" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={localStyles.editButton}>
+              <Edit2 size={18} color="#0F2937" />
+            </TouchableOpacity>
+          </View>
 
-        <View style={localStyles.profileHeader}>
-          <View style={localStyles.avatarWrapper}>
-            {usuario.fotoPerfil ? (
-              <Image source={{ uri: usuario.fotoPerfil }} style={localStyles.avatarImage} />
-            ) : (
-              <View style={localStyles.avatarCircle}>
-                <Text style={localStyles.avatarText}>
-                  {usuario.nome
-                    .split(" ")
-                    .filter(Boolean)
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2) || "DI"}
-                </Text>
+          <View style={localStyles.profileHeader}>
+            <View style={localStyles.avatarWrapper}>
+              {usuario.fotoPerfil ? (
+                <Image source={{ uri: usuario.fotoPerfil }} style={localStyles.avatarImage} />
+              ) : (
+                <View style={localStyles.avatarCircle}>
+                  <Text style={localStyles.avatarText}>
+                    {usuario.nome
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((part) => part[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2) || "DI"}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={localStyles.profileInfo}>
+              <Text style={localStyles.profileName}>{usuario.nome || "Diarista 2"}</Text>
+              <View style={localStyles.metaRow}>
+                <MapPin size={14} color="#64748B" />
+                <Text style={localStyles.metaText}>{usuario.localizacao}</Text>
               </View>
-            )}
-          </View>
-
-          <View style={localStyles.profileInfo}>
-            <Text style={localStyles.profileName}>{usuario.nome || "Diarista 2"}</Text>
-            <View style={localStyles.metaRow}>
-              <MapPin size={14} color="#64748B" />
-              <Text style={localStyles.metaText}>{usuario.localizacao}</Text>
-            </View>
-            <View style={localStyles.ratingRow}>
-              <Star size={16} color="#F5B403" fill="#F5B403" />
-              <Text style={localStyles.ratingScore}>{usuario.avaliacao.toFixed(1)}</Text>
-              <Text style={localStyles.ratingText}>({usuario.numeroAvaliacoes} avaliações)</Text>
+              <View style={localStyles.ratingRow}>
+                <Star size={16} color="#F5B403" fill="#F5B403" />
+                <Text style={localStyles.ratingScore}>{usuario.avaliacao.toFixed(1)}</Text>
+                <Text style={localStyles.ratingText}>({usuario.numeroAvaliacoes} avaliações)</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
       <View style={localStyles.sectionBlock}>
         <Text style={localStyles.sectionTitle}>Contato</Text>
@@ -579,17 +579,21 @@ export default function PerfilTrabalhador() {
         )}
       </View>
 
-      <View style={localStyles.footerBlock}>
-        <TouchableOpacity style={localStyles.settingsButton} onPress={() => navigation.navigate("ConfiguracoesPrestador") }>
-          <Text style={localStyles.settingsButtonText}>Acessar configurações</Text>
-          <ArrowRight size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        <View style={localStyles.footerBlock}>
+          <TouchableOpacity style={localStyles.settingsButton} onPress={() => navigation.navigate("ConfiguracoesPrestador") }>
+            <Text style={localStyles.settingsButtonText}>Acessar configurações</Text>
+            <ArrowRight size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const localStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   blockedContent: {
     flexGrow: 1,
     justifyContent: "center",

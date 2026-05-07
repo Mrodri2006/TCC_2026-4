@@ -1,6 +1,8 @@
 
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert } from "react-native";
-import { Search, User, Wrench, X } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { ArrowRight, Bell, FileText, Home as HomeIcon, Leaf, MapPin, Menu, Search as SearchIcon, Sofa, User, Wrench, X, Zap } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback, useRef } from "react";
 import { auth, firestore } from "../firebase";
@@ -42,6 +44,63 @@ export default function TelaInicialCliente({ onLogout }: any) {
       };
     }, [])
   );
+
+  const openDrawer = () => {
+    try {
+      if (typeof (navigation as any)?.openDrawer === "function") {
+        (navigation as any).openDrawer();
+      }
+    } catch {
+      // no-op
+    }
+  };
+
+  const getServicoUi = (nome: string) => {
+    const n = String(nome || "").toLowerCase();
+
+    if (n.includes("diarista")) {
+      return {
+        subtitle: "Serviços de limpeza e organização",
+        icon: <User size={26} color="#2563EB" />,
+        iconBg: "#E8F4FF",
+        badgeBg: "#2563EB",
+      };
+    }
+
+    if (n.includes("eletric")) {
+      return {
+        subtitle: "Instalações e reparos elétricos",
+        icon: <Zap size={26} color="#2563EB" />,
+        iconBg: "#E8F4FF",
+        badgeBg: "#2563EB",
+      };
+    }
+
+    if (n.includes("jardin")) {
+      return {
+        subtitle: "Cuidados com jardins e áreas verdes",
+        icon: <Leaf size={26} color="#16A34A" />,
+        iconBg: "#E9F8EE",
+        badgeBg: "#16A34A",
+      };
+    }
+
+    if (n.includes("móve") || n.includes("move") || n.includes("montagem")) {
+      return {
+        subtitle: "Montagem e desmontagem de móveis",
+        icon: <Sofa size={26} color="#7C3AED" />,
+        iconBg: "#F2EAFE",
+        badgeBg: "#7C3AED",
+      };
+    }
+
+    return {
+      subtitle: "Serviço profissional",
+      icon: <Wrench size={26} color="#2563EB" />,
+      iconBg: "#E8F4FF",
+      badgeBg: "#2563EB",
+    };
+  };
 
   const fetchUserName = async () => {
     const user = auth.currentUser;
@@ -94,7 +153,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         .map((item, index) => ({
           id: index + 1,
           nome: item[0],
-          icon: item[0] === "Diarista" ? <User size={28} /> : <Wrench size={28} />,
+          ...getServicoUi(item[0]),
           quantidade: item[1],
         }));
 
@@ -477,22 +536,66 @@ export default function TelaInicialCliente({ onLogout }: any) {
   };
 
   return (
-    <View style={[styles.containerFull, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={["top"]} style={[styles.containerFull, { backgroundColor: theme.background }]}>
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
         {abaAtiva === "inicio" ? (
           <>
-            <View style={styles.header}>
-              <Text style={styles.titulo}>Olá, {userName}!</Text>
-              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate("Perfil")}>
-                <User size={24} />
+            <View style={styles.topBar}>
+              <TouchableOpacity style={styles.topBarBtn} onPress={openDrawer} activeOpacity={0.7}>
+                <Menu size={24} color="#0F2937" />
+              </TouchableOpacity>
+              <Text style={styles.topBarTitle}>Página Inicial</Text>
+              <TouchableOpacity
+                style={styles.topBarBtn}
+                onPress={() => navigation.navigate("Conversas")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.bellWrap}>
+                  <Bell size={22} color="#0F2937" />
+                  <View style={styles.notificationDot} />
+                </View>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionTitle}>Serviços Populares</Text>
+            <View style={styles.greetingCard}>
+              <View style={styles.greetingTextCol}>
+                <Text style={styles.greetingTitle}>Olá, {userName}! 👋</Text>
+                <Text style={styles.greetingSub}>Como podemos ajudar hoje?</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.greetingAvatarBtn}
+                onPress={() => navigation.navigate("Perfil")}
+                activeOpacity={0.8}
+              >
+                <User size={22} color="#2563EB" />
+              </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity style={styles.solicitarAreaButton} onPress={abrirModalArea}>
-              <Text style={styles.solicitarAreaTitle}>Solicitar servico por area</Text>
-              <Text style={styles.solicitarAreaSub}>Envie o pedido para prestadores da area escolhida</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Serviços Populares</Text>
+              <View style={styles.sectionUnderline} />
+            </View>
+
+            <TouchableOpacity style={styles.primaryActionWrap} onPress={abrirModalArea} activeOpacity={0.88}>
+              <LinearGradient
+                colors={["#1D4ED8", "#2563EB", "#1D4ED8"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.primaryAction}
+              >
+                <View style={styles.primaryActionIconBox}>
+                  <MapPin size={24} color="#ffffff" />
+                </View>
+                <View style={styles.primaryActionText}>
+                  <Text style={styles.primaryActionTitle}>Solicitar serviço por área</Text>
+                  <Text style={styles.primaryActionSub}>
+                    Envie o pedido para prestadores da área escolhida
+                  </Text>
+                </View>
+                <View style={styles.primaryActionArrow}>
+                  <ArrowRight size={20} color="#2563EB" />
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
 
             {carregando ? (
@@ -505,10 +608,20 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 {servicosFiltrados.map((serv) => {
                   const quantidadeProf = contarProfissionaisPorServico(serv.nome);
                   return (
-                    <TouchableOpacity key={serv.id} style={styles.card} onPress={() => handleServicoPress(serv)}>
-                      <View style={styles.iconCenter}>{serv.icon}</View>
-                      <Text style={styles.cardText}>{serv.nome}</Text>
-                      <View style={styles.badgeContainer}>
+                    <TouchableOpacity
+                      key={serv.id}
+                      style={styles.serviceCard}
+                      onPress={() => handleServicoPress(serv)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={[styles.serviceIconBox, { backgroundColor: serv.iconBg || "#E8F4FF" }]}>
+                        {serv.icon}
+                      </View>
+                      <Text style={styles.serviceTitle}>{serv.nome}</Text>
+                      <Text style={styles.serviceSubtitle} numberOfLines={2}>
+                        {serv.subtitle || "Serviço profissional"}
+                      </Text>
+                      <View style={[styles.badgeContainer, { backgroundColor: serv.badgeBg || "#2563EB" }]}>
                         <Text style={styles.badgeTexto}>{quantidadeProf} profissional{quantidadeProf !== 1 ? "s" : ""}</Text>
                       </View>
                     </TouchableOpacity>
@@ -519,8 +632,9 @@ export default function TelaInicialCliente({ onLogout }: any) {
               <Text style={styles.nenhumResultado}>Nenhum serviço encontrado</Text>
             )}
 
-            <View>
+            <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Serviços e propostas</Text>
+              <View style={styles.sectionUnderline} />
             </View>
 
             {carregandoAceitos ? (
@@ -557,7 +671,15 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 ))}
               </View>
             ) : (
-              <Text style={styles.nenhumResultado}>Nenhum serviço ou proposta no momento</Text>
+              <View style={styles.emptyStateCard}>
+                <View style={styles.emptyStateIcon}>
+                  <FileText size={20} color="#94A3B8" />
+                </View>
+                <View style={styles.emptyStateTextCol}>
+                  <Text style={styles.emptyStateTitle}>Nenhum serviço ou proposta no momento</Text>
+                  <Text style={styles.emptyStateSub}>Quando houver, você verá aqui.</Text>
+                </View>
+              </View>
             )}
 
             {!carregando && (
@@ -580,9 +702,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
           </>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>Buscar</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Buscar</Text>
+              <View style={styles.sectionUnderline} />
+            </View>
             <View style={styles.searchBox}>
-              <Search size={20} color="#666" />
+              <SearchIcon size={20} color="#666" />
               <TextInput
                 placeholder="Buscar serviços ou prestadores..."
                 placeholderTextColor="#777"
@@ -834,7 +959,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
           style={[styles.bottomTab, abaAtiva === "inicio" && styles.bottomTabActive]}
           onPress={() => setAbaAtiva("inicio")}
         >
-          <Text style={[styles.bottomTabIcon, abaAtiva === "inicio" && styles.bottomTabIconActive]}>🏠</Text>
+          <HomeIcon size={22} color={abaAtiva === "inicio" ? "#2563EB" : "#64748B"} />
           <Text style={[styles.bottomTabLabel, abaAtiva === "inicio" && styles.bottomTabLabelActive]}>Início</Text>
         </TouchableOpacity>
 
@@ -842,11 +967,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
           style={[styles.bottomTab, abaAtiva === "busca" && styles.bottomTabActive]}
           onPress={() => setAbaAtiva("busca")}
         >
-          <Text style={[styles.bottomTabIcon, abaAtiva === "busca" && styles.bottomTabIconActive]}>🔍</Text>
+          <SearchIcon size={22} color={abaAtiva === "busca" ? "#2563EB" : "#64748B"} />
           <Text style={[styles.bottomTabLabel, abaAtiva === "busca" && styles.bottomTabLabelActive]}>Buscar</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -861,35 +986,92 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
-  header: {
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    marginBottom: 6,
+    marginTop: 5,
+  },
+
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F2937",
+  },
+
+  topBarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+
+  bellWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  notificationDot: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#2563EB",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+
+  greetingCard: {
     backgroundColor: "#E8F4FF",
     borderRadius: 24,
     padding: 18,
-    marginBottom: 20,
+    marginBottom: 18,
     shadowColor: "#0F2937",
     shadowOpacity: 0.08,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
-  titulo: {
-    fontSize: 24,
+  greetingTextCol: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  greetingTitle: {
+    fontSize: 22,
     fontWeight: "800",
     color: "#0F2937",
-    flex: 1,
+    marginBottom: 6,
   },
 
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: "center",
+  greetingSub: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+
+  greetingAvatarBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
-    backgroundColor: "rgba(15, 41, 55, 0.08)",
-    marginLeft: 1,
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 2,
+    borderColor: "#DDEEFF",
   },
 
   searchBox: {
@@ -916,25 +1098,73 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  solicitarAreaButton: {
+  sectionHeader: {
+    marginTop: 6,
+    marginBottom: 10,
+  },
+
+  sectionUnderline: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
     backgroundColor: "#2563EB",
-    borderRadius: 20,
-    padding: 18,
+    marginTop: -4,
+  },
+
+  primaryActionWrap: {
+    borderRadius: 22,
+    overflow: "hidden",
     marginBottom: 16,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 4,
   },
 
-  solicitarAreaTitle: {
-    color: "#fff",
+  primaryAction: {
+    padding: 18,
+    borderRadius: 22,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  primaryActionIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  primaryActionText: {
+    flex: 1,
+  },
+
+  primaryActionTitle: {
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 6,
+    fontWeight: "800",
+    marginBottom: 4,
   },
 
-  solicitarAreaSub: {
-    color: "#DDEEFF",
+  primaryActionSub: {
+    color: "rgba(255,255,255,0.88)",
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
     lineHeight: 18,
+  },
+
+  primaryActionArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
   },
 
   grid: {
@@ -972,6 +1202,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F2937",
     textAlign: "center",
+  },
+
+  serviceCard: {
+    width: "48%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 3,
+  },
+
+  serviceIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  serviceTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 6,
+  },
+
+  serviceSubtitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+    lineHeight: 16,
+    minHeight: 32,
   },
 
   recomendadoCard: {
@@ -1086,6 +1353,45 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
+  },
+
+  emptyStateCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 16,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "#E5E7EB",
+    marginBottom: 10,
+  },
+
+  emptyStateIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F7FB",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  emptyStateTextCol: {
+    flex: 1,
+  },
+
+  emptyStateTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 4,
+  },
+
+  emptyStateSub: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
   },
 
   sectionButtonContainer: {

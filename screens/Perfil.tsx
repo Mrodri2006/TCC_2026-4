@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { auth, firestore } from "../firebase";
 import React from "react";
 import { useTheme } from "../theme/ThemeContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Perfil() {
   const navigation = useNavigation<any>();
@@ -136,17 +137,19 @@ export default function Perfil() {
     .slice(0, 2);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}> 
-      <View style={styles.topHeader}>
-        <View style={styles.topActions}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-            <ArrowLeft size={22} color="#0F2937" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={styles.iconButton}>
-            <Edit2 size={18} color="#0F2937" />
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topBarBtn} activeOpacity={0.7}>
+          <ArrowLeft size={20} color="#0F2937" />
+        </TouchableOpacity>
+        <Text style={styles.topBarTitle}>Perfil</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={styles.topBarBtn} activeOpacity={0.7}>
+          <Edit2 size={18} color="#0F2937" />
+        </TouchableOpacity>
+      </View>
 
+      <View style={styles.topHeader}>
         <View style={styles.profileBlock}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarText}>{initials || "US"}</Text>
@@ -160,8 +163,9 @@ export default function Perfil() {
       </View>
 
       <View style={styles.sectionBlock}>
-        <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionHeader}>
           <Text style={styles.sectionHeading}>Informações de Contato</Text>
+          <View style={styles.sectionUnderline} />
         </View>
 
         <View style={styles.infoCard}>
@@ -190,6 +194,7 @@ export default function Perfil() {
           <Text style={styles.sectionHeading}>Serviços Solicitados</Text>
           <Text style={styles.sectionMeta}>{historico.length} itens</Text>
         </View>
+        <View style={styles.sectionUnderline} />
 
         {historico.slice(0, mostrarTodos ? historico.length : 4).map((item) => (
           <View key={item.id} style={styles.serviceCard}>
@@ -227,15 +232,39 @@ export default function Perfil() {
           <LogOut size={20} color="#0F2937" />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    paddingTop: 16,
+  },
+  content: {
+    paddingTop: 12,
     paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    marginBottom: 6,
+  },
+  topBarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F2937",
   },
   topHeader: {
     backgroundColor: "#E8F4FB",
@@ -249,20 +278,6 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 2,
-  },
-  topActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(15, 41, 55, 0.06)",
   },
   profileBlock: {
     alignItems: "center",
@@ -316,6 +331,16 @@ const styles = StyleSheet.create({
   },
   sectionBlock: {
     marginBottom: 20,
+  },
+  sectionHeader: {
+    marginBottom: 14,
+  },
+  sectionUnderline: {
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#2563EB",
+    marginTop: 6,
   },
   sectionHeaderRow: {
     flexDirection: "row",
