@@ -1,8 +1,7 @@
-import * as React from "react";
+﻿import * as React from "react";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 
 import Home from "./Home";
-import Servicos from "./Servicos";
 import ServStatus from "./ServStatus";
 import ChatList from "./ChatList";
 
@@ -15,11 +14,6 @@ export default function Menu() {
         name="Página Inicial"
         component={Home}
         options={{ headerShown: false }}
-      />
-      <Drawer.Screen
-        name="Servicos"
-        component={Servicos}
-        options={{ title: "Serviços" }}
       />
       <Drawer.Screen name="Status de Serviços" component={ServStatus} />
       <Drawer.Screen name="Conversas" component={ChatList} />

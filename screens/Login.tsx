@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -12,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Briefcase, Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
@@ -45,18 +44,18 @@ export default function Login() {
     let valido = true;
 
     if (!email.trim()) {
-      novoErros.email = 'E-mail é obrigatório';
+      novoErros.email = 'E-mail Ã© obrigatÃ³rio';
       valido = false;
     } else if (!validarEmail(email)) {
-      novoErros.email = 'E-mail inválido';
+      novoErros.email = 'E-mail invÃ¡lido';
       valido = false;
     }
 
     if (!senha.trim()) {
-      novoErros.senha = 'Senha é obrigatória';
+      novoErros.senha = 'Senha Ã© obrigatÃ³ria';
       valido = false;
     } else if (senha.length < 6) {
-      novoErros.senha = 'Senha deve ter no mínimo 6 caracteres';
+      novoErros.senha = 'Senha deve ter no mÃ­nimo 6 caracteres';
       valido = false;
     }
 
@@ -76,7 +75,18 @@ export default function Login() {
         const userDoc = await firestore.collection('Usuario').doc(uid).get();
         const userData = userDoc.exists ? userDoc.data() : null;
         const ehAdmin = userData?.admin === true || userData?.tipo === 'admin';
-        navigation.replace(ehAdmin ? 'Adm' : 'Home');
+        if (ehAdmin) {
+          navigation.replace('Adm');
+          return;
+        }
+
+        const tipo = String(userData?.tipo || '').toLowerCase();
+        if (tipo === 'prestador') {
+          navigation.replace('MenuTrabalhador');
+          return;
+        }
+
+        navigation.replace('Home');
       } else {
         navigation.replace('Menu');
       }
@@ -103,29 +113,6 @@ export default function Login() {
 
           <View style={styles.logoRow}>
             <Image source={require("../assets/logo8.jpg")} style={styles.logo} resizeMode="contain" />
-          </View>
-
-          <View style={styles.segmented}>
-            <TouchableOpacity style={styles.segmentedActive} activeOpacity={0.85}>
-              <LinearGradient
-                colors={["#0EA5A8", "#0B7280"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.segmentedActiveBg}
-              >
-                <User size={18} color="#EAFBFF" />
-                <Text style={styles.segmentedActiveText}>Contratante</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.segmentedInactive}
-              activeOpacity={0.85}
-              onPress={() => navigation.replace("LoginTrabalhador")}
-            >
-              <Briefcase size={18} color="#9CA3AF" />
-              <Text style={styles.segmentedInactiveText}>Prestador</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.card}>
@@ -186,8 +173,12 @@ export default function Login() {
 
             <View style={styles.registerRow}>
               <Text style={styles.registerText}>Não tem login? </Text>
+              <TouchableOpacity onPress={() => navigation.replace("Register2")} activeOpacity={0.8}>
+                <Text style={styles.link}>Contratante</Text>
+              </TouchableOpacity>
+              <Text style={styles.registerText}> ou </Text>
               <TouchableOpacity onPress={() => navigation.replace("Register")} activeOpacity={0.8}>
-                <Text style={styles.link}>Registre-se</Text>
+                <Text style={styles.link}>Prestador</Text>
               </TouchableOpacity>
             </View>
 
@@ -422,3 +413,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+

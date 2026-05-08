@@ -813,7 +813,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
             {servicoSelecionado?.status === "valor_pendente" ? (
               <>
                 <View style={styles.propostaValorBox}>
-                  <Text style={styles.propostaValorLabel}>Valor proposto</Text>
+                  <Text style={styles.propostaValorLabel}>Valor informado</Text>
                   <Text style={styles.propostaValorTexto}>
                     {formatarValor(servicoSelecionado?.valorProposto ?? servicoSelecionado?.valor)}
                   </Text>
