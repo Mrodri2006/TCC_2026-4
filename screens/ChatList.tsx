@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -82,54 +83,65 @@ export default function ChatList() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {chats.length === 0 ? (
-        <Text style={styles.emptyText}>Nenhuma conversa ainda</Text>
-      ) : (
-        <FlatList
-          data={chats}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card} onPress={() => abrirChat(item)}>
-              <Text style={styles.name}>{item.otherUserName}</Text>
-              <Text style={styles.lastMessage}>
-                {item.lastMessage || "Sem mensagens"}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
-    </View>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {chats.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhuma conversa ainda</Text>
+        ) : (
+          <FlatList
+            data={chats}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.card} onPress={() => abrirChat(item)}>
+                <Text style={styles.name}>{item.otherUserName}</Text>
+                <Text style={styles.lastMessage}>
+                  {item.lastMessage || "Sem mensagens"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8FAFC",
     padding: 16,
+    paddingTop: 6,
   },
   card: {
-    backgroundColor: "#f7f7f7",
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 20,
     marginBottom: 10,
-    marginTop:4
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   name: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#005362",
-    marginBottom: 4,
+    fontWeight: "800",
+    color: "#0F2937",
+    marginBottom: 6,
   },
   lastMessage: {
     fontSize: 13,
-    color: "#666",
+    color: "#64748B",
+    fontWeight: "600",
   },
   emptyText: {
     textAlign: "center",
     marginTop: 30,
-    color: "#999",
+    color: "#64748B",
     fontSize: 14,
   },
 });

@@ -1,32 +1,43 @@
 {
   "expo": {
-    "name": "Firebase",
-    "slug": "Firebase",
+    "name": "Chamo",
+    "slug": "chamo-app",
     "version": "1.0.0",
     "orientation": "portrait",
+
     "icon": "./assets/icon.png",
+
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "ios": {
       "supportsTablet": true
     },
+
     "android": {
+      "package": "com.m2006.firebase",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true
+      }
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-sharing"
-    ]
+
+    "plugins": [],
+
+    "extra": {
+      "eas": {
+        "projectId": "50bf471b-15ba-4c64-8d79-311b38fee92c"
+      }
+    }
   }
 }

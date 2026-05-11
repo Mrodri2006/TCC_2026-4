@@ -44,18 +44,18 @@ export default function Login() {
     let valido = true;
 
     if (!email.trim()) {
-      novoErros.email = 'E-mail Ã© obrigatÃ³rio';
+      novoErros.email = 'E-mail é obrigatório';
       valido = false;
     } else if (!validarEmail(email)) {
-      novoErros.email = 'E-mail invÃ¡lido';
+      novoErros.email = 'E-mail inválido';
       valido = false;
     }
 
     if (!senha.trim()) {
-      novoErros.senha = 'Senha Ã© obrigatÃ³ria';
+      novoErros.senha = 'Senha é obrigatória';
       valido = false;
     } else if (senha.length < 6) {
-      novoErros.senha = 'Senha deve ter no mÃ­nimo 6 caracteres';
+      novoErros.senha = 'Senha deve ter no mínimo 6 caracteres';
       valido = false;
     }
 
@@ -112,7 +112,7 @@ export default function Login() {
           </View>
 
           <View style={styles.logoRow}>
-            <Image source={require("../assets/logo8.jpg")} style={styles.logo} resizeMode="contain" />
+            <Image source={require("../assets/logo8.png")} style={styles.logo} resizeMode="contain" />
           </View>
 
           <View style={styles.card}>
