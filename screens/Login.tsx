@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +22,7 @@ export default function Login() {
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [errors, setErrors] = useState({ email: '', senha: '' });
 
   const navigation = useNavigation<any>();
@@ -94,6 +96,56 @@ export default function Login() {
       alert(erro.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const recuperarSenha = async () => {
+    const emailLimpo = email.trim().toLowerCase();
+
+    if (!emailLimpo) {
+      setErrors((prev) => ({ ...prev, email: 'Informe seu e-mail para recuperar a senha' }));
+      return;
+    }
+
+    if (!validarEmail(emailLimpo)) {
+      setErrors((prev) => ({ ...prev, email: 'E-mail inválido' }));
+      return;
+    }
+
+    try {
+      setResetLoading(true);
+      await auth.sendPasswordResetEmail(emailLimpo, {
+        // Usa o domínio padrão do projeto para evitar falhas de link de ação.
+        url: 'https://info-650fe.firebaseapp.com/__/auth/action',
+        handleCodeInApp: false,
+      });
+      Alert.alert(
+        'E-mail enviado',
+        'Enviamos um link para redefinir sua senha. Verifique sua caixa de entrada e spam.'
+      );
+    } catch (erro: any) {
+      if (erro?.code === 'auth/user-not-found') {
+        Alert.alert('Conta não encontrada', 'Não existe conta cadastrada com esse e-mail.');
+        return;
+      }
+
+      if (erro?.code === 'auth/invalid-email') {
+        setErrors((prev) => ({ ...prev, email: 'E-mail inválido' }));
+        return;
+      }
+
+      if (erro?.code === 'auth/too-many-requests') {
+        Alert.alert('Muitas tentativas', 'Aguarde alguns minutos e tente novamente.');
+        return;
+      }
+
+      Alert.alert(
+        'Erro ao recuperar senha',
+        `Não foi possível enviar o e-mail agora.\n\nCódigo: ${erro?.code || 'desconhecido'}`
+      );
+      console.log('Erro reset senha:', erro?.code, erro?.message);
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -182,8 +234,10 @@ export default function Login() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity activeOpacity={0.8}>
-              <Text style={styles.forgot}>Esqueceu a senha?</Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={recuperarSenha} disabled={resetLoading}>
+              <Text style={styles.forgot}>
+                {resetLoading ? 'Enviando e-mail...' : 'Esqueceu a senha?'}
+              </Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -413,4 +467,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-
