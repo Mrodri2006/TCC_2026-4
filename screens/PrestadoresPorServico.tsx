@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet
 import { ArrowLeft, MapPin, Star, Briefcase } from "lucide-react-native";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
-import { firestore } from "../firebase";
+import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 
@@ -15,6 +15,14 @@ export default function PrestadoresPorServico() {
 
   const [usuariosPrestadores, setUsuariosPrestadores] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [localizacaoContratante, setLocalizacaoContratante] = useState("");
+
+  const normalizarLocalizacao = (valor: string) =>
+    (valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
 
   useFocusEffect(
     useCallback(() => {
@@ -25,13 +33,36 @@ export default function PrestadoresPorServico() {
   const buscarPrestadoresPorServico = async () => {
     setCarregando(true);
     try {
+      const usuarioId = auth.currentUser?.uid;
+      if (!usuarioId) {
+        setUsuariosPrestadores([]);
+        setLocalizacaoContratante("");
+        setCarregando(false);
+        return;
+      }
+
+      const contratanteDoc = await firestore.collection("Usuario").doc(usuarioId).get();
+      const contratanteDados = contratanteDoc.data() || {};
+      const localizacaoUsuario = String(contratanteDados.localizacao || "").trim();
+      const localizacaoUsuarioNormalizada =
+        String(contratanteDados.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoUsuario);
+
+      setLocalizacaoContratante(localizacaoUsuario);
+
       const users = await firestore.collection("Usuario").get();
       const prestadores: any[] = [];
 
       for (const userDoc of users.docs) {
         const userData = userDoc.data();
-        
-        if (userData.tipo === "prestador" && userData.profissao === servico) {
+
+        const localizacaoPrestador = String(userData.localizacao || "").trim();
+        const localizacaoPrestadorNormalizada =
+          String(userData.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
+        const mesmaRegiao =
+          !!localizacaoUsuarioNormalizada &&
+          localizacaoPrestadorNormalizada === localizacaoUsuarioNormalizada;
+
+        if (userData.tipo === "prestador" && userData.profissao === servico && mesmaRegiao) {
           prestadores.push({
             id: userDoc.id,
             nome: userData.nome || "Sem nome",
@@ -40,6 +71,7 @@ export default function PrestadoresPorServico() {
             avaliacao: userData.avaliacao || 4.5,
             distancia: userData.distancia || "A calcular",
             telefone: userData.fone || "Não informado",
+            localizacao: localizacaoPrestador || "Não informada",
             criadoEm: userData.criadoEm,
           });
         }
@@ -84,7 +116,7 @@ export default function PrestadoresPorServico() {
       <View style={styles.infoSection}>
         <Briefcase size={18} color="#0c0c0c" />
         <Text style={styles.infoText}>
-          Profissionais disponíveis em {servico.toLowerCase()}
+          Profissionais de {servico.toLowerCase()} em {localizacaoContratante || "sua região"}
         </Text>
       </View>
 
@@ -147,7 +179,7 @@ export default function PrestadoresPorServico() {
       ) : (
         <View style={styles.nenhumContainer}>
           <Text style={styles.nenhumResultado}>
-            Nenhum profissional de {servico} encontrado
+            Nenhum profissional de {servico} encontrado para a sua região
           </Text>
         </View>
       )}

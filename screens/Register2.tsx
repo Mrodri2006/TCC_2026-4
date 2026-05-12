@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Location from "expo-location";
 import { Briefcase, Calendar, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from '../firebase';
@@ -29,6 +30,7 @@ export default function Register2() {
   const [aceitouTermos, setAceitouTermos] = useState(false);
   const [termosVisivel, setTermosVisivel] = useState(false);
   const [errors, setErrors] = useState({ nome: '', email: '', senha: '', fone: '', localizacao: '', dataNascimento: '', termos: '' });
+  const [localizando, setLocalizando] = useState(false);
 
   const navigation = useNavigation<any>();
 
@@ -48,6 +50,64 @@ export default function Register2() {
     const mesNasc = data.getMonth();
     if (mesAtual < mesNasc || (mesAtual === mesNasc && hoje.getDate() < data.getDate())) idade--;
     return idade;
+  };
+
+  const normalizarLocalizacao = (valor: string) =>
+    valor
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
+  const usarLocalizacaoAtual = async () => {
+    try {
+      setLocalizando(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permissão de localização negada.");
+        return;
+      }
+
+      let posicao = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      if (!posicao) {
+        posicao = await Location.getLastKnownPositionAsync();
+      }
+
+      if (!posicao) {
+        alert("Ative o GPS/localização do celular e tente novamente.");
+        return;
+      }
+
+      const endereco = await Location.reverseGeocodeAsync({
+        latitude: posicao.coords.latitude,
+        longitude: posicao.coords.longitude,
+      });
+
+      const dado = endereco?.[0];
+      const cidade = dado?.city || dado?.subregion || "";
+      const estado = dado?.region || "";
+      const localizacao = [cidade, estado].filter(Boolean).join(" - ");
+
+      if (!localizacao) {
+        alert("Não foi possível identificar sua localização.");
+        return;
+      }
+
+      setFormUsuario((prev) => ({ ...prev, localizacao }));
+      if (errors.localizacao) setErrors((prev) => ({ ...prev, localizacao: "" }));
+    } catch (erro: any) {
+      console.log("Erro ao obter localização:", erro);
+      if (String(erro?.message || "").toLowerCase().includes("location is unavailable")) {
+        alert("Localização indisponível. Verifique se o GPS do aparelho está ligado.");
+        return;
+      }
+      alert("Não foi possível obter sua localização agora.");
+    } finally {
+      setLocalizando(false);
+    }
   };
 
   const validarFormulario = () => {
@@ -96,7 +156,8 @@ export default function Register2() {
         nome: formUsuario.nome,
         email: formUsuario.email,
         fone: formUsuario.fone,
-        localizacao: formUsuario.localizacao,
+        localizacao: formUsuario.localizacao?.trim(),
+        localizacaoNormalizada: normalizarLocalizacao(formUsuario.localizacao || ""),
         dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
         tipo: 'contratante',
         admin: false,
@@ -221,6 +282,11 @@ export default function Register2() {
                   style={styles.input}
                 />
               </View>
+              <TouchableOpacity style={styles.locationBtn} onPress={usarLocalizacaoAtual} disabled={localizando}>
+                <Text style={styles.locationBtnText}>
+                  {localizando ? "Obtendo localização..." : "Usar localização atual"}
+                </Text>
+              </TouchableOpacity>
               {!!errors.localizacao && <Text style={styles.errorText}>{errors.localizacao}</Text>}
 
               <TouchableOpacity style={styles.inputWrap} onPress={() => setDataPickerVisivel(true)} activeOpacity={0.85}>
@@ -491,6 +557,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: -6,
     paddingLeft: 4,
+  },
+
+  locationBtn: {
+    alignSelf: "flex-start",
+    marginTop: -2,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(14,165,168,0.45)",
+    backgroundColor: "rgba(14,165,168,0.12)",
+  },
+
+  locationBtnText: {
+    color: "#67E8F9",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   termosRow: {

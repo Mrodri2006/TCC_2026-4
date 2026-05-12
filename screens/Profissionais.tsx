@@ -2,7 +2,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, FlatLi
 import { Search, MapPin, Star, ArrowLeft, X, Phone } from "lucide-react-native";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
-import { firestore } from "../firebase";
+import { auth, firestore } from "../firebase";
 import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
 
@@ -16,6 +16,13 @@ export default function TelaProfissionais() {
   const [profissionais, setProfissionais] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
 
+  const normalizarLocalizacao = (valor: string) =>
+    (valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
   useFocusEffect(
     useCallback(() => {
       buscarProfissionais();
@@ -25,6 +32,19 @@ export default function TelaProfissionais() {
   const buscarProfissionais = async () => {
     setCarregando(true);
     try {
+      const usuarioId = auth.currentUser?.uid;
+      if (!usuarioId) {
+        setProfissionais([]);
+        setCarregando(false);
+        return;
+      }
+
+      const contratanteDoc = await firestore.collection("Usuario").doc(usuarioId).get();
+      const contratanteDados = contratanteDoc.data() || {};
+      const localizacaoContratante = String(contratanteDados.localizacao || "").trim();
+      const localizacaoContratanteNormalizada =
+        String(contratanteDados.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoContratante);
+
       const querySnapshot = await firestore.collectionGroup("Serv").get();
       const profissionaisEncontrados: any[] = [];
 
@@ -37,8 +57,14 @@ export default function TelaProfissionais() {
           
           userRef.get().then((userDoc) => {
             const userData = userDoc.data();
+            const localizacaoPrestador = String(userData?.localizacao || "").trim();
+            const localizacaoPrestadorNormalizada =
+              String(userData?.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
+            const mesmaRegiao =
+              !!localizacaoContratanteNormalizada &&
+              localizacaoPrestadorNormalizada === localizacaoContratanteNormalizada;
             
-            if (userData && userData.nome) {
+            if (userData && userData.nome && mesmaRegiao) {
               const profissional = {
                 id: userDoc.id,
                 nome: userData.nome,

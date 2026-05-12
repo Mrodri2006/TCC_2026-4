@@ -25,7 +25,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [],
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permita o acesso à localização para preencher sua cidade e região automaticamente."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "802b6a82-2958-48f4-8adb-b819c26c0d07"

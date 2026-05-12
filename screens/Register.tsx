@@ -18,6 +18,7 @@ import {
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as Location from 'expo-location';
 import { LinearGradient } from "expo-linear-gradient";
 import { Briefcase, Calendar, Eye, EyeOff, Lock, Mail, MapPin, Phone, User } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -39,6 +40,7 @@ export default function Register() {
   const [pdfUri, setPdfUri] = useState<string | null>(null);
   const [pdfCarregando, setPdfCarregando] = useState(false);
   const [pdfErro, setPdfErro] = useState(false);
+  const [localizando, setLocalizando] = useState(false);
 
   useEffect(() => {
     const carregarPdf = async () => {
@@ -129,6 +131,63 @@ export default function Register() {
     return idade;
   };
 
+  const normalizarLocalizacao = (valor: string) =>
+    valor
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+
+  const usarLocalizacaoAtual = async () => {
+    try {
+      setLocalizando(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permissão de localização negada.");
+        return;
+      }
+
+      let posicao = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      if (!posicao) {
+        posicao = await Location.getLastKnownPositionAsync();
+      }
+
+      if (!posicao) {
+        alert("Ative o GPS/localização do celular e tente novamente.");
+        return;
+      }
+
+      const endereco = await Location.reverseGeocodeAsync({
+        latitude: posicao.coords.latitude,
+        longitude: posicao.coords.longitude,
+      });
+
+      const dado = endereco?.[0];
+      const cidade = dado?.city || dado?.subregion || "";
+      const estado = dado?.region || "";
+      const localizacao = [cidade, estado].filter(Boolean).join(" - ");
+
+      if (!localizacao) {
+        alert("Não foi possível identificar sua localização.");
+        return;
+      }
+
+      setFormUsuario((prev) => ({ ...prev, localizacao }));
+    } catch (erro: any) {
+      console.log("Erro ao obter localização:", erro);
+      if (String(erro?.message || "").toLowerCase().includes("location is unavailable")) {
+        alert("Localização indisponível. Verifique se o GPS do aparelho está ligado.");
+        return;
+      }
+      alert("Não foi possível obter sua localização agora.");
+    } finally {
+      setLocalizando(false);
+    }
+  };
+
   const registrar = async () => {
 
     if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento || !formUsuario.localizacao) {
@@ -161,7 +220,8 @@ export default function Register() {
           nome: formUsuario.nome,
           email: formUsuario.email,
           fone: formUsuario.fone,
-          localizacao: formUsuario.localizacao,
+          localizacao: formUsuario.localizacao?.trim(),
+          localizacaoNormalizada: normalizarLocalizacao(formUsuario.localizacao || ""),
           dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
           tipo: 'prestador',
           admin: false,
@@ -283,6 +343,12 @@ export default function Register() {
                   style={styles.input}
                 />
               </View>
+
+              <TouchableOpacity style={styles.locationBtn} onPress={usarLocalizacaoAtual} disabled={localizando}>
+                <Text style={styles.locationBtnText}>
+                  {localizando ? "Obtendo localização..." : "Usar localização atual"}
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity style={styles.inputWrap} onPress={() => setDataPickerVisivel(true)} activeOpacity={0.85}>
                 <Calendar size={18} color="#0EA5A8" />
@@ -543,6 +609,24 @@ const styles = StyleSheet.create({
     color: "#E5E7EB",
     fontSize: 15,
     fontWeight: "600",
+  },
+
+  locationBtn: {
+    alignSelf: "flex-start",
+    marginTop: -2,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(14,165,168,0.45)",
+    backgroundColor: "rgba(14,165,168,0.12)",
+  },
+
+  locationBtnText: {
+    color: "#67E8F9",
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   eyeBtn: {
