@@ -4,40 +4,33 @@
     "slug": "chamo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-
-    "icon": "./assets/icon.png",
-
+    "icon": "./assets/logo8.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "package": "com.m2006.firebase",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo8.png",
         "backgroundColor": "#ffffff"
       }
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "plugins": [],
-
     "extra": {
       "eas": {
-        "projectId": "50bf471b-15ba-4c64-8d79-311b38fee92c"
+        "projectId": "802b6a82-2958-48f4-8adb-b819c26c0d07"
       }
-    }
+    },
+    "owner": "m2006"
   }
 }
