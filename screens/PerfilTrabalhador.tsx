@@ -25,6 +25,7 @@ export default function PerfilTrabalhador() {
 
   const [historico, setHistorico] = useState<any[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
+  const [mostrarTodasAvaliacoes, setMostrarTodasAvaliacoes] = useState(false);
   const [mensalidadeStatus, setMensalidadeStatus] = useState("em_aberto");
   const [mensalidadeVencimento, setMensalidadeVencimento] = useState<any>(null);
   const [verificandoPagamento, setVerificandoPagamento] = useState(false);
@@ -149,6 +150,10 @@ export default function PerfilTrabalhador() {
   const vencimentoData = getDateFromField(mensalidadeVencimento);
   const mensalidadeVencida = !!vencimentoData && vencimentoData.getTime() < Date.now();
   const bloqueadoPorMensalidade = mensalidadeVencida && mensalidadeStatus !== "paga";
+  const LIMITE_AVALIACOES = 3;
+  const avaliacoesVisiveis = mostrarTodasAvaliacoes
+    ? avaliacoes
+    : avaliacoes.slice(0, LIMITE_AVALIACOES);
 
   const verificarConfirmacaoPagamento = async () => {
     try {
@@ -423,6 +428,7 @@ export default function PerfilTrabalhador() {
             <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.iconButton}>
               <ArrowLeft size={20} color="#0F2937" />
             </TouchableOpacity>
+            <Text style={localStyles.topBarTitle}>Perfil</Text>
             <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={localStyles.editButton}>
               <Edit2 size={18} color="#0F2937" />
             </TouchableOpacity>
@@ -562,7 +568,7 @@ export default function PerfilTrabalhador() {
           <Text style={localStyles.sectionMeta}>{avaliacoes.length} recebidas</Text>
         </View>
         {avaliacoes.length > 0 ? (
-          avaliacoes.map((item) => (
+          avaliacoesVisiveis.map((item) => (
             <View key={item.id} style={localStyles.reviewCard}>
               <View style={localStyles.reviewHeader}>
                 <Text style={localStyles.reviewTitle}>{item.servico || "Serviço"}</Text>
@@ -577,6 +583,16 @@ export default function PerfilTrabalhador() {
         ) : (
           <Text style={localStyles.emptyText}>Ainda não há avaliações recebidas</Text>
         )}
+        {avaliacoes.length > LIMITE_AVALIACOES ? (
+          <TouchableOpacity
+            style={localStyles.verMaisButton}
+            onPress={() => setMostrarTodasAvaliacoes((prev) => !prev)}
+          >
+            <Text style={localStyles.verMaisButtonText}>
+              {mostrarTodasAvaliacoes ? "Ver menos" : "Ver mais"}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
         <View style={localStyles.footerBlock}>
@@ -652,6 +668,21 @@ const localStyles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+  verMaisButton: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  verMaisButtonText: {
+    color: "#1D4ED8",
+    fontWeight: "700",
+    fontSize: 13,
+  },
   scrollContent: {
     paddingTop: 12,
     paddingHorizontal: 16,
@@ -667,57 +698,56 @@ const localStyles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 6,
   },
+  topBarTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F2937",
+  },
   iconButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
   },
   editButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
   },
   profileHeader: {
     alignItems: "center",
-    marginTop: 2,
-    marginBottom: 18,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 22,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    marginTop: 0,
+    marginBottom: 20,
+    backgroundColor: "#E8F4FB",
+    borderRadius: 28,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   avatarWrapper: {
     marginBottom: 12,
   },
   avatarCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#0EA5A8",
+    width: 92,
+    height: 92,
+    borderRadius: 28,
+    backgroundColor: "#D9EEF7",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
   avatarImage: {
     width: 88,
@@ -725,17 +755,17 @@ const localStyles = StyleSheet.create({
     borderRadius: 44,
   },
   avatarText: {
-    color: "#FFFFFF",
-    fontSize: 28,
-    fontWeight: "900",
+    color: "#0F2937",
+    fontSize: 32,
+    fontWeight: "800",
   },
   profileInfo: {
     alignItems: "center",
   },
   profileName: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#0F2937",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -775,14 +805,13 @@ const localStyles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
   },
   sectionMeta: {
     fontSize: 13,
-    color: "#475569",
-    fontWeight: "600",
+    color: "#64748B",
   },
   sectionUnderline: {
     width: 44,
@@ -794,25 +823,27 @@ const localStyles = StyleSheet.create({
   },
   infoCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
+    borderRadius: 20,
+    padding: 18,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   infoIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "#ECFEFF",
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: "#E8F4FB",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginRight: 14,
   },
   infoTextGroup: {
     flex: 1,
@@ -823,9 +854,9 @@ const localStyles = StyleSheet.create({
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "#0F2937",
   },
   chipRow: {
     flexDirection: "row",
@@ -834,26 +865,27 @@ const localStyles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ECFEFF",
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: "#A5F3FC",
+    backgroundColor: "#DDEEFF",
+    borderRadius: 10,
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
   },
   chipText: {
     marginLeft: 6,
-    color: "#155E75",
-    fontSize: 13,
+    color: "#2563EB",
+    fontSize: 12,
     fontWeight: "700",
   },
   offerCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderRadius: 18,
     marginBottom: 14,
     overflow: "hidden",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
   },
   offerImage: {
     width: "100%",
@@ -871,15 +903,15 @@ const localStyles = StyleSheet.create({
   },
   offerTitle: {
     fontSize: 16,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontWeight: "700",
+    color: "#0F2937",
     flex: 1,
     paddingRight: 12,
   },
   offerPrice: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#0E7490",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F2937",
   },
   offerBottomRow: {
     flexDirection: "row",
@@ -891,12 +923,10 @@ const localStyles = StyleSheet.create({
     color: "#64748B",
   },
   offerStatusBadge: {
-    backgroundColor: "#ECFEFF",
+    backgroundColor: "#E6F7EC",
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: "#A5F3FC",
   },
   editServiceButton: {
     flex: 1,
@@ -938,17 +968,20 @@ const localStyles = StyleSheet.create({
     fontSize: 14,
   },
   offerStatusText: {
-    color: "#155E75",
+    color: "#276A45",
     fontSize: 12,
     fontWeight: "700",
   },
   reviewCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
+    padding: 18,
     marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
   },
   reviewHeader: {
     flexDirection: "row",
@@ -958,8 +991,8 @@ const localStyles = StyleSheet.create({
   },
   reviewTitle: {
     fontSize: 15,
-    fontWeight: "800",
-    color: "#0F172A",
+    fontWeight: "700",
+    color: "#0F2937",
   },
   reviewRating: {
     flexDirection: "row",
@@ -989,15 +1022,18 @@ const localStyles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
     borderRadius: 18,
     paddingVertical: 16,
     paddingHorizontal: 18,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 2,
   },
   settingsButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "#0F2937",
   },
 });

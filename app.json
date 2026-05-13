@@ -4,7 +4,7 @@
     "slug": "chamo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo8.png",
+    "icon": "./assets/logo4.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.m2006.firebase",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo8.png",
+        "foregroundImage": "./assets/logo4.png",
         "backgroundColor": "#ffffff"
       }
     },

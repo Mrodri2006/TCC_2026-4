@@ -12,12 +12,11 @@ import {
 import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Calendar, ChevronLeft, Download, Menu } from "lucide-react-native";
 import Svg, { Rect } from "react-native-svg";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { printToFileAsync } from "expo-print";
 import { shareAsync } from "expo-sharing";
-
-type RangeMode = "semana";
 
 type Summary = {
   realizados: number;
@@ -42,12 +41,6 @@ function startOfWeekMonday(d: Date) {
   const day = x.getDay(); // 0=Sun
   const diff = (day + 6) % 7; // Monday=0
   x.setDate(x.getDate() - diff);
-  return x;
-}
-
-function startOfMonth(d: Date) {
-  const x = startOfDay(d);
-  x.setDate(1);
   return x;
 }
 
@@ -83,13 +76,55 @@ export default function RelatoriosPrestador() {
     porDia: [],
   });
 
-  const { rangeStart, rangeEnd, rangeTitle } = useMemo(() => {
+  const [dataPickerTipo, setDataPickerTipo] = useState<"inicio" | "fim" | null>(null);
+  const [mostrarDatePicker, setMostrarDatePicker] = useState(false);
+
+  const [dataInicio, setDataInicio] = useState(() => {
+    const now = new Date();
+    return startOfWeekMonday(now);
+  });
+  const [dataFim, setDataFim] = useState(() => endOfDay(new Date()));
+
+  const { rangeStart, rangeEnd, rangeTitle, quantidadeDias } = useMemo(() => {
+    const start = startOfDay(dataInicio);
+    const end = endOfDay(dataFim);
+    const dias = Math.max(
+      1,
+      Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
+    );
+    const title = `${start.toLocaleDateString("pt-BR")} — ${end.toLocaleDateString("pt-BR")}`;
+    return { rangeStart: start, rangeEnd: end, rangeTitle: title, quantidadeDias: dias };
+  }, [dataInicio, dataFim]);
+
+  const abrirSeletorData = (tipo: "inicio" | "fim") => {
+    setDataPickerTipo(tipo);
+    setMostrarDatePicker(true);
+  };
+
+  const confirmarData = (selecionada: Date) => {
+    const nova = startOfDay(selecionada);
+    if (dataPickerTipo === "inicio") {
+      if (nova > dataFim) {
+        Alert.alert("Período inválido", "A data inicial não pode ser maior que a data final.");
+        return;
+      }
+      setDataInicio(nova);
+      return;
+    }
+
+    if (nova < dataInicio) {
+      Alert.alert("Período inválido", "A data final não pode ser menor que a data inicial.");
+      return;
+    }
+    setDataFim(endOfDay(nova));
+  };
+
+  const resetarUltimos7Dias = () => {
     const now = new Date();
     const start = startOfWeekMonday(now);
-    const end = endOfDay(now);
-    const title = `${start.toLocaleDateString("pt-BR")} — ${end.toLocaleDateString("pt-BR")}`;
-    return { rangeStart: start, rangeEnd: end, rangeTitle: title };
-  }, []);
+    setDataInicio(start);
+    setDataFim(endOfDay(now));
+  };
 
   const carregar = useCallback(() => {
     const usuarioId = auth.currentUser?.uid;
@@ -117,13 +152,16 @@ export default function RelatoriosPrestador() {
         let totalGanhos = 0;
 
         const base = new Date(rangeStart);
-        const days = 7;
+        const days = quantidadeDias;
 
         for (let i = 0; i < days; i++) {
           const d = new Date(base);
           d.setDate(base.getDate() + i);
           const key = startOfDay(d).toISOString();
-          const label = d.toLocaleDateString("pt-BR", { weekday: "short" });
+          const label = d.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+          });
           map.set(key, { label, count: 0, ganhos: 0 });
         }
 
@@ -165,7 +203,7 @@ export default function RelatoriosPrestador() {
         setCarregando(false);
       }
     );
-  }, [rangeStart, rangeEnd]);
+  }, [rangeStart, rangeEnd, quantidadeDias]);
 
   useFocusEffect(
     useCallback(() => {
@@ -205,7 +243,7 @@ export default function RelatoriosPrestador() {
           </style>
         </head>
         <body>
-          <div class="title">Relatório (Semana)</div>
+          <div class="title">Relatório por período</div>
           <div class="sub">${rangeTitle}</div>
           <div class="cards">
             <div class="card">
@@ -270,6 +308,32 @@ export default function RelatoriosPrestador() {
           <Calendar size={16} color="#64748B" />
           <Text style={styles.rangeText}>{rangeTitle}</Text>
         </View>
+        <View style={styles.filterCard}>
+          <Text style={styles.filterTitle}>Filtrar datas</Text>
+          <View style={styles.filterRow}>
+            <TouchableOpacity
+              style={styles.filterDateButton}
+              activeOpacity={0.85}
+              onPress={() => abrirSeletorData("inicio")}
+            >
+              <Text style={styles.filterDateLabel}>De</Text>
+              <Text style={styles.filterDateValue}>
+                {dataInicio.toLocaleDateString("pt-BR")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterDateButton}
+              activeOpacity={0.85}
+              onPress={() => abrirSeletorData("fim")}
+            >
+              <Text style={styles.filterDateLabel}>Até</Text>
+              <Text style={styles.filterDateValue}>{dataFim.toLocaleDateString("pt-BR")}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.quickButton} onPress={resetarUltimos7Dias} activeOpacity={0.85}>
+            <Text style={styles.quickButtonText}>Últimos 7 dias</Text>
+          </TouchableOpacity>
+        </View>
 
         {carregando ? (
           <View style={styles.loading}>
@@ -291,7 +355,7 @@ export default function RelatoriosPrestador() {
 
             <View style={styles.chartCard}>
               <Text style={styles.chartTitle}>Desempenho</Text>
-              <Text style={styles.chartSub}>Quantidade de serviços por dia</Text>
+              <Text style={styles.chartSub}>Quantidade de serviços por dia no período</Text>
 
               <View style={styles.chartWrap}>
                 <Svg width="100%" height="140" viewBox="0 0 320 140">
@@ -324,12 +388,26 @@ export default function RelatoriosPrestador() {
 
               <TouchableOpacity activeOpacity={0.9} style={styles.exportBtn} onPress={exportarPDF}>
                 <Download size={18} color="#fff" />
-                <Text style={styles.exportText}>Exportar PDF (semana)</Text>
+                <Text style={styles.exportText}>Exportar PDF (período)</Text>
               </TouchableOpacity>
             </View>
           </>
         )}
       </ScrollView>
+      <DateTimePickerModal
+        isVisible={mostrarDatePicker}
+        mode="date"
+        date={dataPickerTipo === "inicio" ? dataInicio : dataFim}
+        onConfirm={(date) => {
+          confirmarData(date);
+          setMostrarDatePicker(false);
+          setDataPickerTipo(null);
+        }}
+        onCancel={() => {
+          setMostrarDatePicker(false);
+          setDataPickerTipo(null);
+        }}
+      />
     </View>
   );
 }
@@ -361,6 +439,38 @@ const styles = StyleSheet.create({
 
   rangeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12 },
   rangeText: { color: "#64748B", fontWeight: "700" },
+  filterCard: {
+    marginTop: 10,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(15, 41, 55, 0.08)",
+  },
+  filterTitle: { color: "#0F2937", fontWeight: "800", fontSize: 13, marginBottom: 10 },
+  filterRow: { flexDirection: "row", gap: 10 },
+  filterDateButton: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  filterDateLabel: { color: "#64748B", fontWeight: "700", fontSize: 12 },
+  filterDateValue: { color: "#0F2937", fontWeight: "800", fontSize: 14, marginTop: 4 },
+  quickButton: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  quickButtonText: { color: "#1D4ED8", fontWeight: "800", fontSize: 12 },
 
   loading: { alignItems: "center", paddingVertical: 40 },
   loadingText: { marginTop: 10, color: "#64748B", fontWeight: "700" },
@@ -413,4 +523,3 @@ const styles = StyleSheet.create({
   },
   exportText: { color: "#fff", fontWeight: "900", fontSize: 13 },
 });
-

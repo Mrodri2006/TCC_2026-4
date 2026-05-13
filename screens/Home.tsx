@@ -1702,14 +1702,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    paddingBottom: 20,
+    paddingBottom: 8,
   },
 
   bottomTab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     backgroundColor: "#fff",
   },
 
