@@ -31,6 +31,20 @@
         {
           "locationWhenInUsePermission": "Permita o acesso à localização para preencher sua cidade e região automaticamente."
         }
+      ],
+      "./plugins/withMercadoPagoMavenRepo",
+      [
+        "./plugins/withMercadoPagoSdkDependencies",
+        {
+          "bomVersion": "+"
+        }
+      ],
+      [
+        "./plugins/withMercadoPagoSdkInit",
+        {
+          "publicKey": "APP_USR-b3cadce2-f241-4661-a74b-f7a123cd8cdf",
+          "countryCode": "BR"
+        }
       ]
     ],
     "extra": {
@@ -41,3 +55,4 @@
     "owner": "m2006"
   }
 }
+

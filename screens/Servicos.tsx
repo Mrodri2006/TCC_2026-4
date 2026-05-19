@@ -129,7 +129,31 @@ function mapFirebaseStatusToServiceStatus(status: string): ServiceStatus {
 
 export default function Servicos() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
+
+  const topBarIconColor = isDark ? theme.textPrimary : "#0F2937";
+  const topBarTitleColor = theme.textPrimary;
+  const searchPlaceholder = theme.textMuted;
+  const searchBoxBg = isDark ? theme.surface : "#FFFFFF";
+  const searchBoxBorder = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.08)";
+  const searchInputTextColor = theme.textPrimary;
+  const tabIdleBg = isDark ? theme.surface : "rgba(255,255,255,0.9)";
+  const tabIdleBorder = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.10)";
+  const tabIdleText = isDark ? theme.textSecondary : "#0F2937";
+  const cardBackground = isDark ? theme.surface : "#FFFFFF";
+  const cardBorder = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.06)";
+  const pillTextFallback = theme.textPrimary;
+  const metaTextColor = theme.textSecondary;
+  const detailsButtonBg = isDark ? theme.actionBg : "rgba(37, 99, 235, 0.10)";
+  const detailsButtonText = isDark ? theme.textPrimary : "#2563EB";
+  const emptyBackground = isDark ? theme.surface : "rgba(255,255,255,0.8)";
+  const emptyBorderColor = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.12)";
+  const emptyTitleColor = theme.textPrimary;
+  const emptySubtitleColor = theme.textMuted;
+  const cancelButtonBg = isDark ? theme.actionBg : "rgba(15, 41, 55, 0.06)";
+  const cancelButtonBorder = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.12)";
+  const concluirButtonBg = isDark ? "rgba(22, 101, 52, 0.18)" : "rgba(34, 197, 94, 0.1)";
+  const concluirButtonBorder = isDark ? "rgba(22, 101, 52, 0.35)" : "rgba(34, 197, 94, 0.3)";
 
   const [aba, setAba] = useState<ServiceStatus>("pendente");
   const [categoria, setCategoria] = useState<string>("Todas");
@@ -342,7 +366,7 @@ export default function Servicos() {
       >
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.topBarIcon}
+            style={[styles.topBarIcon, { backgroundColor: theme.headerBtnBg }]}
             onPress={() => {
               const anyNav = navigation as any;
               if (typeof anyNav?.openDrawer === "function") {
@@ -361,25 +385,25 @@ export default function Servicos() {
               }
             }}
           >
-            <Menu size={24} color="#0F2937" />
+            <Menu size={24} color={topBarIconColor} />
           </TouchableOpacity>
 
-          <Text style={styles.topBarTitle}>Serviços</Text>
+          <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Serviços</Text>
 
-          <TouchableOpacity style={styles.topBarIcon} onPress={() => {}}>
-            <Bell size={22} color="#0F2937" />
+          <TouchableOpacity style={[styles.topBarIcon, { backgroundColor: theme.headerBtnBg }]} onPress={() => {}}>
+            <Bell size={22} color={topBarIconColor} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <Search size={18} color="#64748B" />
+          <View style={[styles.searchBox, { backgroundColor: searchBoxBg, borderColor: searchBoxBorder }]}> 
+            <Search size={18} color={searchPlaceholder} />
             <TextInput
               value={pesquisa}
               onChangeText={setPesquisa}
               placeholder="Pesquisar por cliente, serviço ou endereço"
-              placeholderTextColor="#94A3B8"
-              style={styles.searchInput}
+              placeholderTextColor={searchPlaceholder}
+              style={[styles.searchInput, { color: searchInputTextColor }]}
             />
           </View>
         </View>
@@ -395,10 +419,14 @@ export default function Servicos() {
               <TouchableOpacity
                 key={t.key}
                 activeOpacity={0.9}
-                style={[styles.tab, active ? styles.tabActive : styles.tabIdle]}
+                style={[
+                  styles.tab,
+                  active ? styles.tabActive : styles.tabIdle,
+                  !active && { backgroundColor: tabIdleBg, borderColor: tabIdleBorder },
+                ]}
                 onPress={() => setAba(t.key)}
               >
-                <Text style={[styles.tabText, active ? styles.tabTextActive : styles.tabTextIdle]}>
+                <Text style={[styles.tabText, active ? styles.tabTextActive : [styles.tabTextIdle, { color: tabIdleText }]]}>
                   {t.label}
                 </Text>
               </TouchableOpacity>
@@ -409,7 +437,7 @@ export default function Servicos() {
         {carregando ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.emptySubtitle}>Carregando serviços...</Text>
+            <Text style={[styles.emptySubtitle, { color: emptySubtitleColor }]}>Carregando serviços...</Text>
           </View>
         ) : (
           <FlatList
@@ -418,9 +446,9 @@ export default function Servicos() {
             scrollEnabled={false}
             contentContainerStyle={{ paddingBottom: 8 }}
             ListEmptyComponent={
-              <View style={styles.empty}>
-                <Text style={styles.emptyTitle}>Nada por aqui</Text>
-                <Text style={styles.emptySubtitle}>
+              <View style={[styles.empty, { backgroundColor: emptyBackground, borderColor: emptyBorderColor }]}> 
+                <Text style={[styles.emptyTitle, { color: emptyTitleColor }]}>Nada por aqui</Text>
+                <Text style={[styles.emptySubtitle, { color: emptySubtitleColor }]}> 
                   Ajuste filtros ou aguarde novas solicitações.
                 </Text>
               </View>
@@ -428,7 +456,7 @@ export default function Servicos() {
             renderItem={({ item }) => {
               const pill = statusPillStyles(item.status);
               return (
-                <View style={styles.card}>
+                <View style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorder }]}> 
                   <View style={styles.cardTop}>
                     <View style={styles.userRow}>
                       {item.avatarUrl ? (
@@ -460,20 +488,20 @@ export default function Servicos() {
                   </View>
 
                   <View style={styles.metaRow}>
-                    <MapPin size={16} color="#64748B" />
-                    <Text style={styles.metaText} numberOfLines={1}>
+                    <MapPin size={16} color={metaTextColor} />
+                    <Text style={[styles.metaText, { color: metaTextColor }]} numberOfLines={1}>
                       {item.endereco}
                     </Text>
                   </View>
 
                   <View style={styles.metaGrid}>
                     <View style={styles.metaCell}>
-                      <Calendar size={16} color="#64748B" />
-                      <Text style={styles.metaText}>{item.dataHora || "Data não informada"}</Text>
+                      <Calendar size={16} color={metaTextColor} />
+                      <Text style={[styles.metaText, { color: metaTextColor }]}>{item.dataHora || "Data não informada"}</Text>
                     </View>
                     <View style={styles.metaCell}>
-                      <Clock size={16} color="#64748B" />
-                      <Text style={styles.metaText}>{item.valor}</Text>
+                      <Clock size={16} color={metaTextColor} />
+                      <Text style={[styles.metaText, { color: metaTextColor }]}>{item.valor}</Text>
                     </View>
                   </View>
 
@@ -484,14 +512,14 @@ export default function Servicos() {
 
                     <TouchableOpacity
                       activeOpacity={0.9}
-                      style={styles.detailsButton}
+                      style={[styles.detailsButton, { backgroundColor: detailsButtonBg }]}
                       onPress={() => {
                         if (item.clienteId) {
                           handleAbrirChatCliente(item);
                         }
                       }}
                     >
-                      <Text style={styles.detailsText}>Conversar</Text>
+                      <Text style={[styles.detailsText, { color: detailsButtonText }]}>Conversar</Text>
                       <ChevronRight size={18} color="#2563EB" />
                     </TouchableOpacity>
 
@@ -506,7 +534,7 @@ export default function Servicos() {
                     )}
 
                     <TouchableOpacity
-                      style={styles.cancelBtn}
+                      style={[styles.cancelBtn, { backgroundColor: cancelButtonBg, borderColor: cancelButtonBorder }]}
                       onPress={() => handleCancelarServico(item)}
                       activeOpacity={0.85}
                     >

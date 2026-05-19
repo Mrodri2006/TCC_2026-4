@@ -64,7 +64,11 @@ export default function TelaProfissionais() {
               !!localizacaoContratanteNormalizada &&
               localizacaoPrestadorNormalizada === localizacaoContratanteNormalizada;
             
-            if (userData && userData.nome && mesmaRegiao) {
+            const contaAtiva = userData?.contaAtiva !== false;
+            const assinaturaAtiva = userData?.assinaturaAtiva !== false;
+            const ehPrestador = String(userData?.tipo || "").toLowerCase() === "prestador";
+
+            if (ehPrestador && contaAtiva && assinaturaAtiva && userData && userData.nome && mesmaRegiao) {
               const profissional = {
                 id: userDoc.id,
                 nome: userData.nome,

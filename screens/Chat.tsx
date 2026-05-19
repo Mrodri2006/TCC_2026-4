@@ -27,7 +27,7 @@ export default function Chat() {
   const navigation = useNavigation<any>();
   const route = useRoute() as any;
   const { otherUserId, otherUserName } = route.params || {};
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
 
   const [mensagens, setMensagens] = useState<Message[]>([]);
   const [texto, setTexto] = useState("");
@@ -104,10 +104,15 @@ export default function Chat() {
       <View
         style={[
           styles.bubble,
-          isMine ? styles.bubbleMine : styles.bubbleOther,
+          isMine ? styles.bubbleMine : [styles.bubbleOther, { backgroundColor: theme.card }],
         ]}
       >
-        <Text style={[styles.bubbleText, isMine ? styles.textMine : styles.textOther]}>
+        <Text
+          style={[
+            styles.bubbleText,
+            isMine ? styles.textMine : [styles.textOther, { color: theme.textPrimary }],
+          ]}
+        >
           {item.text}
         </Text>
       </View>
@@ -122,10 +127,15 @@ export default function Chat() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         <View style={styles.header}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-            <ArrowLeft size={22} color="#0F2937" />
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={22} color={theme.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{otherUserName || "Chat"}</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
+            {otherUserName || "Chat"}
+          </Text>
           <View style={styles.headerBtnGhost} />
         </View>
 
@@ -136,11 +146,16 @@ export default function Chat() {
           contentContainerStyle={styles.listContent}
         />
 
-        <View style={styles.inputRow}>
+        <View
+          style={[
+            styles.inputRow,
+            { backgroundColor: theme.background, borderTopColor: theme.border },
+          ]}
+        >
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.actionBg, color: theme.textPrimary }]}
             placeholder="Digite sua mensagem..."
-            placeholderTextColor="#7A8797"
+            placeholderTextColor={isDark ? theme.textMuted : "#7A8797"}
             value={texto}
             onChangeText={setTexto}
           />

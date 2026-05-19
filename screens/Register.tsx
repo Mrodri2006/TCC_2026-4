@@ -27,6 +27,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Usuario } from '../model/Usuario';
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from 'react-native-modal-datetime-picker';
+import { computeNextDueDate } from "../utils/billingDates";
+import { DEFAULT_MENSALIDADE_VALOR } from "../utils/billingConfig";
 
 export default function Register() {
 
@@ -227,6 +229,13 @@ export default function Register() {
           admin: false,
           profissao: profissao,
           criadoEm: new Date(),
+          dataCadastro: new Date(),
+          dataVencimento: computeNextDueDate(new Date(), new Date()),
+          assinaturaAtiva: true,
+          contaAtiva: true,
+          ultimoPagamento: null,
+          statusPagamento: "em_dia",
+          valorMensalidade: DEFAULT_MENSALIDADE_VALOR,
         });
 
       navigation.replace('MenuTrabalhador');

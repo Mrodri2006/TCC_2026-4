@@ -12,7 +12,7 @@ import { useTheme } from "../theme/ThemeContext";
 export default function TelaInicialCliente({ onLogout }: any) {
 
   const navigation = useNavigation() as any;
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
   const [searchText, setSearchText] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("inicio");
   const [profissionaisRecomendados, setProfissionaisRecomendados] = useState([]);
@@ -31,6 +31,10 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [enviandoSolicitacao, setEnviandoSolicitacao] = useState(false);
   const [userName, setUserName] = useState("");
   const unsubscribeAceitosRef = useRef<null | (() => void)>(null);
+
+  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
+  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
 
   useFocusEffect(
     useCallback(() => {
@@ -541,29 +545,59 @@ export default function TelaInicialCliente({ onLogout }: any) {
         {abaAtiva === "inicio" ? (
           <>
             <View style={styles.topBar}>
-              <TouchableOpacity style={styles.topBarBtn} onPress={openDrawer} activeOpacity={0.7}>
-                <Menu size={24} color="#0F2937" />
-              </TouchableOpacity>
-              <Text style={styles.topBarTitle}>Página Inicial</Text>
               <TouchableOpacity
-                style={styles.topBarBtn}
+                style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
+                onPress={openDrawer}
+                activeOpacity={0.7}
+              >
+                <Menu size={24} color={topBarIconColor} />
+              </TouchableOpacity>
+              <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>
+                Página Inicial
+              </Text>
+              <TouchableOpacity
+                style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
                 onPress={() => navigation.navigate("Conversas")}
                 activeOpacity={0.7}
               >
                 <View style={styles.bellWrap}>
-                  <Bell size={22} color="#0F2937" />
-                  <View style={styles.notificationDot} />
+                  <Bell size={22} color={topBarIconColor} />
+                  <View
+                    style={[
+                      styles.notificationDot,
+                      { borderColor: isDark ? theme.background : "#ffffff" },
+                    ]}
+                  />
                 </View>
               </TouchableOpacity>
             </View>
 
-            <View style={styles.greetingCard}>
+            <View
+              style={[
+                styles.greetingCard,
+                {
+                  backgroundColor: isDark ? theme.surface : "#E8F4FF",
+                  borderColor: isDark ? theme.surfaceBorder : "transparent",
+                  borderWidth: isDark ? 1 : 0,
+                },
+              ]}
+            >
               <View style={styles.greetingTextCol}>
-                <Text style={styles.greetingTitle}>Olá, {userName}! 👋</Text>
-                <Text style={styles.greetingSub}>Como podemos ajudar hoje?</Text>
+                <Text style={[styles.greetingTitle, { color: theme.surfaceTextPrimary }]}>
+                  Olá, {userName}! 👋
+                </Text>
+                <Text style={[styles.greetingSub, { color: theme.surfaceTextMuted }]}>
+                  Como podemos ajudar hoje?
+                </Text>
               </View>
               <TouchableOpacity
-                style={styles.greetingAvatarBtn}
+                style={[
+                  styles.greetingAvatarBtn,
+                  {
+                    backgroundColor: isDark ? "rgba(0,0,0,0.20)" : theme.surface,
+                    borderColor: isDark ? theme.surfaceBorder : theme.surfaceBorder,
+                  },
+                ]}
                 onPress={() => navigation.navigate("Perfil")}
                 activeOpacity={0.8}
               >
@@ -572,7 +606,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Serviços Populares</Text>
+              <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Serviços Populares</Text>
               <View style={styles.sectionUnderline} />
             </View>
 
@@ -610,15 +644,36 @@ export default function TelaInicialCliente({ onLogout }: any) {
                   return (
                     <TouchableOpacity
                       key={serv.id}
-                      style={styles.serviceCard}
+                      style={[
+                        styles.serviceCard,
+                        {
+                          backgroundColor: isDark ? theme.surface : theme.surface,
+                          borderColor: isDark ? theme.surfaceBorder : "transparent",
+                          borderWidth: isDark ? 1 : 0,
+                        },
+                      ]}
                       onPress={() => handleServicoPress(serv)}
                       activeOpacity={0.85}
                     >
-                      <View style={[styles.serviceIconBox, { backgroundColor: serv.iconBg || "#E8F4FF" }]}>
+                      <View
+                        style={[
+                          styles.serviceIconBox,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(255,255,255,0.06)"
+                              : serv.iconBg || "#E8F4FF",
+                          },
+                        ]}
+                      >
                         {serv.icon}
                       </View>
-                      <Text style={styles.serviceTitle}>{serv.nome}</Text>
-                      <Text style={styles.serviceSubtitle} numberOfLines={2}>
+                      <Text style={[styles.serviceTitle, { color: theme.surfaceTextPrimary }]}>
+                        {serv.nome}
+                      </Text>
+                      <Text
+                        style={[styles.serviceSubtitle, { color: theme.surfaceTextMuted }]}
+                        numberOfLines={2}
+                      >
                         {serv.subtitle || "Serviço profissional"}
                       </Text>
                       <View style={[styles.badgeContainer, { backgroundColor: serv.badgeBg || "#2563EB" }]}>
@@ -629,11 +684,13 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 })}
               </View>
             ) : (
-              <Text style={styles.nenhumResultado}>Nenhum serviço encontrado</Text>
+              <Text style={[styles.nenhumResultado, { color: theme.textMuted }]}>
+                Nenhum serviço encontrado
+              </Text>
             )}
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Serviços e propostas</Text>
+              <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Serviços e propostas</Text>
               <View style={styles.sectionUnderline} />
             </View>
 
@@ -703,7 +760,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         ) : (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Buscar</Text>
+              <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Buscar</Text>
               <View style={styles.sectionUnderline} />
             </View>
             <View style={styles.searchBox}>
@@ -727,7 +784,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 <View style={styles.prestadoresListContainer}>
                   {servicosFiltrados.length > 0 && (
                     <>
-                      <Text style={styles.sectionTitle}>Serviços</Text>
+                      <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Serviços</Text>
                       <View style={styles.grid}>
                         {servicosFiltrados.map((serv) => {
                           const quantidadeProf = contarProfissionaisPorServico(serv.nome);
@@ -754,7 +811,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
                   {prestadoresFiltrados.length > 0 && (
                     <>
-                      <Text style={styles.sectionTitle}>Prestadores</Text>
+                      <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Prestadores</Text>
                       {prestadoresFiltrados.map((prestador: any) => (
                         <TouchableOpacity
                           key={prestador.id}
@@ -787,10 +844,14 @@ export default function TelaInicialCliente({ onLogout }: any) {
                   )}
                 </View>
               ) : (
-                <Text style={styles.nenhumResultado}>Nenhum resultado encontrado</Text>
+                <Text style={[styles.nenhumResultado, { color: theme.textMuted }]}>
+                  Nenhum resultado encontrado
+                </Text>
               )
             ) : (
-              <Text style={styles.nenhumResultado}>Digite para buscar serviços e prestadores</Text>
+              <Text style={[styles.nenhumResultado, { color: theme.textMuted }]}>
+                Digite para buscar serviços e prestadores
+              </Text>
             )}
 
             <View style={{ height: 20 }} />
@@ -799,7 +860,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
       <Modal visible={modalVisivel} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
             <Text style={styles.modalTitle}>Gerenciar Serviço</Text>
 
             <Text style={styles.modalServicoTitulo}>
@@ -881,7 +942,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
       <Modal visible={modalAreaVisivel} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
             <Text style={styles.modalTitle}>Solicitar por area</Text>
 
             <Text style={styles.modalLabel}>Area do servico *</Text>
@@ -954,9 +1015,18 @@ export default function TelaInicialCliente({ onLogout }: any) {
       </Modal>
       </ScrollView>
 
-      <View style={styles.bottomTabsContainer}>
+      <View
+        style={[
+          styles.bottomTabsContainer,
+          { backgroundColor: theme.background, borderTopColor: theme.border },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.bottomTab, abaAtiva === "inicio" && styles.bottomTabActive]}
+          style={[
+            styles.bottomTab,
+            { backgroundColor: theme.background },
+            abaAtiva === "inicio" && styles.bottomTabActive,
+          ]}
           onPress={() => setAbaAtiva("inicio")}
         >
           <HomeIcon size={22} color={abaAtiva === "inicio" ? "#2563EB" : "#64748B"} />
@@ -964,7 +1034,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.bottomTab, abaAtiva === "busca" && styles.bottomTabActive]}
+          style={[
+            styles.bottomTab,
+            { backgroundColor: theme.background },
+            abaAtiva === "busca" && styles.bottomTabActive,
+          ]}
           onPress={() => setAbaAtiva("busca")}
         >
           <SearchIcon size={22} color={abaAtiva === "busca" ? "#2563EB" : "#64748B"} />
@@ -1716,7 +1790,7 @@ const styles = StyleSheet.create({
   bottomTabActive: {
     borderTopWidth: 3,
     borderTopColor: "#2563EB",
-    backgroundColor: "#F3F7FB",
+    backgroundColor: "rgba(37, 99, 235, 0.10)",
   },
 
   bottomTabIcon: {

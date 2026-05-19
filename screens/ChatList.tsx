@@ -77,7 +77,9 @@ export default function ChatList() {
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={styles.emptyText}>Carregando conversas...</Text>
+        <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+          Carregando conversas...
+        </Text>
       </View>
     );
   }
@@ -86,15 +88,22 @@ export default function ChatList() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         {chats.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhuma conversa ainda</Text>
+          <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+            Nenhuma conversa ainda
+          </Text>
         ) : (
           <FlatList
             data={chats}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.card} onPress={() => abrirChat(item)}>
-                <Text style={styles.name}>{item.otherUserName}</Text>
-                <Text style={styles.lastMessage}>
+              <TouchableOpacity
+                style={[styles.card, { backgroundColor: theme.card }]}
+                onPress={() => abrirChat(item)}
+              >
+                <Text style={[styles.name, { color: theme.textPrimary }]}>
+                  {item.otherUserName}
+                </Text>
+                <Text style={[styles.lastMessage, { color: theme.textSecondary }]}>
                   {item.lastMessage || "Sem mensagens"}
                 </Text>
               </TouchableOpacity>

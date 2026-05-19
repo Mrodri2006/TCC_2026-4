@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Campos de cobrança: somente backend (Admin SDK / Cloud Functions) pode alterar
+    function isBillingField(field) {
+      return field in [
+        'assinaturaAtiva',
+        'contaAtiva',
+        'dataCadastro',
+        'dataVencimento',
+        'ultimoPagamento',
+        'statusPagamento',
+        'valorMensalidade',
+        'bloqueadoEm',
+        'motivoBloqueio'
+      ];
+    }
+
+    function touchesBillingFields() {
+      return request.resource.data.diff(resource.data).changedKeys().hasAny([
+        'assinaturaAtiva',
+        'contaAtiva',
+        'dataCadastro',
+        'dataVencimento',
+        'ultimoPagamento',
+        'statusPagamento',
+        'valorMensalidade',
+        'bloqueadoEm',
+        'motivoBloqueio'
+      ]);
+    }
+
+    match /Usuario/{uid} {
+      allow create: if isOwner(uid)
+        && request.resource.data.tipo in ['prestador', 'contratante']
+        && !(request.resource.data.keys().hasAny(['admin']));
+
+      // Prestador bloqueado não aparece nas buscas (leitura pública do doc)
+      allow read: if isOwner(uid)
+        || (resource.data.tipo == 'prestador' && resource.data.contaAtiva == true)
+        || (resource.data.tipo == 'contratante' && signedIn());
+
+      allow update: if isOwner(uid)
+        && !touchesBillingFields()
+        && !(request.resource.data.diff(resource.data).changedKeys().hasAny(['admin']));
+
+      allow delete: if false;
+
+      match /Mensalidades/{periodKey} {
+        // Prestador pode ler suas faturas
+        allow read: if isOwner(uid);
+        // Prestador não cria/edita faturas diretamente (somente Cloud Functions)
+        allow create, update, delete: if false;
+      }
+
+      match /Notificacoes/{notifId} {
+        allow read: if isOwner(uid);
+        allow create, delete: if false;
+        allow update: if isOwner(uid) && request.resource.data.diff(resource.data).changedKeys().hasOnly(['lida']);
+      }
+    }
+
+    // Demais coleções do app (ajuste conforme seu domínio):
+    // Mantém o app funcionando, mas recomenda-se endurecer regras por coleção.
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}
+

@@ -9,7 +9,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
+
+  const cardBackground = isDark ? theme.surface : "#FFFFFF";
+  const sectionBackground = isDark ? theme.surface : "#E8F4FB";
+  const borderColor = isDark ? theme.surfaceBorder : "#E0E0E0";
+  const textPrimary = theme.textPrimary;
+  const textSecondary = theme.textSecondary;
+  const textMuted = theme.textMuted;
+  const iconBackground = isDark ? "rgba(255,255,255,0.06)" : "rgba(15, 41, 55, 0.06)";
 
   const [usuario, setUsuario] = useState({
     nome: "",
@@ -387,12 +395,12 @@ export default function PerfilTrabalhador() {
     return (
       <SafeAreaView style={[localStyles.container, { backgroundColor: theme.background }]}>
         <ScrollView contentContainerStyle={localStyles.blockedContent}>
-          <View style={localStyles.blockedCard}>
-            <Text style={localStyles.blockedTitle}>Acesso temporariamente bloqueado</Text>
-            <Text style={localStyles.blockedText}>
+          <View style={[localStyles.blockedCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
+            <Text style={[localStyles.blockedTitle, { color: textPrimary }]}>Acesso temporariamente bloqueado</Text>
+            <Text style={[localStyles.blockedText, { color: textSecondary }]}> 
               Seu período de uso expirou. O app será liberado apenas após a confirmação do pagamento da mensalidade.
             </Text>
-            <Text style={localStyles.blockedDate}>
+            <Text style={[localStyles.blockedDate, { color: textMuted }]}> 
               Vencimento: {vencimentoData ? vencimentoData.toLocaleDateString("pt-BR") : "não informado"}
             </Text>
 
@@ -425,22 +433,22 @@ export default function PerfilTrabalhador() {
       <ScrollView contentContainerStyle={localStyles.scrollContent}>
         <View style={localStyles.headerCard}>
           <View style={localStyles.topRow}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={localStyles.iconButton}>
-              <ArrowLeft size={20} color="#0F2937" />
+            <TouchableOpacity onPress={() => navigation.goBack()} style={[localStyles.iconButton, { backgroundColor: theme.headerBtnBg }]}> 
+              <ArrowLeft size={20} color={textPrimary} />
             </TouchableOpacity>
-            <Text style={localStyles.topBarTitle}>Perfil</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={localStyles.editButton}>
-              <Edit2 size={18} color="#0F2937" />
+            <Text style={[localStyles.topBarTitle, { color: textPrimary }]}>Perfil</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={[localStyles.editButton, { backgroundColor: theme.headerBtnBg }]}> 
+              <Edit2 size={18} color={textPrimary} />
             </TouchableOpacity>
           </View>
 
-          <View style={localStyles.profileHeader}>
+          <View style={[localStyles.profileHeader, { backgroundColor: sectionBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
             <View style={localStyles.avatarWrapper}>
               {usuario.fotoPerfil ? (
                 <Image source={{ uri: usuario.fotoPerfil }} style={localStyles.avatarImage} />
               ) : (
-                <View style={localStyles.avatarCircle}>
-                  <Text style={localStyles.avatarText}>
+                <View style={[localStyles.avatarCircle, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#D9EEF7" }]}> 
+                  <Text style={[localStyles.avatarText, { color: textPrimary }]}> 
                     {usuario.nome
                       .split(" ")
                       .filter(Boolean)
@@ -454,37 +462,37 @@ export default function PerfilTrabalhador() {
             </View>
 
             <View style={localStyles.profileInfo}>
-              <Text style={localStyles.profileName}>{usuario.nome || "Diarista 2"}</Text>
+              <Text style={[localStyles.profileName, { color: textPrimary }]}>{usuario.nome || "Diarista 2"}</Text>
               <View style={localStyles.metaRow}>
-                <MapPin size={14} color="#64748B" />
-                <Text style={localStyles.metaText}>{usuario.localizacao}</Text>
+                <MapPin size={14} color={textMuted} />
+                <Text style={[localStyles.metaText, { color: textMuted }]}>{usuario.localizacao}</Text>
               </View>
               <View style={localStyles.ratingRow}>
                 <Star size={16} color="#F5B403" fill="#F5B403" />
-                <Text style={localStyles.ratingScore}>{usuario.avaliacao.toFixed(1)}</Text>
-                <Text style={localStyles.ratingText}>({usuario.numeroAvaliacoes} avaliações)</Text>
+                <Text style={[localStyles.ratingScore, { color: textPrimary }]}>{usuario.avaliacao.toFixed(1)}</Text>
+                <Text style={[localStyles.ratingText, { color: textMuted }]}>({usuario.numeroAvaliacoes} avaliações)</Text>
               </View>
             </View>
           </View>
         </View>
 
       <View style={localStyles.sectionBlock}>
-        <Text style={localStyles.sectionTitle}>Contato</Text>
-        <View style={localStyles.infoCard}>
+        <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Contato</Text>
+        <View style={[localStyles.infoCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
           <View style={localStyles.infoRow}>
-            <View style={localStyles.infoIcon}><Phone size={18} color="#0F2937" /></View>
+            <View style={[localStyles.infoIcon, { backgroundColor: iconBackground }]}><Phone size={18} color={textPrimary} /></View>
             <View style={localStyles.infoTextGroup}>
-              <Text style={localStyles.infoLabel}>Telefone</Text>
-              <Text style={localStyles.infoValue}>{usuario.telefone || "Não informado"}</Text>
+              <Text style={[localStyles.infoLabel, { color: textMuted }]}>Telefone</Text>
+              <Text style={[localStyles.infoValue, { color: textPrimary }]}>{usuario.telefone || "Não informado"}</Text>
             </View>
           </View>
         </View>
-        <View style={localStyles.infoCard}>
+        <View style={[localStyles.infoCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
           <View style={localStyles.infoRow}>
-            <View style={localStyles.infoIcon}><Mail size={18} color="#0F2937" /></View>
+            <View style={[localStyles.infoIcon, { backgroundColor: iconBackground }]}><Mail size={18} color={textPrimary} /></View>
             <View style={localStyles.infoTextGroup}>
-              <Text style={localStyles.infoLabel}>Email</Text>
-              <Text style={localStyles.infoValue}>{usuario.email || "Não informado"}</Text>
+              <Text style={[localStyles.infoLabel, { color: textMuted }]}>Email</Text>
+              <Text style={[localStyles.infoValue, { color: textPrimary }]}>{usuario.email || "Não informado"}</Text>
             </View>
           </View>
         </View>
@@ -492,8 +500,8 @@ export default function PerfilTrabalhador() {
 
       <View style={localStyles.sectionBlock}>
         <View style={localStyles.sectionHeaderRow}>
-          <Text style={localStyles.sectionTitle}>Serviços</Text>
-          <Text style={localStyles.sectionMeta}>1 categoria</Text>
+          <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Serviços</Text>
+          <Text style={[localStyles.sectionMeta, { color: textMuted }]}>1 categoria</Text>
         </View>
         <View style={localStyles.chipRow}>
           <View style={localStyles.chip}> 
@@ -505,26 +513,26 @@ export default function PerfilTrabalhador() {
 
       <View style={localStyles.sectionBlock}>
         <View style={localStyles.sectionHeaderRow}>
-          <Text style={localStyles.sectionTitle}>Serviços feitos</Text>
-          <Text style={localStyles.sectionMeta}>{historico.length}</Text>
+          <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Serviços feitos</Text>
+          <Text style={[localStyles.sectionMeta, { color: textMuted }]}>{historico.length}</Text>
         </View>
         {historico.length > 0 ? (
           historico.map((item) => (
-            <View key={item.id} style={localStyles.offerCard}>
+            <View key={item.id} style={[localStyles.offerCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
               {item.imagem && (
                 <Image source={{ uri: item.imagem }} style={localStyles.offerImage} />
               )}
               <View style={localStyles.offerContent}>
                 <View style={localStyles.offerTopRow}>
-                  <Text style={localStyles.offerTitle}>{item.servico || "Serviço"}</Text>
-                  <Text style={localStyles.offerPrice}>
+                  <Text style={[localStyles.offerTitle, { color: textPrimary }]}>{item.servico || "Serviço"}</Text>
+                  <Text style={[localStyles.offerPrice, { color: textPrimary }]}> 
                     R$ {typeof item.valor === 'number' ? item.valor.toFixed(2) : item.valor}
                   </Text>
                 </View>
                 <View style={localStyles.offerBottomRow}>
-                  <Text style={localStyles.offerDate}>{item.data}</Text>
-                  <View style={localStyles.offerStatusBadge}>
-                    <Text style={localStyles.offerStatusText}>{item.status || "Oferecido"}</Text>
+                  <Text style={[localStyles.offerDate, { color: textMuted }]}>{item.data}</Text>
+                  <View style={[localStyles.offerStatusBadge, { backgroundColor: isDark ? "rgba(72, 187, 120, 0.15)" : "#E6F7EC" }]}> 
+                    <Text style={[localStyles.offerStatusText, { color: isDark ? "#A7F3D0" : "#276A45" }]}>{item.status || "Oferecido"}</Text>
                   </View>
                 </View>
                 <View style={localStyles.serviceActionRow}>
@@ -558,37 +566,37 @@ export default function PerfilTrabalhador() {
             </View>
           ))
         ) : (
-          <Text style={localStyles.emptyText}>Nenhum serviço registrado ainda</Text>
+          <Text style={[localStyles.emptyText, { color: textMuted }]}>Nenhum serviço registrado ainda</Text>
         )}
       </View>
 
       <View style={localStyles.sectionBlock}>
         <View style={localStyles.sectionHeaderRow}>
-          <Text style={localStyles.sectionTitle}>Avaliações</Text>
-          <Text style={localStyles.sectionMeta}>{avaliacoes.length} recebidas</Text>
+          <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Avaliações</Text>
+          <Text style={[localStyles.sectionMeta, { color: textMuted }]}>{avaliacoes.length} recebidas</Text>
         </View>
         {avaliacoes.length > 0 ? (
           avaliacoesVisiveis.map((item) => (
-            <View key={item.id} style={localStyles.reviewCard}>
+            <View key={item.id} style={[localStyles.reviewCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
               <View style={localStyles.reviewHeader}>
-                <Text style={localStyles.reviewTitle}>{item.servico || "Serviço"}</Text>
+                <Text style={[localStyles.reviewTitle, { color: textPrimary }]}>{item.servico || "Serviço"}</Text>
                 <View style={localStyles.reviewRating}>
                   <Star size={14} color="#F5B403" fill="#F5B403" />
-                  <Text style={localStyles.reviewScore}>{item.nota?.toFixed?.(1) || item.nota}</Text>
+                  <Text style={[localStyles.reviewScore, { color: textPrimary }]}>{item.nota?.toFixed?.(1) || item.nota}</Text>
                 </View>
               </View>
-              <Text style={localStyles.reviewDate}>{item.data}</Text>
+              <Text style={[localStyles.reviewDate, { color: textMuted }]}>{item.data}</Text>
             </View>
           ))
         ) : (
-          <Text style={localStyles.emptyText}>Ainda não há avaliações recebidas</Text>
+          <Text style={[localStyles.emptyText, { color: textMuted }]}>Ainda não há avaliações recebidas</Text>
         )}
         {avaliacoes.length > LIMITE_AVALIACOES ? (
           <TouchableOpacity
-            style={localStyles.verMaisButton}
+            style={[localStyles.verMaisButton, { backgroundColor: isDark ? theme.actionBg : "#EFF6FF", borderColor: isDark ? theme.surfaceBorder : "#BFDBFE" }]}
             onPress={() => setMostrarTodasAvaliacoes((prev) => !prev)}
           >
-            <Text style={localStyles.verMaisButtonText}>
+            <Text style={[localStyles.verMaisButtonText, { color: isDark ? theme.textPrimary : "#1D4ED8" }]}> 
               {mostrarTodasAvaliacoes ? "Ver menos" : "Ver mais"}
             </Text>
           </TouchableOpacity>
@@ -596,9 +604,9 @@ export default function PerfilTrabalhador() {
       </View>
 
         <View style={localStyles.footerBlock}>
-          <TouchableOpacity style={localStyles.settingsButton} onPress={() => navigation.navigate("ConfiguracoesPrestador") }>
-            <Text style={localStyles.settingsButtonText}>Acessar configurações</Text>
-            <ArrowRight size={18} color="#0F2937" />
+          <TouchableOpacity style={[localStyles.settingsButton, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]} onPress={() => navigation.navigate("ConfiguracoesPrestador") }>
+            <Text style={[localStyles.settingsButtonText, { color: textPrimary }]}>Acessar configurações</Text>
+            <ArrowRight size={18} color={textPrimary} />
           </TouchableOpacity>
         </View>
       </ScrollView>

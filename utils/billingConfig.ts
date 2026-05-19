@@ -1,0 +1,3 @@
+export const DEFAULT_MENSALIDADE_VALOR = 29.9;
+export const BILLING_GRACE_DAYS = 3;
+

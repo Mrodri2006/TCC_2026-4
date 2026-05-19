@@ -26,6 +26,8 @@ import Adm from './screens/Adm';
 import Servicos from './screens/Servicos';
 import RelatoriosPrestador    from './screens/RelatoriosPrestador';
 import EsqueceuSenha from './screens/EsqueceuSenha';
+import MensalidadeBloqueada from './screens/MensalidadeBloqueada';
+import PagamentoMensalidade from './screens/PagamentoMensalidade';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -63,6 +65,8 @@ const ThemedServicosEmAndamento = withThemeScreen(ServicosEmAndamento);
 const ThemedServicos = withThemeScreen(Servicos);
 const ThemedRelatoriosPrestador = withThemeScreen(RelatoriosPrestador);
 const ThemedEsqueceuSenha = withThemeScreen(EsqueceuSenha);
+const ThemedMensalidadeBloqueada = withThemeScreen(MensalidadeBloqueada);
+const ThemedPagamentoMensalidade = withThemeScreen(PagamentoMensalidade);
 
 function AppInner() {
   const { theme } = useTheme();
@@ -88,6 +92,8 @@ function AppInner() {
         <Stack.Screen name="HomeTrabalhador" component={ThemedHomeTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name="Home" component={ThemedMenu} options={{ headerShown: false }} />
         <Stack.Screen name="MenuTrabalhador" component={ThemedMenuTrabalhador} options={{ headerShown: false }} />
+        <Stack.Screen name='MensalidadeBloqueada' component={ThemedMensalidadeBloqueada} options={{ headerShown: false }} />
+        <Stack.Screen name='PagamentoMensalidade' component={ThemedPagamentoMensalidade} options={{ headerShown: false }} />
         <Stack.Screen name="ServicosAgendados" component={ThemedServicosAgendados} options={{ headerShown: false }}/>
         <Stack.Screen name='PerfilTrabalhador' component={ThemedPerfilTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name='Perfil'    component={ThemedPerfil} options={{ headerShown: false }}/>

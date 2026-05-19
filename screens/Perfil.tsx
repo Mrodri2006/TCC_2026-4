@@ -9,7 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Perfil() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
   const [usuario, setUsuario] = useState({
     nome: "",
     email: "",
@@ -18,6 +18,10 @@ export default function Perfil() {
   });
   const [historico, setHistorico] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
+
+  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
+  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
 
   useFocusEffect(
     useCallback(() => {
@@ -140,50 +144,116 @@ export default function Perfil() {
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.topBarBtn} activeOpacity={0.7}>
-          <ArrowLeft size={20} color="#0F2937" />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={20} color={topBarIconColor} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Perfil</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("EditarPerfil")} style={styles.topBarBtn} activeOpacity={0.7}>
-          <Edit2 size={18} color="#0F2937" />
+        <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Perfil</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("EditarPerfil")}
+          style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
+          activeOpacity={0.7}
+        >
+          <Edit2 size={18} color={topBarIconColor} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.topHeader}>
+      <View
+        style={[
+          styles.topHeader,
+          {
+            backgroundColor: isDark ? theme.surface : "#E8F4FB",
+            borderColor: isDark ? theme.surfaceBorder : "transparent",
+            borderWidth: isDark ? 1 : 0,
+          },
+        ]}
+      >
         <View style={styles.profileBlock}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>{initials || "US"}</Text>
+          <View
+            style={[
+              styles.avatarCircle,
+              { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#D9EEF7" },
+            ]}
+          >
+            <Text style={[styles.avatarText, { color: theme.surfaceTextPrimary }]}>
+              {initials || "US"}
+            </Text>
           </View>
-          <Text style={styles.profileName}>{usuario.nome || "Meu Perfil"}</Text>
+          <Text style={[styles.profileName, { color: theme.surfaceTextPrimary }]}>
+            {usuario.nome || "Meu Perfil"}
+          </Text>
           <View style={styles.locationRow}>
-            <MapPin size={16} color="#64748B" />
-            <Text style={styles.locationText}>{usuario.localizacao}</Text>
+            <MapPin size={16} color={theme.surfaceTextMuted} />
+            <Text style={[styles.locationText, { color: theme.surfaceTextMuted }]}>
+              {usuario.localizacao}
+            </Text>
           </View>
         </View>
       </View>
 
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionHeading}>Informações de Contato</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
+            Informações de Contato
+          </Text>
           <View style={styles.sectionUnderline} />
         </View>
 
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: isDark ? theme.surface : "#FFFFFF",
+              borderColor: isDark ? theme.surfaceBorder : "transparent",
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
+        >
           <View style={styles.infoRowItem}>
-            <View style={styles.iconBadge}><Phone size={18} color="#0F2937" /></View>
+            <View
+              style={[
+                styles.iconBadge,
+                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#E8F4FB" },
+              ]}
+            >
+              <Phone size={18} color={theme.surfaceTextPrimary} />
+            </View>
             <View style={styles.infoTextGroup}>
-              <Text style={styles.infoLabel}>Telefone</Text>
-              <Text style={styles.infoValue}>{usuario.telefone || "Não informado"}</Text>
+              <Text style={[styles.infoLabel, { color: theme.surfaceTextMuted }]}>Telefone</Text>
+              <Text style={[styles.infoValue, { color: theme.surfaceTextPrimary }]}>
+                {usuario.telefone || "Não informado"}
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              backgroundColor: isDark ? theme.surface : "#FFFFFF",
+              borderColor: isDark ? theme.surfaceBorder : "transparent",
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
+        >
           <View style={styles.infoRowItem}>
-            <View style={styles.iconBadge}><Mail size={18} color="#0F2937" /></View>
+            <View
+              style={[
+                styles.iconBadge,
+                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#E8F4FB" },
+              ]}
+            >
+              <Mail size={18} color={theme.surfaceTextPrimary} />
+            </View>
             <View style={styles.infoTextGroup}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{usuario.email || "Não informado"}</Text>
+              <Text style={[styles.infoLabel, { color: theme.surfaceTextMuted }]}>Email</Text>
+              <Text style={[styles.infoValue, { color: theme.surfaceTextPrimary }]}>
+                {usuario.email || "Não informado"}
+              </Text>
             </View>
           </View>
         </View>
@@ -191,20 +261,45 @@ export default function Perfil() {
 
       <View style={styles.sectionBlock}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeading}>Serviços Solicitados</Text>
-          <Text style={styles.sectionMeta}>{historico.length} itens</Text>
+          <Text style={[styles.sectionHeading, { color: theme.textPrimary }]}>
+            Serviços Solicitados
+          </Text>
+          <Text style={[styles.sectionMeta, { color: theme.textMuted }]}>
+            {historico.length} itens
+          </Text>
         </View>
         <View style={styles.sectionUnderline} />
 
         {historico.slice(0, mostrarTodos ? historico.length : 4).map((item) => (
-          <View key={item.id} style={styles.serviceCard}>
+          <View
+            key={item.id}
+            style={[
+              styles.serviceCard,
+              {
+                backgroundColor: isDark ? theme.surface : "#FFFFFF",
+                borderColor: isDark ? theme.surfaceBorder : "transparent",
+                borderWidth: isDark ? 1 : 0,
+              },
+            ]}
+          >
             <View style={styles.serviceTopRow}>
-              <Text style={styles.serviceTitle}>{item.servico}</Text>
-              <Text style={styles.servicePrice}>{item.valor}</Text>
+              <Text style={[styles.serviceTitle, { color: theme.surfaceTextPrimary }]}>
+                {item.servico}
+              </Text>
+              <Text style={[styles.servicePrice, { color: theme.surfaceTextPrimary }]}>
+                {item.valor}
+              </Text>
             </View>
             <View style={styles.serviceBottomRow}>
-              <Text style={styles.serviceDate}>{item.data}</Text>
-              <View style={styles.statusBadge}>
+              <Text style={[styles.serviceDate, { color: theme.surfaceTextMuted }]}>
+                {item.data}
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: isDark ? "rgba(16, 185, 129, 0.16)" : "#E6F7EC" },
+                ]}
+              >
                 <Text style={styles.statusText}>{item.status}</Text>
               </View>
             </View>
@@ -226,10 +321,22 @@ export default function Perfil() {
       </View>
 
       <View style={styles.footerSection}>
-        <Text style={styles.footerTitle}>Configurações</Text>
-        <TouchableOpacity style={styles.settingsCard} onPress={() => navigation.navigate("Configuracoes") }>
-          <Text style={styles.settingsLabel}>Acessar configurações</Text>
-          <LogOut size={20} color="#0F2937" />
+        <Text style={[styles.footerTitle, { color: theme.textPrimary }]}>Configurações</Text>
+        <TouchableOpacity
+          style={[
+            styles.settingsCard,
+            {
+              backgroundColor: isDark ? theme.surface : "#FFFFFF",
+              borderColor: isDark ? theme.surfaceBorder : "transparent",
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
+          onPress={() => navigation.navigate("Configuracoes")}
+        >
+          <Text style={[styles.settingsLabel, { color: theme.surfaceTextPrimary }]}>
+            Acessar configurações
+          </Text>
+          <LogOut size={20} color={theme.surfaceTextPrimary} />
         </TouchableOpacity>
       </View>
       </ScrollView>

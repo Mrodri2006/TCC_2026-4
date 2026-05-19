@@ -35,7 +35,17 @@ import { useTheme } from "../theme/ThemeContext";
 
 export default function HomeTrabalhador() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
+
+  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
+  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
+  const cardBackground = isDark ? theme.surface : "#FFFFFF";
+  const sectionBackground = isDark ? theme.surface : "#E8F4FF";
+  const cardBorderColor = isDark ? theme.surfaceBorder : "#2563EB";
+  const neutralBackground = isDark ? "rgba(255,255,255,0.06)" : "rgba(37, 99, 235, 0.08)";
+  const sectionTextColor = theme.textPrimary;
+  const mutedTextColor = theme.textMuted;
 
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -286,7 +296,7 @@ export default function HomeTrabalhador() {
       >
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={styles.topBarIcon}
+            style={[styles.topBarIcon, { backgroundColor: topBarBtnBg }]}
             onPress={() => {
               const anyNav = navigation as any;
               if (typeof anyNav?.openDrawer === "function") {
@@ -296,24 +306,24 @@ export default function HomeTrabalhador() {
               anyNav?.dispatch?.(DrawerActions.openDrawer());
             }}
           >
-            <Menu size={24} color="#0F2937"  />
+            <Menu size={24} color={topBarIconColor} />
           </TouchableOpacity>
 
-          <Text style={styles.topBarTitle}>Página Inicial</Text>
+          <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Página Inicial</Text>
 
           <View style={styles.topBarRight}>
             <TouchableOpacity
-              style={styles.topBarIcon}
+              style={[styles.topBarIcon, { backgroundColor: topBarBtnBg }]}
               onPress={() => Alert.alert("Notificações", "Em breve")}
             >
-              <Bell size={22} color="#0F2937" />
+              <Bell size={22} color={topBarIconColor} />
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity
           activeOpacity={0.9}
-          style={styles.greetingCard}
+          style={[styles.greetingCard, { backgroundColor: sectionBackground, borderColor: isDark ? theme.surfaceBorder : "transparent", borderWidth: isDark ? 1 : 0 }]}
           onPress={() => (navigation as any).navigate("PerfilTrabalhador")}
         >
           <View style={styles.greetingLeft}>
@@ -322,11 +332,11 @@ export default function HomeTrabalhador() {
             </View>
 
             <View style={{ flex: 1 }}>
-              <Text style={styles.hello}>Olá, prestador!</Text>
+              <Text style={[styles.hello, { color: sectionTextColor }]}>Olá, prestador!</Text>
               <View style={styles.newRow}>
-                <Text style={styles.welcome}>Novos serviços solicitados</Text>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>
+                <Text style={[styles.welcome, { color: mutedTextColor }]}>Novos serviços solicitados</Text>
+                <View style={[styles.countBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(37, 99, 235, 0.12)" }]}> 
+                  <Text style={[styles.countBadgeText, { color: isDark ? theme.surfaceTextPrimary : "#1D4ED8" }]}> 
                     {servicosSolicitados.length}
                   </Text>
                 </View>
@@ -334,17 +344,17 @@ export default function HomeTrabalhador() {
             </View>
           </View>
 
-          <ChevronRight size={22} color="#0F2937" />
+          <ChevronRight size={22} color={sectionTextColor} />
         </TouchableOpacity>
 
         <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Serviços solicitados</Text>
+          <Text style={[styles.sectionTitle, { color: sectionTextColor }]}>Serviços solicitados</Text>
         </View>
 
         {carregando ? (
           <View style={styles.carregandoContainer}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
+            <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando serviços...</Text>
           </View>
         ) : servicosSolicitados.length > 0 ? (
           <FlatList
@@ -352,9 +362,9 @@ export default function HomeTrabalhador() {
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <View style={[styles.card, { backgroundColor: cardBackground, borderColor: cardBorderColor }]}> 
                 <View style={styles.cardHeader}>
-                  <Text style={styles.cardTitle}>{item.estilo || item.tipo}</Text>
+                  <Text style={[styles.cardTitle, { color: sectionTextColor }]}>{item.estilo || item.tipo}</Text>
 
                   <View style={styles.badgeNovo}>
                     <Text style={styles.badgeTexto}>NOVO</Text>
@@ -362,24 +372,24 @@ export default function HomeTrabalhador() {
                 </View>
 
                 <View style={styles.row}>
-                  <MapPin size={18} color="#0F2937" />
-                  <Text style={styles.infoText}>{item.local}</Text>
+                  <MapPin size={18} color={isDark ? theme.textSecondary : "#0F2937"} />
+                  <Text style={[styles.infoText, { color: mutedTextColor }]}>{item.local}</Text>
                 </View>
 
                 <View style={styles.row}>
-                  <Clock size={18} color="#0F2937" />
-                  <Text style={styles.infoText}>{item.data}</Text>
+                  <Clock size={18} color={isDark ? theme.textSecondary : "#0F2937"} />
+                  <Text style={[styles.infoText, { color: mutedTextColor }]}>{item.data}</Text>
                 </View>
 
                 {item.descricao && (
-                  <View style={styles.descricaoContainer}>
-                    <Text style={styles.descricaoTexto}>{item.descricao}</Text>
+                  <View style={[styles.descricaoContainer, { backgroundColor: isDark ? theme.surface : "#F8FAFC", borderLeftColor: isDark ? theme.surfaceTextPrimary : "#F59E0B" }]}> 
+                    <Text style={[styles.descricaoTexto, { color: isDark ? theme.textPrimary : "#475569" }]}>{item.descricao}</Text>
                   </View>
                 )}
 
-                <View style={styles.clienteInfo}>
-                  <Text style={styles.clienteLabel}>Cliente:</Text>
-                  <Text style={styles.clienteNome}>
+                <View style={[styles.clienteInfo, { backgroundColor: neutralBackground }]}> 
+                  <Text style={[styles.clienteLabel, { color: mutedTextColor }]}>Cliente:</Text>
+                  <Text style={[styles.clienteNome, { color: sectionTextColor }]}> 
                     {item.nomeCliente || item.clienteId}
                   </Text>
                 </View>
@@ -409,10 +419,10 @@ export default function HomeTrabalhador() {
             <View style={styles.emptyIconWrap}>
               <ClipboardList size={44} color="#2563EB" />
             </View>
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: sectionTextColor }]}> 
               Nenhum serviço solicitado no momento
             </Text>
-            <Text style={styles.emptySubtitle}>
+            <Text style={[styles.emptySubtitle, { color: mutedTextColor }]}> 
               Quando novos serviços forem solicitados, eles aparecerão aqui.
             </Text>
           </View>
@@ -430,52 +440,52 @@ export default function HomeTrabalhador() {
           <Text style={styles.addServiceText}>Adicionar Serviço</Text>
         </TouchableOpacity>
 
-        <Text style={styles.quickTitle}>Ações rápidas</Text>
+        <Text style={[styles.quickTitle, { color: sectionTextColor }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.quickCard}
+            style={[styles.quickCard, { backgroundColor: cardBackground, borderColor: isDark ? theme.surfaceBorder : "transparent", borderWidth: isDark ? 1 : 0 }]}
             onPress={() => navigation.navigate("Servicos")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#EAF2FF" }]}>
               <FileText size={22} color="#2563EB" />
             </View>
-            <Text style={styles.quickLabel}>Meus serviços</Text>
-            <Text style={styles.quickSub}>Ver todos</Text>
+            <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Meus serviços</Text>
+            <Text style={[styles.quickSub, { color: mutedTextColor }]}>Ver todos</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.quickCard}
+            style={[styles.quickCard, { backgroundColor: cardBackground, borderColor: isDark ? theme.surfaceBorder : "transparent", borderWidth: isDark ? 1 : 0 }]}
             onPress={() => navigation.navigate("RelatoriosPrestador")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#E9FBF1" }]}>
               <BarChart3 size={22} color="#16A34A" />
             </View>
-            <Text style={styles.quickLabel}>Relatórios</Text>
-            <Text style={styles.quickSub}>Acompanhar</Text>
+            <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Relatórios</Text>
+            <Text style={[styles.quickSub, { color: mutedTextColor }]}>Acompanhar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.9}
-            style={styles.quickCard}
+            style={[styles.quickCard, { backgroundColor: cardBackground, borderColor: isDark ? theme.surfaceBorder : "transparent", borderWidth: isDark ? 1 : 0 }]}
             onPress={() => Alert.alert("Ajuda", "Em breve")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#FFF5E6" }]}>
               <HelpCircle size={22} color="#F59E0B" />
             </View>
-            <Text style={styles.quickLabel}>Ajuda</Text>
-            <Text style={styles.quickSub}>Central de ajuda</Text>
+            <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Ajuda</Text>
+            <Text style={[styles.quickSub, { color: mutedTextColor }]}>Central de ajuda</Text>
           </TouchableOpacity>
         </View>
 
         <Modal visible={alertVisivel} transparent animationType="fade">
           <View style={styles.alertOverlay}>
-            <View style={styles.alertContainer}>
+            <View style={[styles.alertContainer, { backgroundColor: cardBackground, borderColor: theme.surfaceBorder }]}> 
               {servicoAceito && (
                 <>
                   <CircleCheck size={60} color="#4CAF50" />
-                  <Text style={styles.alertTitle}>Valor enviado ao cliente</Text>
+                  <Text style={[styles.alertTitle, { color: sectionTextColor }]}>Valor enviado ao cliente</Text>
 
                   <TouchableOpacity
                     style={styles.openButton}
@@ -489,7 +499,7 @@ export default function HomeTrabalhador() {
               {servicoRejeitado && (
                 <>
                   <X size={60} color="#F44336" />
-                  <Text style={styles.alertTitle}>Serviço rejeitado</Text>
+                  <Text style={[styles.alertTitle, { color: sectionTextColor }]}>Serviço rejeitado</Text>
 
                   <TouchableOpacity
                     style={styles.closeButton}
@@ -505,16 +515,16 @@ export default function HomeTrabalhador() {
 
         <Modal visible={modalValorVisivel} transparent animationType="fade">
           <View style={styles.alertOverlay}>
-            <View style={styles.alertContainer}>
-              <Text style={styles.alertTitle}>Informe o valor do serviço</Text>
-              <Text style={styles.valorModalSubtitle}>
+            <View style={[styles.alertContainer, { backgroundColor: cardBackground, borderColor: theme.surfaceBorder }]}> 
+              <Text style={[styles.alertTitle, { color: sectionTextColor }]}>Informe o valor do serviço</Text>
+              <Text style={[styles.valorModalSubtitle, { color: mutedTextColor }]}> 
                 {servicoParaValor?.estilo || servicoParaValor?.tipo || "Serviço"}
               </Text>
 
               <TextInput
-                style={styles.valorInput}
+                style={[styles.valorInput, { backgroundColor: theme.actionBg, color: theme.textPrimary }]}
                 placeholder="Ex: 150,00"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={theme.textMuted}
                 value={valorServico}
                 onChangeText={setValorServico}
                 keyboardType="decimal-pad"
