@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet, ActivityIndicator, TextInput } from "react-native";
 import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2 } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
@@ -37,6 +37,9 @@ export default function PerfilTrabalhador() {
   const [mensalidadeStatus, setMensalidadeStatus] = useState("em_aberto");
   const [mensalidadeVencimento, setMensalidadeVencimento] = useState<any>(null);
   const [verificandoPagamento, setVerificandoPagamento] = useState(false);
+  const [postagens, setPostagens] = useState<any[]>([]);
+  const [novaPostagem, setNovaPostagem] = useState("");
+  const [postagensCarregando, setPostagensCarregando] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -137,9 +140,24 @@ export default function PerfilTrabalhador() {
               numeroAvaliacoes: qtd,
             }));
             console.log('setou usuario'); 
+
+            setPostagensCarregando(true);
+            const postsSnapshot = await firestore
+              .collection("Usuario")
+              .doc(usuarioAutenticado.uid)
+              .collection("Posts")
+              .orderBy("createdAt", "desc")
+              .get();
+            const postsLista = postsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            setPostagens(postsLista);
+            setPostagensCarregando(false);
           }
         } catch (erro) {
           console.log("Erro ao carregar dados:", erro);
+          setPostagensCarregando(false);
         }
       };
 
@@ -343,6 +361,40 @@ export default function PerfilTrabalhador() {
     }
   };
 
+  const publicarPostagem = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Erro", "Usuário não autenticado.");
+        return;
+      }
+
+      const texto = novaPostagem.trim();
+      if (!texto) {
+        Alert.alert("Postagem vazia", "Digite algo para publicar.");
+        return;
+      }
+
+      const novoPost = {
+        texto,
+        createdAt: new Date(),
+      };
+
+      const postRef = await firestore
+        .collection("Usuario")
+        .doc(userId)
+        .collection("Posts")
+        .add(novoPost);
+
+      setPostagens((prev) => [{ id: postRef.id, ...novoPost }, ...prev]);
+      setNovaPostagem("");
+      Alert.alert("Sucesso", "Post publicado no perfil.");
+    } catch (erro) {
+      console.error("Erro ao publicar postagem:", erro);
+      Alert.alert("Erro", "Não foi possível publicar a postagem.");
+    }
+  };
+
   const handleDeleteServico = (item: any) => {
     Alert.alert(
       "Excluir servico",
@@ -509,6 +561,40 @@ export default function PerfilTrabalhador() {
             <Text style={localStyles.chipText}>{usuario.profissao || "Diarista"}</Text>
           </View>
         </View>
+      </View>
+
+      <View style={localStyles.sectionBlock}>
+        <View style={localStyles.sectionHeaderRow}>
+          <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Postagens</Text>
+          <Text style={[localStyles.sectionMeta, { color: textMuted }]}>{postagens.length} publicações</Text>
+        </View>
+        <View style={[localStyles.postInputCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
+          <TextInput
+            style={[localStyles.newPostInput, { color: textPrimary, borderColor }]}
+            placeholder="Escreva uma postagem sobre seu trabalho..."
+            placeholderTextColor={textMuted}
+            value={novaPostagem}
+            onChangeText={setNovaPostagem}
+            multiline
+          />
+          <TouchableOpacity style={[localStyles.postButton, { backgroundColor: "#2563EB" }]} onPress={publicarPostagem}>
+            <Text style={localStyles.postButtonText}>Publicar</Text>
+          </TouchableOpacity>
+        </View>
+        {postagensCarregando ? (
+          <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 12 }} />
+        ) : postagens.length > 0 ? (
+          postagens.map((post) => (
+            <View key={post.id} style={[localStyles.postCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
+              <Text style={[localStyles.postText, { color: textPrimary }]}>{post.texto}</Text>
+              <Text style={[localStyles.postTimestamp, { color: textMuted }]}>
+                {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString("pt-BR") : new Date(post.createdAt).toLocaleDateString("pt-BR")}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <Text style={[localStyles.emptyText, { color: textMuted }]}>Nenhuma postagem feita ainda.</Text>
+        )}
       </View>
 
       <View style={localStyles.sectionBlock}>
@@ -1021,6 +1107,44 @@ const localStyles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     paddingVertical: 16,
+  },
+  postInputCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  newPostInput: {
+    minHeight: 80,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 10,
+    textAlignVertical: "top",
+    fontSize: 14,
+    backgroundColor: "transparent",
+  },
+  postButton: {
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  postButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  postCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+  },
+  postText: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  postTimestamp: {
+    fontSize: 12,
+    color: "#64748B",
   },
   footerBlock: {
     marginBottom: 30,

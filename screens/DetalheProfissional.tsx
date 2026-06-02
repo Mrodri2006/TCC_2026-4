@@ -14,7 +14,16 @@ export default function DetalheProfissional() {
 
   const [servicos, setServicos] = useState<any[]>([]);
   const [usuarioData, setUsuarioData] = useState<any>({});
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [carregando, setCarregando] = useState(true);
+
+  const formatDate = (value: any) => {
+    if (!value) return "";
+    if (typeof value.toDate === "function") return value.toDate().toLocaleDateString("pt-BR");
+    const date = value instanceof Date ? value : new Date(value);
+    return isNaN(date.getTime()) ? "" : date.toLocaleDateString("pt-BR");
+  };
 
   useEffect(() => {
     buscarDetalhes();
@@ -42,10 +51,28 @@ export default function DetalheProfissional() {
         });
       });
 
+      const postsSnapshot = await firestore
+        .collection("Usuario")
+        .doc(profissional.id)
+        .collection("Posts")
+        .orderBy("createdAt", "desc")
+        .get();
+
+      const postsData: any[] = [];
+      postsSnapshot.forEach((doc) => {
+        postsData.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+
       setServicos(servicosData);
+      setPosts(postsData);
       setCarregando(false);
+      setPostsLoading(false);
     } catch (erro) {
       console.error("Erro ao buscar detalhes:", erro);
+      setPostsLoading(false);
       setCarregando(false);
     }
   };
@@ -172,6 +199,29 @@ export default function DetalheProfissional() {
           ))
         ) : (
           <Text style={styles.nenhumServico}>Nenhum serviço cadastrado</Text>
+        )}
+      </View>
+
+      <View style={styles.postsSection}>
+        <View style={styles.sectionHeader}>
+          <Award size={20} color="#2563EB" />
+          <Text style={styles.sectionTitle}>Postagens do Prestador</Text>
+        </View>
+
+        {postsLoading ? (
+          <View style={styles.postsLoading}>
+            <ActivityIndicator size="small" color="#2563EB" />
+            <Text style={styles.postsLoadingText}>Carregando postagens...</Text>
+          </View>
+        ) : posts.length > 0 ? (
+          posts.map((post) => (
+            <View key={post.id} style={styles.postCard}>
+              <Text style={styles.postText}>{post.texto}</Text>
+              <Text style={styles.postDate}>{formatDate(post.createdAt)}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.nenhumServico}>Nenhuma postagem pública encontrada</Text>
         )}
       </View>
 
@@ -313,6 +363,50 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#0F2937",
+  },
+
+  postsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
+    backgroundColor: "#F8FAFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+
+  postCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+
+  postText: {
+    fontSize: 14,
+    color: "#0F2937",
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+
+  postDate: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+
+  postsLoading: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+
+  postsLoadingText: {
+    marginTop: 8,
+    color: "#64748B",
+    fontSize: 13,
   },
 
   servicoCard: {

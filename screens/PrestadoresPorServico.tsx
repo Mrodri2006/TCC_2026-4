@@ -91,6 +91,12 @@ export default function PrestadoresPorServico() {
     }
   };
 
+  const handleVerPerfil = (prestador: any) => {
+    navigation.navigate("DetalheProfissional", {
+      profissional: prestador,
+    });
+  };
+
   const handleChamar = (prestador: any) => {
     navigation.navigate("SolicitarServico", {
       prestadorId: prestador.id,
@@ -163,16 +169,25 @@ export default function PrestadoresPorServico() {
                   </View>
                 </View>
 
-                
               </View>
 
-              <TouchableOpacity
-                style={styles.botaoChamar}
-                activeOpacity={0.8}
-                onPress={() => handleChamar(prestador)}
-              >
-                <Text style={styles.botaoTxt}>Chamar</Text>
-              </TouchableOpacity>
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.botaoPerfil}
+                  activeOpacity={0.8}
+                  onPress={() => handleVerPerfil(prestador)}
+                >
+                  <Text style={styles.botaoPerfilTexto}>Perfil</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.botaoChamar}
+                  activeOpacity={0.8}
+                  onPress={() => handleChamar(prestador)}
+                >
+                  <Text style={styles.botaoTxt}>Chamar</Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -328,6 +343,28 @@ const styles = StyleSheet.create({
     color: "#0F2937",
     fontWeight: "700",
     marginLeft: 6,
+  },
+
+  cardActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: 128,
+  },
+
+  botaoPerfil: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#2563EB",
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    alignSelf: "center",
+  },
+
+  botaoPerfilTexto: {
+    color: "#2563EB",
+    fontWeight: "700",
   },
 
   botaoChamar: {
