@@ -583,15 +583,16 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingBottom: 160,
-    paddingTop: Platform.OS === "android" ? 10 : 0,
+    paddingTop: 16,
   },
 
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "android" ? 16 : 10,
-    paddingBottom: 10,
+    paddingVertical: 10,
+    marginTop: 5,
+    marginBottom: 6,
   },
   topBarTitle: { fontSize: 22, fontWeight: "800", color: "#0F2937" },
   topBarIcon: {
