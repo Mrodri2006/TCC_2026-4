@@ -80,23 +80,15 @@ export default function ServicosEmAndamento() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <ArrowLeft size={22} color={theme.textPrimary} />
         </TouchableOpacity>
 
-        <Text
-          style={{
-            marginTop: 40,
-            marginBottom: 4,
-            fontSize: 28,
-            fontWeight: "600",
-            color: "#000",
-          }}
-        >
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>
           Serviços Em Andamento
         </Text>
 
-        <View style={{ width: 24 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       {/* Conteúdo */}

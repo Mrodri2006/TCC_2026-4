@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Search, MapPin, Star, ArrowLeft, X, Phone } from "lucide-react-native";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
@@ -86,6 +86,12 @@ export default function TelaProfissionais() {
     pro.nome.toLowerCase().includes(searchText.toLowerCase())
   );
 
+  const iconColor = theme.textMuted;
+  const surfaceStyle = {
+    backgroundColor: theme.surface,
+    borderColor: theme.surfaceBorder,
+  };
+
   const handleChamar = (profissional: any) => {
     alert(`Você solicitou ${profissional.nome} para ${servico}`);
   };
@@ -94,51 +100,51 @@ export default function TelaProfissionais() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" />
+          <ArrowLeft size={22} color={theme.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.titulo}>{servico}</Text>
+        <Text style={[styles.titulo, { color: theme.textPrimary }]}>{servico}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.searchBox}>
-        <Search size={20} color="#666" />
+      <View style={[styles.searchBox, surfaceStyle]}>
+        <Search size={20} color={iconColor} />
         <TextInput
           placeholder="Buscar profissional..."
-          placeholderTextColor="#777"
-          style={styles.searchInput}
+          placeholderTextColor={theme.textMuted}
+          style={[styles.searchInput, { color: theme.textPrimary }]}
           value={searchText}
           onChangeText={setSearchText}
         />
         {searchText.length > 0 && (
           <TouchableOpacity onPress={() => setSearchText("")}>
-            <X size={20} color="#666" />
+            <X size={20} color={iconColor} />
           </TouchableOpacity>
         )}
       </View>
 
-      <Text style={styles.resultadoText}>
+      <Text style={[styles.resultadoText, { color: theme.textMuted }]}>
         {profissionaisFiltrados.length} profissional(is) encontrado(s)
       </Text>
 
       {carregando ? (
         <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#000" />
-          <Text style={styles.carregandoTexto}>Carregando profissionais...</Text>
+          <ActivityIndicator size="large" color={theme.textPrimary} />
+          <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando profissionais...</Text>
         </View>
       ) : profissionaisFiltrados.length > 0 ? (
         profissionaisFiltrados.map((pro) => (
-          <View key={pro.id} style={styles.profissionalCard}>
+          <View key={pro.id} style={[styles.profissionalCard, surfaceStyle]}>
             <View style={styles.profissionalInfo}>
-              <Text style={styles.nomeProfissional}>{pro.nome}</Text>
+              <Text style={[styles.nomeProfissional, { color: theme.surfaceTextPrimary }]}>{pro.nome}</Text>
 
               <View style={styles.infoLinha}>
                 <Star size={16} color="#FFD700" />
-                <Text style={styles.infoTexto}>{pro.avaliacao}</Text>
+                <Text style={[styles.infoTexto, { color: theme.surfaceTextMuted }]}>{pro.avaliacao}</Text>
               </View>
 
               <View style={styles.infoLinha}>
-                <MapPin size={16} color="#666" />
-                <Text style={styles.infoTexto}>{pro.distancia}</Text>
+                <MapPin size={16} color={iconColor} />
+                <Text style={[styles.infoTexto, { color: theme.surfaceTextMuted }]}>{pro.distancia}</Text>
               </View>
             </View>
 
@@ -152,7 +158,7 @@ export default function TelaProfissionais() {
           </View>
         ))
       ) : (
-        <Text style={styles.nenhumResultado}>
+        <Text style={[styles.nenhumResultado, { color: theme.textMuted }]}>
           Nenhum profissional encontrado
         </Text>
       )}
