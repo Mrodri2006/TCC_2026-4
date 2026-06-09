@@ -6,10 +6,13 @@ import { auth, firestore, storage } from "../firebase";
 import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getMensalidadeStatus } from "../services/billingService";
+import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation<any>();
   const { isDark, theme } = useTheme();
+  const { status: mensalidadeAtual, loading: mensalidadeLoading } = useMensalidadeStatus(30000);
 
   const cardBackground = isDark ? theme.surface : "#FFFFFF";
   const sectionBackground = isDark ? theme.surface : "#E8F4FB";
@@ -34,8 +37,6 @@ export default function PerfilTrabalhador() {
   const [historico, setHistorico] = useState<any[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [mostrarTodasAvaliacoes, setMostrarTodasAvaliacoes] = useState(false);
-  const [mensalidadeStatus, setMensalidadeStatus] = useState("em_aberto");
-  const [mensalidadeVencimento, setMensalidadeVencimento] = useState<any>(null);
   const [verificandoPagamento, setVerificandoPagamento] = useState(false);
   const [postagens, setPostagens] = useState<any[]>([]);
   const [novaPostagem, setNovaPostagem] = useState("");
@@ -66,8 +67,6 @@ export default function PerfilTrabalhador() {
                 localizacao: dados.localizacao || prevState.localizacao,
                 fotoPerfil: dados.fotoPerfil || dados.foto || "",
               }));
-              setMensalidadeStatus(dados.mensalidadeStatus || "em_aberto");
-              setMensalidadeVencimento(dados.mensalidadeVencimento || null);
             }
 
             const snapshot = await firestore
@@ -173,9 +172,10 @@ export default function PerfilTrabalhador() {
     return Number.isNaN(data.getTime()) ? null : data;
   };
 
-  const vencimentoData = getDateFromField(mensalidadeVencimento);
-  const mensalidadeVencida = !!vencimentoData && vencimentoData.getTime() < Date.now();
-  const bloqueadoPorMensalidade = mensalidadeVencida && mensalidadeStatus !== "paga";
+  const vencimentoData = getDateFromField(mensalidadeAtual?.dataVencimento);
+  const bloqueadoPorMensalidade =
+    !mensalidadeLoading &&
+    (mensalidadeAtual?.contaAtiva === false || mensalidadeAtual?.assinaturaAtiva === false);
   const LIMITE_AVALIACOES = 3;
   const avaliacoesVisiveis = mostrarTodasAvaliacoes
     ? avaliacoes
@@ -190,18 +190,9 @@ export default function PerfilTrabalhador() {
       }
 
       setVerificandoPagamento(true);
-      const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
-      if (!docSnap.exists) {
-        Alert.alert("Pagamento", "Não foi possível localizar os dados da mensalidade.");
-        return;
-      }
+      const statusAtual = await getMensalidadeStatus();
 
-      const dados = docSnap.data() || {};
-      const statusAtual = dados.mensalidadeStatus || "em_aberto";
-      setMensalidadeStatus(statusAtual);
-      setMensalidadeVencimento(dados.mensalidadeVencimento || null);
-
-      if (statusAtual === "paga") {
+      if (statusAtual.contaAtiva && statusAtual.assinaturaAtiva) {
         Alert.alert("Pagamento confirmado", "Acesso liberado com sucesso.");
       } else {
         Alert.alert("Aguardando confirmação", "O pagamento ainda não foi confirmado.");
@@ -458,9 +449,9 @@ export default function PerfilTrabalhador() {
 
             <TouchableOpacity
               style={localStyles.primaryBlockedButton}
-              onPress={() => navigation.navigate("ConfiguracoesPrestador")}
+              onPress={() => navigation.navigate("PagamentoMensalidade")}
             >
-              <Text style={localStyles.primaryBlockedButtonText}>Pagar com Pix</Text>
+              <Text style={localStyles.primaryBlockedButtonText}>Pagar mensalidade</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,49 +11,17 @@ import {
 } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { auth, firestore, functions, getFunctionsByRegion } from "../firebase";
-import QRCode from "react-native-qrcode-svg";
+import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation<any>();
-  const MENSALIDADE_VALOR = 28.9;
   const [notificacoes, setNotificacoes] = useState(true);
   const [privacidade, setPrivacidade] = useState(true);
-  const [qrCopiaCola, setQrCopiaCola] = useState("");
-  const [qrTicketUrl, setQrTicketUrl] = useState("");
-  const [carregandoPix, setCarregandoPix] = useState(false);
-  const [erroPix, setErroPix] = useState("");
-  const [mensalidade, setMensalidade] = useState({
-    vencimento: null,
-    status: "em_aberto",
-    pagoEm: null,
-  });
-  const [salvando, setSalvando] = useState(false);
+  const { status: mensalidade, loading: carregandoMensalidade, refresh: atualizarMensalidade } = useMensalidadeStatus(30000);
   const { isDark, setIsDark, theme } = useTheme();
-
-  useEffect(() => {
-    const carregarMensalidade = async () => {
-      try {
-        const usuarioAutenticado = auth.currentUser;
-        if (!usuarioAutenticado) return;
-        const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
-        if (docSnap.exists) {
-          const dados = docSnap.data();
-          setMensalidade({
-            vencimento: dados.mensalidadeVencimento || null,
-            status: dados.mensalidadeStatus || "em_aberto",
-            pagoEm: dados.mensalidadePagoEm || null,
-          });
-        }
-      } catch (erro) {
-        console.log("Erro ao carregar mensalidade:", erro);
-      }
-    };
-
-    carregarMensalidade();
-  }, []);
 
   const formatarData = (valor: any) => {
     if (!valor) return "Nao informado";
@@ -101,74 +69,8 @@ export default function ConfiguracoesPrestador() {
       ]
     );
   };
-// Inicia o processo de geração do QR Pix, limpando estados anteriores e chamando a função de geração
-// para evitar que dados antigos interfiram na nova geração do QR Code.
-  const iniciarGeracaoQr = () => {
-    setQrCopiaCola("");
-    setQrTicketUrl("");
-    setErroPix("");
-    gerarQrPix();
-  };
-// Gera uma chave de idempotência única para cada transação, garantindo que 
-// múltiplas tentativas de pagamento não resultem em cobranças duplicadas.
-  const gerarIdempotencyKey = () => {
-    return `pix_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  };
-// Função principal para gerar o QR Code Pix, 
-// incluindo validação da chave, construção do payload e tratamento de erros.
-  const gerarQrPix = async () => {
-    setCarregandoPix(true);
-    setSalvando(true);
-    try {
-      const payloadRequest = {
-        amount: MENSALIDADE_VALOR,
-        description: "Mensalidade prestador",
-        idempotencyKey: gerarIdempotencyKey(),
-      };
-
-      const regioesTentativa = ["us-central1", "southamerica-east1"];
-      let response: any = null;
-      let ultimoErro: any = null;
-
-      for (const regiao of regioesTentativa) {
-        try {
-          const instanciaFunctions =
-            regiao === "us-central1" ? functions : getFunctionsByRegion(regiao);
-          const gerarPixMensalidade = instanciaFunctions.httpsCallable("gerarPixMensalidade");
-          response = await gerarPixMensalidade(payloadRequest);
-          break;
-        } catch (erroRegiao: any) {
-          ultimoErro = erroRegiao;
-          const codigo = erroRegiao?.code || "";
-          if (codigo !== "not-found" && codigo !== "functions/not-found") {
-            throw erroRegiao;
-          }
-        }
-      }
-
-      if (!response) {
-        throw ultimoErro || new Error("Falha ao localizar a função de geração Pix.");
-      }
-
-      const payload = response?.data || {};
-      setQrCopiaCola(payload.qr_code || "");
-      setQrTicketUrl(payload.ticket_url || "");
-      if (!payload.qr_code) {
-        setErroPix("Nao foi possivel obter o QR Code de pagamento.");
-      }
-    } catch (erro: any) {
-      console.log("Erro ao gerar Pix:", erro);
-      const codigo = erro?.code || "";
-      const mensagem =
-        codigo === "not-found" || codigo === "functions/not-found"
-          ? "Funcao de pagamento nao encontrada no backend. Publique a Cloud Function gerarPixMensalidade."
-          : "Falha ao gerar o QR Code no backend. Tente novamente.";
-      setErroPix(mensagem);
-      Alert.alert("PIX", mensagem);
-    } finally {
-      setCarregandoPix(false);
-      setSalvando(false);
-    }
+  const abrirPagamentoMensalidade = () => {
+    navigation.navigate("PagamentoMensalidade");
   };
 
   const handleLogout = async () => {
@@ -183,6 +85,17 @@ export default function ConfiguracoesPrestador() {
       Alert.alert("Erro", "Nao foi possivel sair da conta.");
     }
   };
+
+  const mensalidadeEmDia =
+    !!mensalidade &&
+    mensalidade?.contaAtiva !== false &&
+    mensalidade?.assinaturaAtiva !== false &&
+    mensalidade?.statusPagamento !== "inadimplente";
+  const statusMensalidade = carregandoMensalidade
+    ? "Carregando"
+    : mensalidadeEmDia
+      ? "Em dia"
+      : "Pendente";
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -273,11 +186,11 @@ export default function ConfiguracoesPrestador() {
             <View
               style={[
                 styles.statusBadge,
-                mensalidade.status === "paga" ? styles.statusPago : styles.statusAberto,
+                mensalidadeEmDia ? styles.statusPago : styles.statusAberto,
               ]}
             >
               <Text style={[styles.statusText, { color: theme.textPrimary }]}>
-                {mensalidade.status === "paga" ? "Paga" : "Em aberto"}
+                {statusMensalidade}
               </Text>
             </View>
           </View>
@@ -285,57 +198,41 @@ export default function ConfiguracoesPrestador() {
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Vencimento:</Text>
             <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
-              {formatarData(mensalidade.vencimento)}
+              {formatarData(mensalidade?.dataVencimento)}
             </Text>
           </View>
 
           <View style={styles.infoRow}>
             <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Pago em:</Text>
             <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
-              {mensalidade.status === "paga" ? formatarData(mensalidade.pagoEm) : "-"}
+              {mensalidade?.ultimoPagamento ? formatarData(mensalidade.ultimoPagamento) : "-"}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Valor:</Text>
+            <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
+              R$ {Number(mensalidade?.valorMensalidade || 0).toFixed(2)}
             </Text>
           </View>
         
           <TouchableOpacity
-            style={[
-              styles.botaoPagar,
-              salvando && styles.botaoDesabilitado,
-            ]}
-            onPress={iniciarGeracaoQr}
-            disabled={salvando}
+            style={styles.botaoPagar}
+            onPress={abrirPagamentoMensalidade}
           >
-          <Text style={styles.botaoTexto}>Gerar QR Pix</Text>
+          <Text style={styles.botaoTexto}>Pagar mensalidade</Text>
           </TouchableOpacity>
 
-          {carregandoPix && (
+          {carregandoMensalidade && (
             <View style={styles.loadingBox}>
               <ActivityIndicator />
-              <Text style={[styles.loadingText, { color: theme.textMuted }]}>Gerando QR Code...</Text>
+              <Text style={[styles.loadingText, { color: theme.textMuted }]}>Atualizando mensalidade...</Text>
             </View>
           )}
 
-          {!!erroPix && !carregandoPix && (
-            <Text style={styles.errorText}>{erroPix}</Text>
-          )}
-
-          {!!qrCopiaCola && !carregandoPix && (
-            <View style={[styles.qrBox, { borderColor: theme.border, backgroundColor: theme.card }]}>
-              <View style={styles.qrImage}>
-                <QRCode value={qrCopiaCola} size={200} />
-              </View>
-              <Text style={[styles.qrLabel, { color: theme.textSecondary }]}>PIX Copia e Cola</Text>
-              <Text style={[styles.qrCodeText, { color: theme.textSecondary }]} selectable>
-                {qrCopiaCola}
-              </Text>
-              {!!qrTicketUrl && (
-                <Text style={styles.qrHint} selectable>
-                  {qrTicketUrl}
-                </Text>
-              )}
-            </View>
-          )}
-
-            
+          <TouchableOpacity style={styles.secondaryPayButton} onPress={atualizarMensalidade}>
+            <Text style={[styles.secondaryPayButtonText, { color: theme.textSecondary }]}>Atualizar status</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -550,6 +447,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
+  },
+  secondaryPayButton: {
+    marginTop: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  secondaryPayButtonText: {
+    fontWeight: "700",
   },
   botaoDesabilitado: {
     opacity: 0.6,

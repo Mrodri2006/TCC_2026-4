@@ -45,50 +45,37 @@ export default function TelaProfissionais() {
       const localizacaoContratanteNormalizada =
         String(contratanteDados.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoContratante);
 
-      const querySnapshot = await firestore.collectionGroup("Serv").get();
+      const querySnapshot = await firestore
+        .collection("Usuario")
+        .where("tipo", "==", "prestador")
+        .where("profissao", "==", servico)
+        .where("contaAtiva", "==", true)
+        .where("assinaturaAtiva", "==", true)
+        .get();
       const profissionaisEncontrados: any[] = [];
 
-      querySnapshot.forEach((doc) => {
-        const servicoDados = doc.data();
+      querySnapshot.forEach((userDoc) => {
+        const userData = userDoc.data();
+        const localizacaoPrestador = String(userData?.localizacao || "").trim();
+        const localizacaoPrestadorNormalizada =
+          String(userData?.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
+        const mesmaRegiao =
+          !!localizacaoContratanteNormalizada &&
+          localizacaoPrestadorNormalizada === localizacaoContratanteNormalizada;
 
-        if (servicoDados.tipo && servicoDados.tipo.toLowerCase() === servico.toLowerCase()) {
-  
-          const userRef = doc.ref.parent.parent;
-          
-          userRef.get().then((userDoc) => {
-            const userData = userDoc.data();
-            const localizacaoPrestador = String(userData?.localizacao || "").trim();
-            const localizacaoPrestadorNormalizada =
-              String(userData?.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
-            const mesmaRegiao =
-              !!localizacaoContratanteNormalizada &&
-              localizacaoPrestadorNormalizada === localizacaoContratanteNormalizada;
-            
-            const contaAtiva = userData?.contaAtiva !== false;
-            const assinaturaAtiva = userData?.assinaturaAtiva !== false;
-            const ehPrestador = String(userData?.tipo || "").toLowerCase() === "prestador";
-
-            if (ehPrestador && contaAtiva && assinaturaAtiva && userData && userData.nome && mesmaRegiao) {
-              const profissional = {
-                id: userDoc.id,
-                nome: userData.nome,
-                avaliacao: userData.avaliacao || 4.5,
-                distancia: userData.distancia || "A calcular",
-                tipo: servicoDados.tipo,
-              };
-
-              if (!profissionaisEncontrados.find((p: any) => p.id === profissional.id)) {
-                profissionaisEncontrados.push(profissional);
-              }
-            }
+        if (userData?.nome && mesmaRegiao) {
+          profissionaisEncontrados.push({
+            id: userDoc.id,
+            nome: userData.nome,
+            avaliacao: userData.avaliacao || 4.5,
+            distancia: userData.distancia || "A calcular",
+            tipo: userData.profissao || servico,
           });
         }
       });
 
-      setTimeout(() => {
-        setProfissionais(profissionaisEncontrados);
-        setCarregando(false);
-      }, 500);
+      setProfissionais(profissionaisEncontrados);
+      setCarregando(false);
     } catch (erro) {
       console.error("Erro ao buscar profissionais:", erro);
       setCarregando(false);

@@ -1,3 +1,5 @@
-export const DEFAULT_MENSALIDADE_VALOR = 29.9;
+export const DEFAULT_MENSALIDADE_VALOR = 1;
 export const BILLING_GRACE_DAYS = 3;
-
+export const ADMIN_PIX_KEY = "05475674051";
+export const ADMIN_PIX_RECEIVER_NAME = "CHAMO";
+export const ADMIN_PIX_RECEIVER_CITY = "BAGÉ";

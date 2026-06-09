@@ -79,6 +79,48 @@ const ensurePrestador = async (uid) => {
   return { userRef, user };
 };
 
+const requireAdmin = async (context) => {
+  const uid = requireAuth(context);
+  const snap = await db.collection("Usuario").doc(uid).get();
+  const user = snap.data() || {};
+  const isAdmin = user.admin === true || String(user.tipo || "").toLowerCase() === "admin";
+  if (!isAdmin) {
+    throw new functions.https.HttpsError("permission-denied", "Somente administradores podem executar esta aÃ§Ã£o.");
+  }
+  return uid;
+};
+
+const sanitizeUserForAdmin = (doc) => {
+  const data = doc.data() || {};
+  const { senha, password, ...safeData } = data;
+  return { id: doc.id, ...safeData };
+};
+
+const normalizeAdminUserPayload = (data = {}) => {
+  const tipoRaw = String(data.tipo || "contratante").toLowerCase();
+  const tipo = ["contratante", "prestador", "admin"].includes(tipoRaw) ? tipoRaw : "contratante";
+  const adminFlag = Boolean(data.admin) || tipo === "admin";
+  const nome = String(data.nome || "").trim();
+  const email = String(data.email || "").trim().toLowerCase();
+
+  if (!nome) {
+    throw new functions.https.HttpsError("invalid-argument", "Nome Ã© obrigatÃ³rio.");
+  }
+  if (!email || !email.includes("@")) {
+    throw new functions.https.HttpsError("invalid-argument", "E-mail invÃ¡lido.");
+  }
+
+  return {
+    nome,
+    email,
+    fone: String(data.fone || "").trim(),
+    tipo: adminFlag ? "admin" : tipo,
+    admin: adminFlag,
+    profissao: !adminFlag && tipo === "prestador" ? String(data.profissao || "").trim() || null : null,
+    atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
+  };
+};
+
 const mpFetch = async (path, { method = "GET", body, idempotencyKey } = {}) => {
   const token = getAccessToken();
   if (!token) {
@@ -340,6 +382,69 @@ exports.getMensalidadeStatus = functions.https.onCall(async (data, context) => {
     ultimoPagamento: toDate(user.ultimoPagamento) || null,
     invoice,
   };
+});
+
+exports.adminListUsuarios = functions.https.onCall(async (_data, context) => {
+  await requireAdmin(context);
+
+  const snap = await db.collection("Usuario").get();
+  return snap.docs.map(sanitizeUserForAdmin).sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || "")));
+});
+
+exports.adminUpdateUsuario = functions.https.onCall(async (data, context) => {
+  const callerUid = await requireAdmin(context);
+  const targetUid = String(data?.uid || "");
+  if (!targetUid) {
+    throw new functions.https.HttpsError("invalid-argument", "UID do usuÃ¡rio Ã© obrigatÃ³rio.");
+  }
+
+  const payload = normalizeAdminUserPayload(data?.usuario || data || {});
+  if (callerUid === targetUid && payload.admin !== true) {
+    throw new functions.https.HttpsError("failed-precondition", "VocÃª nÃ£o pode remover seu prÃ³prio acesso admin.");
+  }
+
+  const userRef = db.collection("Usuario").doc(targetUid);
+  const currentSnap = await userRef.get();
+  if (!currentSnap.exists) {
+    throw new functions.https.HttpsError("not-found", "UsuÃ¡rio nÃ£o encontrado.");
+  }
+
+  try {
+    await admin.auth().updateUser(targetUid, {
+      email: payload.email,
+      displayName: payload.nome,
+    });
+  } catch (err) {
+    if (err?.code !== "auth/user-not-found") {
+      throw err;
+    }
+  }
+
+  await userRef.set(payload, { merge: true });
+  const updated = await userRef.get();
+  return sanitizeUserForAdmin(updated);
+});
+
+exports.adminDeleteUsuario = functions.https.onCall(async (data, context) => {
+  const callerUid = await requireAdmin(context);
+  const targetUid = String(data?.uid || "");
+  if (!targetUid) {
+    throw new functions.https.HttpsError("invalid-argument", "UID do usuÃ¡rio Ã© obrigatÃ³rio.");
+  }
+  if (callerUid === targetUid) {
+    throw new functions.https.HttpsError("failed-precondition", "VocÃª nÃ£o pode apagar sua prÃ³pria conta admin.");
+  }
+
+  await db.collection("Usuario").doc(targetUid).delete();
+  try {
+    await admin.auth().deleteUser(targetUid);
+  } catch (err) {
+    if (err?.code !== "auth/user-not-found") {
+      throw err;
+    }
+  }
+
+  return { ok: true };
 });
 
 const parseMercadoPagoWebhookBody = (req) => {

@@ -106,6 +106,9 @@ export default function TelaInicialCliente({ onLogout }: any) {
     };
   };
 
+  const prestadorEstaAtivo = (userData: any) =>
+    userData?.contaAtiva !== false && userData?.assinaturaAtiva !== false;
+
   const fetchUserName = async () => {
     const user = auth.currentUser;
     if (user) {
@@ -127,7 +130,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const buscarDadosFirebase = async () => {
     setCarregando(true);
     try {
-      const users = await firestore.collection("Usuario").get();
+      const users = await firestore
+        .collection("Usuario")
+        .where("tipo", "==", "prestador")
+        .where("contaAtiva", "==", true)
+        .where("assinaturaAtiva", "==", true)
+        .get();
       const profissionais = [];
       const servicosUnicos = new Map<string, number>();
 
@@ -135,7 +143,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         const userData = userDoc.data();
         
         // faz a contagem dos serviços oferecidos por cada profissão
-        if (userData.tipo === "prestador" && userData.profissao) {
+        if (userData.profissao && prestadorEstaAtivo(userData)) {
           const count = (servicosUnicos.get(userData.profissao) || 0) + 1;
           servicosUnicos.set(userData.profissao, count);
           
@@ -292,6 +300,8 @@ export default function TelaInicialCliente({ onLogout }: any) {
         .collection("Usuario")
         .where("tipo", "==", "prestador")
         .where("profissao", "==", areaSelecionada)
+        .where("contaAtiva", "==", true)
+        .where("assinaturaAtiva", "==", true)
         .get();
 
       if (prestadoresSnap.empty) {
@@ -306,6 +316,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
       const prestadoresIds: string[] = [];
 
       prestadoresSnap.docs.forEach((doc) => {
+        const prestadorData = doc.data();
+        if (!prestadorEstaAtivo(prestadorData)) {
+          return;
+        }
+
         const prestadorId = doc.id;
         prestadoresIds.push(prestadorId);
         const docRef = firestore
@@ -333,6 +348,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
         promises.push(docRef.set(novoServicoPrestador));
       });
+
+      if (prestadoresIds.length === 0) {
+        Alert.alert("Aviso", "Nenhum prestador ativo encontrado para essa area.");
+        setEnviandoSolicitacao(false);
+        return;
+      }
 
       const novoServicoCliente = {
         id: requestId,

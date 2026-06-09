@@ -24,6 +24,9 @@ export default function PrestadoresPorServico() {
       .trim()
       .toLowerCase();
 
+  const prestadorEstaAtivo = (userData: any) =>
+    userData?.contaAtiva !== false && userData?.assinaturaAtiva !== false;
+
   useFocusEffect(
     useCallback(() => {
       buscarPrestadoresPorServico();
@@ -49,7 +52,13 @@ export default function PrestadoresPorServico() {
 
       setLocalizacaoContratante(localizacaoUsuario);
 
-      const users = await firestore.collection("Usuario").get();
+      const users = await firestore
+        .collection("Usuario")
+        .where("tipo", "==", "prestador")
+        .where("profissao", "==", servico)
+        .where("contaAtiva", "==", true)
+        .where("assinaturaAtiva", "==", true)
+        .get();
       const prestadores: any[] = [];
 
       for (const userDoc of users.docs) {
@@ -62,7 +71,9 @@ export default function PrestadoresPorServico() {
           !!localizacaoUsuarioNormalizada &&
           localizacaoPrestadorNormalizada === localizacaoUsuarioNormalizada;
 
-        if (userData.tipo === "prestador" && userData.profissao === servico && mesmaRegiao) {
+        if (
+          mesmaRegiao && prestadorEstaAtivo(userData)
+        ) {
           prestadores.push({
             id: userDoc.id,
             nome: userData.nome || "Sem nome",

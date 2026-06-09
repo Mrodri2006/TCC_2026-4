@@ -13,6 +13,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import { auth, firestore } from '../firebase';
+import { adminDeleteUsuario, adminListUsuarios, adminUpdateUsuario } from '../services/adminService';
+import { computeNextDueDate } from '../utils/billingDates';
 
 export default function Adm() {
   const navigation = useNavigation<any>();
@@ -22,6 +24,10 @@ export default function Adm() {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
   const [acessoLiberado, setAcessoLiberado] = useState(false);
+  const [solicitacoesPagamento, setSolicitacoesPagamento] = useState<any[]>([]);
+  const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(true);
+  const [processandoPagamentoId, setProcessandoPagamentoId] = useState<string | null>(null);
+  const [processandoUsuarioId, setProcessandoUsuarioId] = useState<string | null>(null);
   const [form, setForm] = useState({
     nome: '',
     email: '',
@@ -31,17 +37,60 @@ export default function Adm() {
     profissao: '',
   });
 
+  const mensagemErroAdmin = (erro: any) => {
+    const codigo = String(erro?.code || erro?.message || '').toLowerCase();
+    if (codigo.includes('permission-denied')) {
+      return 'Sua conta precisa ter admin=true e tipo="admin" no Firestore.';
+    }
+    return 'Nao foi possivel acessar os dados do painel ADM.';
+  };
+
+  const sairDoPainel = () => {
+    if (typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
   const buscarUsuarios = async () => {
     setCarregandoUsuarios(true);
     try {
-      const snap = await firestore.collection('Usuario').get();
-      const lista = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const lista = await adminListUsuarios();
       lista.sort((a: any, b: any) => (a.nome || '').localeCompare(b.nome || ''));
       setUsuarios(lista);
+      setAcessoLiberado(true);
     } catch (erro) {
       console.error('Erro ao buscar usuarios:', erro);
+      setAcessoLiberado(false);
+      Alert.alert('Painel ADM', mensagemErroAdmin(erro));
+      sairDoPainel();
     } finally {
       setCarregandoUsuarios(false);
+    }
+  };
+
+  const buscarSolicitacoesPagamento = async () => {
+    setCarregandoSolicitacoes(true);
+    try {
+      const snap = await firestore
+        .collection('SolicitacoesMensalidade')
+        .where('status', '==', 'pendente')
+        .get();
+      const lista = snap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a: any, b: any) => {
+          const aTime = a.criadoEm?.toDate?.()?.getTime?.() || a.criadoEm?.getTime?.() || 0;
+          const bTime = b.criadoEm?.toDate?.()?.getTime?.() || b.criadoEm?.getTime?.() || 0;
+          return bTime - aTime;
+        });
+      setSolicitacoesPagamento(lista);
+    } catch (erro) {
+      console.error('Erro ao buscar solicitacoes de pagamento:', erro);
+      Alert.alert('Pagamentos', 'Nao foi possivel carregar as solicitacoes de mensalidade.');
+    } finally {
+      setCarregandoSolicitacoes(false);
     }
   };
 
@@ -51,25 +100,17 @@ export default function Adm() {
         const uid = auth.currentUser?.uid;
         if (!uid) {
           Alert.alert('Acesso negado', 'Faça login para acessar o painel.');
+          setCarregandoUsuarios(false);
           navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
           return;
         }
 
-        const userSnap = await firestore.collection('Usuario').doc(uid).get();
-        const userData = userSnap.data() as any;
-        const ehAdmin = userData?.admin === true || userData?.tipo === 'admin';
-        if (!ehAdmin) {
-          Alert.alert('Acesso negado', 'Somente administradores podem acessar esta tela.');
-          navigation.goBack();
-          return;
-        }
-
-        setAcessoLiberado(true);
-        buscarUsuarios();
+        await buscarUsuarios();
+        await buscarSolicitacoesPagamento();
       } catch (erro) {
         console.error('Erro ao validar acesso admin:', erro);
         Alert.alert('Erro', 'Nao foi possivel validar suas permissoes.');
-        navigation.goBack();
+        sairDoPainel();
       }
     };
 
@@ -109,7 +150,7 @@ export default function Adm() {
     try {
       const adminFinal = form.admin || form.tipo === 'admin';
       const tipoFinal = adminFinal ? 'admin' : form.tipo;
-      await firestore.collection('Usuario').doc(usuarioSelecionado.id).update({
+      await adminUpdateUsuario(usuarioSelecionado.id, {
         nome: form.nome,
         email: form.email,
         fone: form.fone,
@@ -121,7 +162,7 @@ export default function Adm() {
       buscarUsuarios();
     } catch (erro) {
       console.error('Erro ao atualizar usuario:', erro);
-      Alert.alert('Erro', 'Nao foi possivel atualizar o usuario.');
+      Alert.alert('Erro', mensagemErroAdmin(erro));
     }
   };
 
@@ -136,11 +177,11 @@ export default function Adm() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await firestore.collection('Usuario').doc(usuario.id).delete();
+              await adminDeleteUsuario(usuario.id);
               buscarUsuarios();
             } catch (erro) {
               console.error('Erro ao apagar usuario:', erro);
-              Alert.alert('Erro', 'Nao foi possivel apagar o usuario.');
+              Alert.alert('Erro', mensagemErroAdmin(erro));
             }
           },
         },
@@ -148,9 +189,211 @@ export default function Adm() {
     );
   };
 
+  const dataFromField = (valor: any) => {
+    if (!valor) return null;
+    if (typeof valor?.toDate === 'function') return valor.toDate();
+    if (valor instanceof Date) return valor;
+    const data = new Date(valor);
+    return Number.isNaN(data.getTime()) ? null : data;
+  };
+
+  const confirmarPagamento = async (solicitacao: any) => {
+    if (!solicitacao?.uid) return;
+    setProcessandoPagamentoId(solicitacao.id);
+    try {
+      const userRef = firestore.collection('Usuario').doc(solicitacao.uid);
+      const userSnap = await userRef.get();
+      const user = userSnap.data() || {};
+      const dataCadastro = dataFromField(user.dataCadastro || user.criadoEm) || new Date();
+      const proximoVencimento = computeNextDueDate(dataCadastro, new Date());
+      const agora = new Date();
+
+      await userRef.set(
+        {
+          assinaturaAtiva: true,
+          contaAtiva: true,
+          statusPagamento: 'pago',
+          ultimoPagamento: agora,
+          dataVencimento: proximoVencimento,
+          valorMensalidade: Number(solicitacao.valor || user.valorMensalidade || 29.9),
+          atualizadoEm: agora,
+        },
+        { merge: true }
+      );
+
+      await firestore.collection('SolicitacoesMensalidade').doc(solicitacao.id).set(
+        {
+          status: 'confirmado',
+          confirmadoEm: agora,
+          confirmadoPor: auth.currentUser?.uid || null,
+          atualizadoEm: agora,
+        },
+        { merge: true }
+      );
+
+      await userRef.collection('Notificacoes').add({
+        type: 'billing_paid_manual',
+        title: 'Pagamento confirmado',
+        body: 'Seu pagamento foi confirmado pelo ADM e sua conta foi liberada.',
+        lida: false,
+        criadoEm: agora,
+      });
+
+      Alert.alert('Pagamento confirmado', 'Conta liberada com sucesso.');
+      buscarUsuarios();
+      buscarSolicitacoesPagamento();
+    } catch (erro) {
+      console.error('Erro ao confirmar pagamento:', erro);
+      Alert.alert('Erro', 'Nao foi possivel confirmar o pagamento.');
+    } finally {
+      setProcessandoPagamentoId(null);
+    }
+  };
+
+  const recusarPagamento = async (solicitacao: any) => {
+    if (!solicitacao?.uid) return;
+    setProcessandoPagamentoId(solicitacao.id);
+    try {
+      const agora = new Date();
+      const userRef = firestore.collection('Usuario').doc(solicitacao.uid);
+
+      await firestore.collection('SolicitacoesMensalidade').doc(solicitacao.id).set(
+        {
+          status: 'recusado',
+          recusadoEm: agora,
+          recusadoPor: auth.currentUser?.uid || null,
+          atualizadoEm: agora,
+        },
+        { merge: true }
+      );
+
+      await userRef.collection('Notificacoes').add({
+        type: 'billing_rejected_manual',
+        title: 'Pagamento nao confirmado',
+        body: 'O ADM nao localizou o pagamento. Confira os dados do Pix e tente novamente.',
+        lida: false,
+        criadoEm: agora,
+      });
+
+      Alert.alert('Pagamento recusado', 'A solicitacao foi marcada como nao confirmada.');
+      buscarSolicitacoesPagamento();
+    } catch (erro) {
+      console.error('Erro ao recusar pagamento:', erro);
+      Alert.alert('Erro', 'Nao foi possivel recusar o pagamento.');
+    } finally {
+      setProcessandoPagamentoId(null);
+    }
+  };
+
+  const bloquearPrestador = (usuario: any) => {
+    Alert.alert(
+      'Bloquear prestador',
+      `Bloquear a conta de ${usuario?.nome || 'prestador'} por mensalidade em atraso?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: async () => {
+            if (!usuario?.id) return;
+            setProcessandoUsuarioId(usuario.id);
+            try {
+              const agora = new Date();
+              const userRef = firestore.collection('Usuario').doc(usuario.id);
+
+              await userRef.set(
+                {
+                  assinaturaAtiva: false,
+                  contaAtiva: false,
+                  statusPagamento: 'inadimplente',
+                  bloqueadoEm: agora,
+                  motivoBloqueio: 'mensalidade_em_atraso',
+                  atualizadoEm: agora,
+                },
+                { merge: true }
+              );
+
+              await userRef.collection('Notificacoes').add({
+                type: 'billing_blocked_manual',
+                title: 'Conta bloqueada',
+                body: 'Sua conta foi bloqueada por mensalidade em atraso.',
+                lida: false,
+                criadoEm: agora,
+              });
+
+              Alert.alert('Conta bloqueada', 'O prestador foi bloqueado.');
+              buscarUsuarios();
+            } catch (erro) {
+              console.error('Erro ao bloquear prestador:', erro);
+              Alert.alert('Erro', 'Nao foi possivel bloquear a conta.');
+            } finally {
+              setProcessandoUsuarioId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const marcarPrestadorComoPago = async (usuario: any) => {
+    if (!usuario?.id) return;
+    setProcessandoUsuarioId(usuario.id);
+    try {
+      const agora = new Date();
+      const userRef = firestore.collection('Usuario').doc(usuario.id);
+      const dataCadastro = dataFromField(usuario.dataCadastro || usuario.criadoEm) || new Date();
+      const proximoVencimento = computeNextDueDate(dataCadastro, agora);
+
+      await userRef.set(
+        {
+          assinaturaAtiva: true,
+          contaAtiva: true,
+          statusPagamento: 'pago',
+          ultimoPagamento: agora,
+          dataVencimento: proximoVencimento,
+          valorMensalidade: Number(usuario.valorMensalidade || 29.9),
+          atualizadoEm: agora,
+        },
+        { merge: true }
+      );
+
+      await userRef.collection('Notificacoes').add({
+        type: 'billing_paid_manual',
+        title: 'Pagamento confirmado',
+        body: 'Seu pagamento foi confirmado pelo ADM e sua conta foi liberada.',
+        lida: false,
+        criadoEm: agora,
+      });
+
+      Alert.alert('Pagamento registrado', 'Conta liberada e vencimento atualizado.');
+      buscarUsuarios();
+    } catch (erro) {
+      console.error('Erro ao marcar pagamento:', erro);
+      Alert.alert('Erro', 'Nao foi possivel marcar como pago.');
+    } finally {
+      setProcessandoUsuarioId(null);
+    }
+  };
+
+  const inicioHoje = new Date();
+  inicioHoje.setHours(0, 0, 0, 0);
+  const prestadoresEmAtraso = usuarios
+    .filter((usuario) => {
+      const vencimento = dataFromField(usuario.dataVencimento);
+      return usuario.tipo === 'prestador' && !!vencimento && vencimento.getTime() < inicioHoje.getTime();
+    })
+    .map((usuario) => {
+      const vencimento = dataFromField(usuario.dataVencimento)!;
+      const diasAtraso = Math.max(1, Math.floor((inicioHoje.getTime() - vencimento.getTime()) / 86400000));
+      return { ...usuario, vencimento, diasAtraso };
+    })
+    .sort((a, b) => b.diasAtraso - a.diasAtraso);
+
   const totalUsuarios = usuarios.length;
   const totalPrestadores = usuarios.filter((u) => u.tipo === 'prestador').length;
   const totalAdmins = usuarios.filter((u) => u.admin === true || u.tipo === 'admin').length;
+  const totalPendentes = solicitacoesPagamento.length;
+  const totalAtrasados = prestadoresEmAtraso.length;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -172,6 +415,95 @@ export default function Adm() {
           <Text style={styles.statLabel}>Admins</Text>
           <Text style={styles.statValue}>{totalAdmins}</Text>
         </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Pix</Text>
+          <Text style={styles.statValue}>{totalPendentes}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Atraso</Text>
+          <Text style={styles.statValue}>{totalAtrasados}</Text>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Pagamentos pendentes</Text>
+        {carregandoSolicitacoes ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#005362" />
+            <Text style={styles.loadingText}>Carregando pagamentos...</Text>
+          </View>
+        ) : solicitacoesPagamento.length > 0 ? (
+          solicitacoesPagamento.map((solicitacao) => (
+            <View key={solicitacao.id} style={styles.paymentCard}>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{solicitacao.nome || 'Prestador'}</Text>
+                <Text style={styles.userMeta}>{solicitacao.email || 'Sem email'}</Text>
+                <Text style={styles.userMeta}>Valor: R$ {Number(solicitacao.valor || 0).toFixed(2)}</Text>
+                <Text style={styles.userMeta}>TXID: {solicitacao.pixTxid || '-'}</Text>
+              </View>
+              <View style={styles.userActions}>
+                <TouchableOpacity
+                  style={[styles.smallButton, processandoPagamentoId === solicitacao.id && styles.disabledButton]}
+                  onPress={() => confirmarPagamento(solicitacao)}
+                  disabled={processandoPagamentoId === solicitacao.id}
+                >
+                  <Text style={styles.smallButtonText}>Confirmar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dangerButton, processandoPagamentoId === solicitacao.id && styles.disabledButton]}
+                  onPress={() => recusarPagamento(solicitacao)}
+                  disabled={processandoPagamentoId === solicitacao.id}
+                >
+                  <Text style={styles.dangerButtonText}>Recusar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>Nenhum pagamento pendente.</Text>
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Prestadores em atraso</Text>
+        {carregandoUsuarios ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="small" color="#005362" />
+            <Text style={styles.loadingText}>Verificando vencimentos...</Text>
+          </View>
+        ) : prestadoresEmAtraso.length > 0 ? (
+          prestadoresEmAtraso.map((usuario) => (
+            <View key={usuario.id} style={styles.overdueCard}>
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{usuario.nome || 'Prestador'}</Text>
+                <Text style={styles.userMeta}>{usuario.email || 'Sem email'}</Text>
+                <Text style={styles.userMeta}>Vencimento: {usuario.vencimento.toLocaleDateString('pt-BR')}</Text>
+                <Text style={styles.userMeta}>Dias em atraso: {usuario.diasAtraso}</Text>
+                <Text style={styles.userMeta}>
+                  Status: {usuario.statusPagamento || '-'} {usuario.contaAtiva === false ? '(bloqueado)' : ''}
+                </Text>
+              </View>
+              <View style={styles.userActions}>
+                <TouchableOpacity
+                  style={[styles.smallButton, processandoUsuarioId === usuario.id && styles.disabledButton]}
+                  onPress={() => marcarPrestadorComoPago(usuario)}
+                  disabled={processandoUsuarioId === usuario.id}
+                >
+                  <Text style={styles.smallButtonText}>Marcar pago</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dangerButton, processandoUsuarioId === usuario.id && styles.disabledButton]}
+                  onPress={() => bloquearPrestador(usuario)}
+                  disabled={processandoUsuarioId === usuario.id}
+                >
+                  <Text style={styles.dangerButtonText}>Bloquear</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.emptyText}>Nenhum prestador em atraso.</Text>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -289,7 +621,7 @@ export default function Adm() {
             </View>
 
             <Text style={styles.modalHint}>
-              Observacao: isso altera apenas os dados no Firestore. O email do Auth nao e alterado aqui.
+              Observacao: no plano gratuito, isso altera apenas os dados no Firestore.
             </Text>
           </View>
         </View>
@@ -401,6 +733,32 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
+  paymentCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#b7e3d2',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  overdueCard: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
+  },
   userInfo: {
     marginBottom: 8,
   },
@@ -439,6 +797,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 12,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   emptyText: {
     color: '#4a5a5f',

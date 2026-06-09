@@ -1,22 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function signedIn() {
+      return request.auth != null;
+    }
 
-    // Campos de cobrança: somente backend (Admin SDK / Cloud Functions) pode alterar
-    function isBillingField(field) {
-      return field in [
-        'assinaturaAtiva',
-        'contaAtiva',
-        'dataCadastro',
-        'dataVencimento',
-        'ultimoPagamento',
-        'statusPagamento',
-        'valorMensalidade',
-        'bloqueadoEm',
-        'motivoBloqueio'
-      ];
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/Usuario/$(request.auth.uid))
+        && (
+          get(/databases/$(database)/documents/Usuario/$(request.auth.uid)).data.admin == true
+          || get(/databases/$(database)/documents/Usuario/$(request.auth.uid)).data.tipo == 'admin'
+        );
+    }
+
+    function activePrestador(uid) {
+      return exists(/databases/$(database)/documents/Usuario/$(uid))
+        && get(/databases/$(database)/documents/Usuario/$(uid)).data.tipo == 'prestador'
+        && get(/databases/$(database)/documents/Usuario/$(uid)).data.contaAtiva == true
+        && get(/databases/$(database)/documents/Usuario/$(uid)).data.assinaturaAtiva != false;
     }
 
     function touchesBillingFields() {
@@ -33,41 +39,169 @@ service cloud.firestore {
       ]);
     }
 
+    function participantIn(data) {
+      return signedIn()
+        && data.participants is list
+        && request.auth.uid in data.participants;
+    }
+
+    function areaParticipant(data) {
+      return signedIn()
+        && data.prestadoresIds is list
+        && request.auth.uid in data.prestadoresIds;
+    }
+
     match /Usuario/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.tipo in ['prestador', 'contratante']
-        && !(request.resource.data.keys().hasAny(['admin']));
+        && (
+          !request.resource.data.keys().hasAny(['admin'])
+          || request.resource.data.admin == false
+        );
 
-      // Prestador bloqueado não aparece nas buscas (leitura pública do doc)
       allow read: if isOwner(uid)
-        || (resource.data.tipo == 'prestador' && resource.data.contaAtiva == true)
-        || (resource.data.tipo == 'contratante' && signedIn());
+        || isAdmin()
+        || (
+          resource.data.tipo == 'prestador'
+          && resource.data.contaAtiva == true
+          && resource.data.assinaturaAtiva != false
+        )
+        || (signedIn() && resource.data.tipo == 'contratante');
 
-      allow update: if isOwner(uid)
-        && !touchesBillingFields()
-        && !(request.resource.data.diff(resource.data).changedKeys().hasAny(['admin']));
+      allow update: if isAdmin()
+        || (
+          isOwner(uid)
+          && !touchesBillingFields()
+          && !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'tipo'])
+        );
 
-      allow delete: if false;
+      allow delete: if isOwner(uid) || isAdmin();
 
       match /Mensalidades/{periodKey} {
-        // Prestador pode ler suas faturas
-        allow read: if isOwner(uid);
-        // Prestador não cria/edita faturas diretamente (somente Cloud Functions)
+        allow read: if isOwner(uid) || isAdmin();
         allow create, update, delete: if false;
       }
 
       match /Notificacoes/{notifId} {
-        allow read: if isOwner(uid);
-        allow create, delete: if false;
-        allow update: if isOwner(uid) && request.resource.data.diff(resource.data).changedKeys().hasOnly(['lida']);
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, delete: if isAdmin();
+        allow update: if isAdmin()
+          || (
+            isOwner(uid)
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly(['lida'])
+          );
+      }
+
+      match /Serv/{servId} {
+        allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());
+        allow create, update, delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /Posts/{postId} {
+        allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());
+        allow create, update, delete: if isOwner(uid) || isAdmin();
       }
     }
 
-    // Demais coleções do app (ajuste conforme seu domínio):
-    // Mantém o app funcionando, mas recomenda-se endurecer regras por coleção.
+    match /ServicosAdds/{uid}/ServicosOferecidos/{servicoId} {
+      allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());
+      allow create, update, delete: if isOwner(uid) || isAdmin();
+    }
+
+    match /ServicosAgendados/{prestadorId}/ServicoStatus/{servicoId} {
+      allow read: if isAdmin()
+        || isOwner(prestadorId)
+        || (signedIn() && resource.data.clienteId == request.auth.uid);
+
+      allow create: if isAdmin()
+        || isOwner(prestadorId)
+        || (signedIn() && request.resource.data.clienteId == request.auth.uid);
+
+      allow update: if isAdmin()
+        || isOwner(prestadorId)
+        || (signedIn() && resource.data.clienteId == request.auth.uid)
+        || (signedIn() && request.resource.data.clienteId == request.auth.uid);
+
+      allow delete: if isAdmin()
+        || isOwner(prestadorId)
+        || (signedIn() && resource.data.clienteId == request.auth.uid);
+    }
+
+    match /ServicosClientes/{clienteId}/ServicoStatus/{servicoId} {
+      allow read: if isAdmin()
+        || isOwner(clienteId)
+        || (signedIn() && resource.data.clienteId == request.auth.uid)
+        || (signedIn() && resource.data.prestadorId == request.auth.uid);
+
+      allow create: if isAdmin()
+        || isOwner(clienteId)
+        || (signedIn() && request.resource.data.prestadorId == request.auth.uid);
+
+      allow update: if isAdmin()
+        || isOwner(clienteId)
+        || (signedIn() && resource.data.prestadorId == request.auth.uid)
+        || (signedIn() && request.resource.data.prestadorId == request.auth.uid);
+
+      allow delete: if isAdmin()
+        || isOwner(clienteId)
+        || (signedIn() && resource.data.prestadorId == request.auth.uid);
+    }
+
+    match /ServicosRejeitados/{prestadorId}/ServicoStatus/{servicoId} {
+      allow read, create, update, delete: if isOwner(prestadorId) || isAdmin();
+    }
+
+    match /SolicitacoesArea/{requestId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.clienteId == request.auth.uid)
+        || areaParticipant(resource.data);
+
+      allow create: if signedIn() && request.resource.data.clienteId == request.auth.uid;
+
+      allow update: if isAdmin()
+        || (signedIn() && resource.data.clienteId == request.auth.uid)
+        || areaParticipant(resource.data);
+
+      allow delete: if isAdmin()
+        || (signedIn() && resource.data.clienteId == request.auth.uid);
+    }
+
+    match /SolicitacoesMensalidade/{requestId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pendente';
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /Chats/{chatId} {
+      allow read, update, delete: if participantIn(resource.data) || isAdmin();
+      allow create: if participantIn(request.resource.data) || isAdmin();
+
+      match /Messages/{messageId} {
+        allow read: if isAdmin()
+          || participantIn(get(/databases/$(database)/documents/Chats/$(chatId)).data);
+
+        allow create: if signedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && (
+            isAdmin()
+            || participantIn(getAfter(/databases/$(database)/documents/Chats/$(chatId)).data)
+          );
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /MercadoPagoWebhooks/{webhookId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
-      allow read, write: if signedIn();
+      allow read, write: if false;
     }
   }
 }
-

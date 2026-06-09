@@ -19,11 +19,17 @@ export default function NovosPrestadores() {
     }, [])
   );
 
+  const prestadorEstaAtivo = (userData: any) =>
+    userData?.contaAtiva !== false && userData?.assinaturaAtiva !== false;
+
   const buscarNovosPrestadores = async () => {
     setCarregando(true);
     try {
       const users = await firestore
         .collection("Usuario")
+        .where("tipo", "==", "prestador")
+        .where("contaAtiva", "==", true)
+        .where("assinaturaAtiva", "==", true)
         .get();
 
       const prestadores = [];
@@ -31,7 +37,7 @@ export default function NovosPrestadores() {
       for (const userDoc of users.docs) {
         const userData = userDoc.data();
         
-        if (userData.tipo === "prestador") {
+        if (prestadorEstaAtivo(userData)) {
           prestadores.push({
             id: userDoc.id,
             nome: userData.nome || "Sem nome",

@@ -73,6 +73,7 @@ export default function Avaliacao() {
         const snap = await firestore
           .collectionGroup("ServicoStatus")
           .where("requestId", "==", requestId)
+          .where("clienteId", "==", servico.clienteId)
           .limit(1)
           .get();
 
