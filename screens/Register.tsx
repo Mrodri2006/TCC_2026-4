@@ -264,7 +264,7 @@ export default function Register() {
             </View>
 
             <View style={styles.logoRow}>
-              <Image source={require("../assets/logo8.jpg")} style={styles.logo} resizeMode="contain" />
+              <Image source={require("../assets/logo-chamo.png")} style={styles.logo} resizeMode="contain" />
             </View>
 
             <View style={styles.segmented}>
