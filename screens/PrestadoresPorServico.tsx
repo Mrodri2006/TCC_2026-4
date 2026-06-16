@@ -127,7 +127,7 @@ export default function PrestadoresPorServico() {
           <ArrowLeft size={24} color="#0c0c0c" />
         </TouchableOpacity>
         <Text style={styles.titulo}>{servico}</Text>
-        <View style={{ width: 24, marginTop:80 }} />
+        <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.infoSection}>
@@ -221,9 +221,11 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: "#E8F4FF",
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 20,
+    borderRadius: 22,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginTop: 30,
+    marginBottom: 16,
     shadowColor: "#0F2937",
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -308,6 +310,7 @@ const styles = StyleSheet.create({
 
   prestadorInfo: {
     flex: 1,
+    minWidth: 0,
     paddingRight: 12,
   },
 
@@ -358,19 +361,22 @@ const styles = StyleSheet.create({
 
   cardActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
-    width: 128,
+    flexShrink: 0,
+    width: 144,
   },
 
   botaoPerfil: {
     backgroundColor: "#F8FAFC",
     borderColor: "#2563EB",
     borderWidth: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    width: 64,
+    height: 44,
     borderRadius: 16,
-    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
 
   botaoPerfilTexto: {
@@ -380,10 +386,11 @@ const styles = StyleSheet.create({
 
   botaoChamar: {
     backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    width: 72,
+    height: 44,
     borderRadius: 16,
-    alignSelf: "center",
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 2,
   },
 

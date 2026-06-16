@@ -4,11 +4,10 @@
     "slug": "chamo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-chamo.png",
+    "icon": "./assets/logo4.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "splash": {
-      "image": "./assets/logo-chamo.png",
+      "image": "./assets/logo4.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -18,12 +17,12 @@
     "android": {
       "package": "com.m2006.firebase",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo-chamo.png",
+        "foregroundImage": "./assets/logo4.png",
         "backgroundColor": "#000000"
       }
     },
     "web": {
-      "favicon": "./assets/logo-chamo.png"
+      "favicon": "./assets/logo8.png"
     },
     "plugins": [
       [
@@ -32,20 +31,7 @@
           "locationWhenInUsePermission": "Permita o acesso à localização para preencher sua cidade e região automaticamente."
         }
       ],
-      "./plugins/withMercadoPagoMavenRepo",
-      [
-        "./plugins/withMercadoPagoSdkDependencies",
-        {
-          "bomVersion": "+"
-        }
-      ],
-      [
-        "./plugins/withMercadoPagoSdkInit",
-        {
-          "publicKey": "APP_USR-b3cadce2-f241-4661-a74b-f7a123cd8cdf",
-          "countryCode": "BR"
-        }
-      ]
+      "expo-sharing"
     ],
     "extra": {
       "eas": {

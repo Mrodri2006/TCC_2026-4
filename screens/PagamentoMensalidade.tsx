@@ -28,7 +28,7 @@ const toDate = (value: any) => {
 
 export default function PagamentoMensalidade() {
   const { theme } = useTheme();
-  const { status, loading: statusLoading, refresh } = useMensalidadeStatus(10000);
+  const { status, loading: statusLoading, error: statusError, refresh } = useMensalidadeStatus(0);
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [loadingRequest, setLoadingRequest] = useState(true);
   const [sending, setSending] = useState(false);
@@ -40,7 +40,6 @@ export default function PagamentoMensalidade() {
 
   const pixPayload = useMemo(() => {
     try {
-      setError(null);
       return buildPixPayload({
         pixKey: ADMIN_PIX_KEY,
         receiverName: ADMIN_PIX_RECEIVER_NAME,
@@ -50,12 +49,28 @@ export default function PagamentoMensalidade() {
         description: "Mensalidade prestador",
       });
     } catch (e: any) {
-      setError(e?.message || "Erro ao gerar QR Pix.");
       return "";
     }
   }, [amount, txid]);
 
-  const paid = status?.contaAtiva !== false && status?.assinaturaAtiva !== false && status?.statusPagamento !== "inadimplente";
+  const pixError = useMemo(() => {
+    if (pixPayload) return "";
+    try {
+      buildPixPayload({
+        pixKey: ADMIN_PIX_KEY,
+        receiverName: ADMIN_PIX_RECEIVER_NAME,
+        receiverCity: ADMIN_PIX_RECEIVER_CITY,
+        amount,
+        txid,
+        description: "Mensalidade prestador",
+      });
+      return "";
+    } catch (e: any) {
+      return e?.message || "Erro ao gerar QR Pix.";
+    }
+  }, [amount, pixPayload, txid]);
+
+  const paid = !!status && status.contaAtiva !== false && status.assinaturaAtiva !== false && status.statusPagamento !== "inadimplente";
 
   const carregarSolicitacao = async () => {
     if (!uid) {
@@ -78,6 +93,7 @@ export default function PagamentoMensalidade() {
         const doc = snap.docs[0];
         setPaymentRequest({ id: doc.id, ...(doc.data() as any) });
       }
+      setError(null);
     } catch (e: any) {
       setError(e?.message || "Erro ao consultar solicitação.");
     } finally {
@@ -140,7 +156,7 @@ export default function PagamentoMensalidade() {
       </Text>
 
       {(statusLoading || loadingRequest) && <ActivityIndicator style={{ marginTop: 10 }} />}
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {!!(error || statusError || pixError) && <Text style={styles.error}>{error || statusError || pixError}</Text>}
 
       <View style={styles.card}>
         <Text style={styles.row}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { ArrowLeft } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
@@ -19,6 +20,23 @@ export default function ChatList() {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const voltar = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    const routeNames = navigation.getState?.()?.routeNames || [];
+    const homeRoute = routeNames.find((name: string) => name.includes("Inicial"));
+
+    if (homeRoute) {
+      navigation.navigate(homeRoute);
+      return;
+    }
+
+    navigation.navigate("MenuTrabalhador");
+  };
+
   useEffect(() => {
     const uid = auth.currentUser?.uid;
     if (!uid) {
@@ -29,7 +47,8 @@ export default function ChatList() {
     const unsub = firestore
       .collection("Chats")
       .where("participants", "array-contains", uid)
-      .onSnapshot(async (snapshot) => {
+      .onSnapshot(
+        async (snapshot) => {
         const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
         const items: ChatItem[] = await Promise.all(
           docs.map(async (doc: any) => {
@@ -61,8 +80,14 @@ export default function ChatList() {
             return bTime.getTime() - aTime.getTime();
           });
         setChats(sorted);
-        setLoading(false);
-      });
+          setLoading(false);
+        },
+        (erro) => {
+          console.error("Erro ao carregar conversas:", erro);
+          setChats([]);
+          setLoading(false);
+        }
+      );
 
     return () => unsub();
   }, []);
@@ -76,17 +101,41 @@ export default function ChatList() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        <Text style={[styles.emptyText, { color: theme.textMuted }]}>
-          Carregando conversas...
-        </Text>
-      </View>
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
+              onPress={voltar}
+            >
+              <ArrowLeft size={22} color={theme.textPrimary} />
+            </TouchableOpacity>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>Conversas</Text>
+            <View style={styles.headerBtnGhost} />
+          </View>
+
+          <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+            Carregando conversas...
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
       <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
+            onPress={voltar}
+          >
+            <ArrowLeft size={22} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>Conversas</Text>
+          <View style={styles.headerBtnGhost} />
+        </View>
+
         {chats.length === 0 ? (
           <Text style={[styles.emptyText, { color: theme.textMuted }]}>
             Nenhuma conversa ainda
@@ -124,6 +173,29 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     padding: 16,
     paddingTop: 6,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+  headerBtnGhost: {
+    width: 44,
+    height: 44,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F2937",
   },
   card: {
     backgroundColor: "#FFFFFF",

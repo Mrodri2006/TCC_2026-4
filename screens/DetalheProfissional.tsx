@@ -114,7 +114,10 @@ export default function DetalheProfissional() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.headerDetalhe}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoVoltar}>
           <ArrowLeft size={24} color="#2563EB" />
@@ -251,6 +254,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  scrollContent: {
+    paddingBottom: 36,
+  },
+
   carregandoContainer: {
     flex: 1,
     justifyContent: "center",
@@ -275,6 +282,7 @@ const styles = StyleSheet.create({
 
   botaoVoltar: {
     padding: 8,
+    marginTop: 40
   },
 
   tituloDetalhe: {
@@ -458,7 +466,8 @@ const styles = StyleSheet.create({
 
   acaoContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 44,
   },
 
   botaoContratar: {

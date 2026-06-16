@@ -204,9 +204,8 @@ export default function Adm() {
       const userRef = firestore.collection('Usuario').doc(solicitacao.uid);
       const userSnap = await userRef.get();
       const user = userSnap.data() || {};
-      const dataCadastro = dataFromField(user.dataCadastro || user.criadoEm) || new Date();
-      const proximoVencimento = computeNextDueDate(dataCadastro, new Date());
       const agora = new Date();
+      const proximoVencimento = computeNextDueDate(agora, agora);
 
       await userRef.set(
         {
@@ -341,8 +340,7 @@ export default function Adm() {
     try {
       const agora = new Date();
       const userRef = firestore.collection('Usuario').doc(usuario.id);
-      const dataCadastro = dataFromField(usuario.dataCadastro || usuario.criadoEm) || new Date();
-      const proximoVencimento = computeNextDueDate(dataCadastro, agora);
+      const proximoVencimento = computeNextDueDate(agora, agora);
 
       await userRef.set(
         {

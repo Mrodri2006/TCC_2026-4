@@ -2,7 +2,7 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, Bell, FileText, Home as HomeIcon, Leaf, MapPin, Menu, Search as SearchIcon, Sofa, User, Wrench, X, Zap } from "lucide-react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback, useRef } from "react";
 import { auth, firestore } from "../firebase";
@@ -13,6 +13,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
   const navigation = useNavigation() as any;
   const { isDark, theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState("");
   const [abaAtiva, setAbaAtiva] = useState("inicio");
   const [profissionaisRecomendados, setProfissionaisRecomendados] = useState([]);
@@ -562,7 +563,13 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
   return (
     <SafeAreaView edges={["top"]} style={[styles.containerFull, { backgroundColor: theme.background }]}>
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={[
+          styles.containerContent,
+          { paddingBottom: 24 + Math.max(insets.bottom, 16) },
+        ]}
+      >
         {abaAtiva === "inicio" ? (
           <>
             <View style={styles.topBar}>
@@ -1039,7 +1046,12 @@ export default function TelaInicialCliente({ onLogout }: any) {
       <View
         style={[
           styles.bottomTabsContainer,
-          { backgroundColor: theme.background, borderTopColor: theme.border },
+          {
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+            paddingBottom: Math.max(insets.bottom, 16),
+            minHeight: 62 + Math.max(insets.bottom, 16),
+          },
         ]}
       >
         <TouchableOpacity
@@ -1079,6 +1091,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#fff",
+  },
+
+  containerContent: {
+    flexGrow: 1,
   },
 
   topBar: {
@@ -1797,13 +1813,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
-    paddingBottom: 8,
   },
 
   bottomTab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 50,
     paddingVertical: 8,
     backgroundColor: "#fff",
   },

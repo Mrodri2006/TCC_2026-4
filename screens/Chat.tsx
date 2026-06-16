@@ -41,21 +41,56 @@ export default function Chat() {
   useEffect(() => {
     if (!chatId) return;
 
-    const unsubscribe = firestore
-      .collection("Chats")
-      .doc(chatId)
-      .collection("Messages")
-      .orderBy("createdAt", "asc")
-      .onSnapshot((snapshot) => {
-        const lista: Message[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as any),
-        }));
-        setMensagens(lista);
-      });
+    const uid = auth.currentUser?.uid;
+    if (!uid || !otherUserId) return;
 
-    return () => unsubscribe();
-  }, [chatId]);
+    let unsubscribe: undefined | (() => void);
+    let active = true;
+
+    const prepararChat = async () => {
+      try {
+        const chatRef = firestore.collection("Chats").doc(chatId);
+
+        await chatRef.set(
+          {
+            participants: [uid, otherUserId].sort(),
+          },
+          { merge: true }
+        );
+
+        if (!active) return;
+
+        unsubscribe = chatRef
+          .collection("Messages")
+          .orderBy("createdAt", "asc")
+          .onSnapshot(
+            (snapshot) => {
+              const lista: Message[] = snapshot.docs.map((doc) => ({
+                id: doc.id,
+                ...(doc.data() as any),
+              }));
+              setMensagens(lista);
+            },
+            (erro) => {
+              console.error("Erro ao carregar mensagens:", erro);
+              setMensagens([]);
+            }
+          );
+      } catch (erro) {
+        console.error("Erro ao preparar chat:", erro);
+        setMensagens([]);
+      }
+    };
+
+    prepararChat();
+
+    return () => {
+      active = false;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [chatId, otherUserId]);
 
   const enviarMensagem = async () => {
     const uid = auth.currentUser?.uid;

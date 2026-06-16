@@ -27,7 +27,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Usuario } from '../model/Usuario';
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from 'react-native-modal-datetime-picker';
-import { computeNextDueDate } from "../utils/billingDates";
 import { DEFAULT_MENSALIDADE_VALOR } from "../utils/billingConfig";
 
 export default function Register() {
@@ -230,15 +229,15 @@ export default function Register() {
           profissao: profissao,
           criadoEm: new Date(),
           dataCadastro: new Date(),
-          dataVencimento: computeNextDueDate(new Date(), new Date()),
-          assinaturaAtiva: true,
-          contaAtiva: true,
+          dataVencimento: new Date(),
+          assinaturaAtiva: false,
+          contaAtiva: false,
           ultimoPagamento: null,
-          statusPagamento: "em_dia",
+          statusPagamento: "primeiro_pagamento_pendente",
           valorMensalidade: DEFAULT_MENSALIDADE_VALOR,
         });
 
-      navigation.replace('MenuTrabalhador');
+      navigation.replace('PagamentoMensalidade');
 
     } catch (erro: any) {
       alert(erro.message);
@@ -264,7 +263,7 @@ export default function Register() {
             </View>
 
             <View style={styles.logoRow}>
-              <Image source={require("../assets/logo-chamo.png")} style={styles.logo} resizeMode="contain" />
+              <Image source={require("../assets/logo8.png")} style={styles.logo} resizeMode="contain" />
             </View>
 
             <View style={styles.segmented}>

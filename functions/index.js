@@ -244,18 +244,17 @@ exports.onUsuarioCreateInitBilling = functions.firestore.document("Usuario/{uid}
 
   const criadoEm = toDate(data.criadoEm) || new Date();
   const dataCadastro = startOfDay(criadoEm);
-  const vencimento = computeNextDueDate(dataCadastro, dataCadastro);
   const defaultAmount = Number(process.env.MENSALIDADE_VALOR || 29.9);
 
   await snap.ref.set(
     {
       dataCadastro,
-      dataVencimento: vencimento,
-      assinaturaAtiva: true,
-      contaAtiva: true,
+      dataVencimento: data.dataVencimento || dataCadastro,
+      assinaturaAtiva: data.assinaturaAtiva === true,
+      contaAtiva: data.contaAtiva === true,
       ultimoPagamento: null,
-      statusPagamento: "em_dia",
-      valorMensalidade: Number.isFinite(defaultAmount) ? defaultAmount : 29.9,
+      statusPagamento: data.statusPagamento || "primeiro_pagamento_pendente",
+      valorMensalidade: Number(data.valorMensalidade || (Number.isFinite(defaultAmount) ? defaultAmount : 29.9)),
       atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
@@ -532,8 +531,7 @@ exports.mercadoPagoWebhook = functions.https.onRequest(async (req, res) => {
       const paidAt = payment?.date_approved ? new Date(payment.date_approved) : new Date();
       const userSnap = await userRef.get();
       const user = userSnap.data() || {};
-      const dataCadastro = toDate(user.dataCadastro) || toDate(user.criadoEm) || new Date();
-      const nextDue = computeNextDueDate(startOfDay(dataCadastro), paidAt);
+      const nextDue = computeNextDueDate(startOfDay(paidAt), paidAt);
 
       await invoiceRef.set(
         {

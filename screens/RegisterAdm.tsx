@@ -106,7 +106,7 @@ export default function Register2() {
             <View style={styles.headerSection}>
               <Text style={styles.titulo}>CADASTRO DE USUÁRIOS</Text>
                   <Image
-                    source={require('../assets/logo-chamo.png')}
+                    source={require('../assets/logo8.png')}
                     style={{ 
                       width: 400, 
                       height: 100, 

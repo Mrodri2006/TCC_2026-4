@@ -69,10 +69,6 @@ export default function ConfiguracoesPrestador() {
       ]
     );
   };
-  const abrirPagamentoMensalidade = () => {
-    navigation.navigate("PagamentoMensalidade");
-  };
-
   const handleLogout = async () => {
     try {
       await auth.signOut();
@@ -215,14 +211,6 @@ export default function ConfiguracoesPrestador() {
               R$ {Number(mensalidade?.valorMensalidade || 0).toFixed(2)}
             </Text>
           </View>
-        
-          <TouchableOpacity
-            style={styles.botaoPagar}
-            onPress={abrirPagamentoMensalidade}
-          >
-          <Text style={styles.botaoTexto}>Pagar mensalidade</Text>
-          </TouchableOpacity>
-
           {carregandoMensalidade && (
             <View style={styles.loadingBox}>
               <ActivityIndicator />
@@ -435,18 +423,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#000",
-  },
-  botaoPagar: {
-    backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  botaoTexto: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14,
   },
   secondaryPayButton: {
     marginTop: 10,

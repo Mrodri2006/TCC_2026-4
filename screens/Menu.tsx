@@ -29,7 +29,7 @@ export default function Menu() {
         options={{ headerShown: false }}
       />
       <Drawer.Screen name="Status de Serviços" component={ServStatus} />
-      <Drawer.Screen name="Conversas" component={ChatList} />
+      <Drawer.Screen name="Conversas" component={ChatList} options={{ headerShown: false }} />
     </Drawer.Navigator>
   );
 }

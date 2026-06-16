@@ -1,13 +1,23 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, TextInput } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ArrowLeft, Save } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useState, useEffect } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function EditarPerfil() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
   const [formDados, setFormDados] = useState({
     nome: "",
     email: "",
@@ -19,6 +29,13 @@ export default function EditarPerfil() {
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
+  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
+  const cardBackground = isDark ? theme.surface : "#FFFFFF";
+  const cardBorderColor = isDark ? theme.surfaceBorder : "transparent";
+  const inputBackground = isDark ? theme.actionBg : "#F8FAFC";
+
   useEffect(() => {
     carregarDadosUsuario();
   }, []);
@@ -29,7 +46,7 @@ export default function EditarPerfil() {
       const usuarioAutenticado = auth.currentUser;
       if (usuarioAutenticado) {
         const docSnap = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).get();
-        
+
         if (docSnap.exists) {
           const dados: any = docSnap.data() || {};
           setFormDados({
@@ -40,31 +57,32 @@ export default function EditarPerfil() {
             profissao: dados.profissao || "",
           });
         } else {
-          setFormDados(prev => ({
+          setFormDados((prev) => ({
             ...prev,
             email: usuarioAutenticado.email || "",
           }));
         }
       }
-      setCarregando(false);
     } catch (erro) {
       console.error("Erro ao carregar dados:", erro);
+    } finally {
       setCarregando(false);
     }
   };
 
   const validarFormulario = () => {
-    let novoErros: Record<string, string> = {};
-    
+    const novoErros: Record<string, string> = {};
+
     if (!formDados.nome?.trim()) {
-      novoErros.nome = "Nome é obrigatório";
+      novoErros.nome = "Nome e obrigatorio";
     } else if (formDados.nome.trim().length < 3) {
-      novoErros.nome = "Nome deve ter no mínimo 3 caracteres";
+      novoErros.nome = "Nome deve ter no minimo 3 caracteres";
     }
 
     if (!formDados.fone?.trim()) {
-      novoErros.fone = "Telefone é obrigatório";
+      novoErros.fone = "Telefone e obrigatorio";
     }
+
     setErrors(novoErros);
     return Object.keys(novoErros).length === 0;
   };
@@ -77,235 +95,279 @@ export default function EditarPerfil() {
       const usuarioAutenticado = auth.currentUser;
       if (usuarioAutenticado) {
         const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
-        
-        const dadosAtualizacao = {
+
+        await refUsuario.update({
           nome: formDados.nome,
           fone: formDados.fone,
           distancia: formDados.distancia,
           profissao: formDados.profissao,
-        };
+        });
 
-        await refUsuario.update(dadosAtualizacao);
-        
-        alert("Perfil atualizado com sucesso!");
+        Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
         navigation.goBack();
       }
     } catch (erro) {
       console.error("Erro ao salvar dados:", erro);
-      alert("Erro ao salvar dados. Tente novamente.");
+      Alert.alert("Erro", "Erro ao salvar dados. Tente novamente.");
     } finally {
       setSalvando(false);
     }
   };
 
-
-
   if (carregando) {
     return (
-      <View style={[styles.carregandoContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color="#005362" />
-        <Text style={styles.carregandoTexto}>Carregando dados...</Text>
-      </View>
+      <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+        <View style={styles.carregandoContainer}>
+          <ActivityIndicator size="large" color="#2563EB" />
+          <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>
+            Carregando dados...
+          </Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
+  const inputThemeStyle = {
+    backgroundColor: inputBackground,
+    color: theme.textPrimary,
+    borderColor: isDark ? theme.surfaceBorder : "#E2E8F0",
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#000" style={{ 
-            marginTop:40 
-          }}/>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Editar Perfil</Text>
-        <TouchableOpacity 
-          onPress={salvarDados}
-          disabled={salvando}
-          style={styles.botaoSalvar}
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
+            activeOpacity={0.7}
+          >
+            <ArrowLeft size={20} color={topBarIconColor} />
+          </TouchableOpacity>
+
+          <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Editar Perfil</Text>
+
+          <TouchableOpacity
+            onPress={salvarDados}
+            disabled={salvando}
+            style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }, salvando && styles.botaoDesabilitado]}
+            activeOpacity={0.7}
+          >
+            {salvando ? (
+              <ActivityIndicator size="small" color={topBarIconColor} />
+            ) : (
+              <Save size={18} color={topBarIconColor} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={[
+            styles.formContainer,
+            {
+              backgroundColor: cardBackground,
+              borderColor: cardBorderColor,
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
         >
-          {salvando ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Save size={20} color="#fff" />
-          )}
-        </TouchableOpacity>
-      </View>
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Nome Completo</Text>
+            <TextInput
+              style={[styles.input, inputThemeStyle, errors.nome && styles.inputError]}
+              placeholder="Digite seu nome"
+              placeholderTextColor={theme.textMuted}
+              value={formDados.nome}
+              onChangeText={(valor) => {
+                setFormDados({ ...formDados, nome: valor });
+                if (errors.nome) setErrors({ ...errors, nome: "" });
+              }}
+              editable={!salvando}
+            />
+            {errors.nome ? <Text style={styles.errorText}>{errors.nome}</Text> : null}
+          </View>
 
-      <View style={styles.formContainer}>
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Nome Completo</Text>
-          <TextInput
-            style={[styles.input, errors.nome && styles.inputError]}
-            placeholder="Digite seu nome"
-            value={formDados.nome}
-            onChangeText={(valor) => {
-              setFormDados({ ...formDados, nome: valor });
-              if (errors.nome) setErrors({ ...errors, nome: "" });
-            }}
-            editable={!salvando}
-          />
-          {errors.nome && <Text style={styles.errorText}>{errors.nome}</Text>}
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>E-mail</Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.inputDisabled,
+                { color: theme.textMuted, borderColor: isDark ? theme.surfaceBorder : "#E2E8F0" },
+              ]}
+              placeholder="E-mail"
+              placeholderTextColor={theme.textMuted}
+              value={formDados.email}
+              editable={false}
+            />
+            <Text style={[styles.helperText, { color: theme.textMuted }]}>
+              E-mail nao pode ser alterado
+            </Text>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Telefone</Text>
+            <TextInput
+              style={[styles.input, inputThemeStyle, errors.fone && styles.inputError]}
+              placeholder="(XX) XXXXX-XXXX"
+              placeholderTextColor={theme.textMuted}
+              value={formDados.fone}
+              onChangeText={(valor) => {
+                setFormDados({ ...formDados, fone: valor });
+                if (errors.fone) setErrors({ ...errors, fone: "" });
+              }}
+              keyboardType="phone-pad"
+              editable={!salvando}
+            />
+            {errors.fone ? <Text style={styles.errorText}>{errors.fone}</Text> : null}
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Profissao</Text>
+            <TextInput
+              style={[styles.input, inputThemeStyle]}
+              placeholder="Ex: Eletricista"
+              placeholderTextColor={theme.textMuted}
+              value={formDados.profissao}
+              onChangeText={(valor) => setFormDados({ ...formDados, profissao: valor })}
+              editable={!salvando}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Distancia (km)</Text>
+            <TextInput
+              style={[styles.input, inputThemeStyle]}
+              placeholder="Ex: 2 km"
+              placeholderTextColor={theme.textMuted}
+              value={formDados.distancia}
+              onChangeText={(valor) => setFormDados({ ...formDados, distancia: valor })}
+              editable={!salvando}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.botaoSalvarCompleto, salvando && styles.botaoDesabilitado]}
+            onPress={salvarDados}
+            disabled={salvando}
+          >
+            {salvando ? (
+              <>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.botaoTexto}>Salvando...</Text>
+              </>
+            ) : (
+              <>
+                <Save size={20} color="#fff" />
+                <Text style={styles.botaoTexto}>Salvar Alteracoes</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.botaoCancelar,
+              {
+                backgroundColor: isDark ? theme.actionBg : "#FFFFFF",
+                borderColor: isDark ? theme.surfaceBorder : "#E2E8F0",
+              },
+            ]}
+            onPress={() => navigation.goBack()}
+            disabled={salvando}
+          >
+            <Text style={[styles.botaoCancelarTexto, { color: theme.textSecondary }]}>
+              Cancelar
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>E-mail</Text>
-          <TextInput
-            style={[styles.input, styles.inputDisabled]}
-            placeholder="E-mail"
-            value={formDados.email}
-            editable={false}
-          />
-          <Text style={styles.helperText}>E-mail não pode ser alterado</Text>
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Telefone</Text>
-          <TextInput
-            style={[styles.input, errors.fone && styles.inputError]}
-            placeholder="(XX) XXXXX-XXXX"
-            value={formDados.fone}
-            onChangeText={(valor) => {
-              setFormDados({ ...formDados, fone: valor });
-              if (errors.fone) setErrors({ ...errors, fone: "" });
-            }}
-            keyboardType="phone-pad"
-            editable={!salvando}
-          />
-          {errors.fone && <Text style={styles.errorText}>{errors.fone}</Text>}
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Profissão</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Eletricista"
-            value={formDados.profissao}
-            onChangeText={(valor) => setFormDados({ ...formDados, profissao: valor })}
-            editable={!salvando}
-          />
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Distância (km)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: 2 km"
-            value={formDados.distancia}
-            onChangeText={(valor) => setFormDados({ ...formDados, distancia: valor })}
-            editable={!salvando}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.botaoSalvarCompleto, salvando && styles.botaoDesabilitado]}
-          onPress={salvarDados}
-          disabled={salvando}
-        >
-          {salvando ? (
-            <>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.botaoTexto}>Salvando...</Text>
-            </>
-          ) : (
-            <>
-              <Save size={20} color="#fff" />
-              <Text style={styles.botaoTexto}>Salvar Alterações</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.botaoCancelar}
-          onPress={() => navigation.goBack()}
-          disabled={salvando}
-        >
-          <Text style={styles.botaoCancelarTexto}>Cancelar</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
-
+  content: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
   carregandoContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
-
   carregandoTexto: {
     fontSize: 14,
-    color: "#666",
     marginTop: 12,
   },
-
-  header: {
+  topBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#f9f9f9",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    marginBottom: 6,
   },
-
-  headerTitle: {
+  topBarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 41, 55, 0.06)",
+  },
+  topBarTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#000",
-    marginTop:40,
+    fontWeight: "800",
+    color: "#0F2937",
   },
-
-  botaoSalvar: {
-    backgroundColor: "#005362",
-    padding: 8,
-    borderRadius: 8,
-    marginTop:40,
-  },
-
   formContainer: {
-    padding: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
-
   fieldGroup: {
     marginBottom: 20,
   },
-
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
+    fontWeight: "700",
+    color: "#0F2937",
     marginBottom: 8,
   },
-
   input: {
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     fontSize: 14,
-    color: "#000",
-    backgroundColor: "#fafafa",
+    color: "#0F2937",
+    backgroundColor: "#F8FAFC",
   },
-
   inputError: {
     borderColor: "#E74C3C",
-    backgroundColor: "#ffefef",
+    backgroundColor: "#FEF2F2",
   },
-
   inputDisabled: {
-    backgroundColor: "#f0f0f0",
-    color: "#999",
+    backgroundColor: "#EEF2F7",
+    color: "#64748B",
   },
-
   errorText: {
     color: "#E74C3C",
     fontSize: 12,
@@ -313,62 +375,43 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginLeft: 4,
   },
-
   helperText: {
-    color: "#999",
+    color: "#64748B",
     fontSize: 12,
     marginTop: 6,
     marginLeft: 4,
     fontStyle: "italic",
   },
-
   botaoSalvarCompleto: {
-    backgroundColor: "#005362",
+    backgroundColor: "#2563EB",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 16,
     gap: 10,
     marginTop: 10,
     marginBottom: 10,
   },
-
   botaoCancelar: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#FFFFFF",
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "#E2E8F0",
   },
-
   botaoCancelarTexto: {
-    color: "#666",
-    fontWeight: "600",
+    color: "#64748B",
+    fontWeight: "700",
     fontSize: 14,
   },
-
   botaoTexto: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
   },
-
   botaoDesabilitado: {
     opacity: 0.6,
   },
-
-
-
-
-
-
-
-
-
-
-
-
-
 });

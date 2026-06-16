@@ -386,6 +386,42 @@ export default function PerfilTrabalhador() {
     }
   };
 
+  const handleDeletePostagem = (post: any) => {
+    Alert.alert(
+      "Excluir postagem",
+      "Deseja apagar esta postagem?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const userId = auth.currentUser?.uid;
+              if (!userId || !post?.id) {
+                Alert.alert("Erro", "Nao foi possivel identificar a postagem.");
+                return;
+              }
+
+              await firestore
+                .collection("Usuario")
+                .doc(userId)
+                .collection("Posts")
+                .doc(post.id)
+                .delete();
+
+              setPostagens((prev) => prev.filter((item) => item.id !== post.id));
+              Alert.alert("Sucesso", "Postagem excluida com sucesso.");
+            } catch (erro) {
+              console.log("Erro ao excluir postagem:", erro);
+              Alert.alert("Erro", "Nao foi possivel excluir a postagem.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteServico = (item: any) => {
     Alert.alert(
       "Excluir servico",
@@ -577,10 +613,22 @@ export default function PerfilTrabalhador() {
         ) : postagens.length > 0 ? (
           postagens.map((post) => (
             <View key={post.id} style={[localStyles.postCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
-              <Text style={[localStyles.postText, { color: textPrimary }]}>{post.texto}</Text>
-              <Text style={[localStyles.postTimestamp, { color: textMuted }]}>
-                {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString("pt-BR") : new Date(post.createdAt).toLocaleDateString("pt-BR")}
-              </Text>
+              <View style={localStyles.postHeaderRow}>
+                <View style={localStyles.postContent}>
+                  <Text style={[localStyles.postText, { color: textPrimary }]}>{post.texto}</Text>
+                  <Text style={[localStyles.postTimestamp, { color: textMuted }]}>
+                    {post.createdAt?.toDate ? post.createdAt.toDate().toLocaleDateString("pt-BR") : new Date(post.createdAt).toLocaleDateString("pt-BR")}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={localStyles.deletePostButton}
+                  onPress={() => handleDeletePostagem(post)}
+                  activeOpacity={0.85}
+                >
+                  <Trash2 size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         ) : (
@@ -1128,6 +1176,14 @@ const localStyles = StyleSheet.create({
     padding: 14,
     marginBottom: 12,
   },
+  postHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  postContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
   postText: {
     fontSize: 14,
     lineHeight: 20,
@@ -1136,6 +1192,14 @@ const localStyles = StyleSheet.create({
   postTimestamp: {
     fontSize: 12,
     color: "#64748B",
+  },
+  deletePostButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+    justifyContent: "center",
   },
   footerBlock: {
     marginBottom: 30,

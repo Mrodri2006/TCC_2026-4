@@ -9,12 +9,13 @@ export default function MensalidadeBloqueada() {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { status, loading, refresh } = useMensalidadeStatus(15000);
+  const liberado = !!status && status.contaAtiva && status.assinaturaAtiva && status.statusPagamento !== "inadimplente";
 
   useEffect(() => {
-    if (status?.contaAtiva) {
+    if (liberado) {
       navigation.replace("MenuTrabalhador");
     }
-  }, [navigation, status?.contaAtiva]);
+  }, [liberado, navigation]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
