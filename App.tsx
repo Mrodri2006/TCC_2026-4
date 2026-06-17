@@ -23,6 +23,7 @@ import ConfiguracoesPrestador from './screens/ConfiguracoesPrestador';
 import ChatList from './screens/ChatList';
 import Chat from './screens/Chat';
 import Adm from './screens/Adm';
+import UsuariosAdm from './screens/UsuariosAdm';
 import Servicos from './screens/Servicos';
 import RelatoriosPrestador    from './screens/RelatoriosPrestador';
 import EsqueceuSenha from './screens/EsqueceuSenha';
@@ -61,6 +62,7 @@ const ThemedConfiguracoesPrestador = withThemeScreen(ConfiguracoesPrestador);
 const ThemedChatList = withThemeScreen(ChatList);
 const ThemedChat = withThemeScreen(Chat);
 const ThemedAdm = withThemeScreen(Adm);
+const ThemedUsuariosAdm = withThemeScreen(UsuariosAdm);
 const ThemedServicosEmAndamento = withThemeScreen(ServicosEmAndamento);
 const ThemedServicos = withThemeScreen(Servicos);
 const ThemedRelatoriosPrestador = withThemeScreen(RelatoriosPrestador);
@@ -111,6 +113,7 @@ function AppInner() {
         <Stack.Screen name='Chat' component={ThemedChat} options={{ headerShown: false }} />
         <Stack.Screen name='ChatList' component={ThemedChatList} options={{ headerShown: false }} />
         <Stack.Screen name='Adm' component={ThemedAdm} options={{ headerShown: false }} />
+        <Stack.Screen name='UsuariosAdm' component={ThemedUsuariosAdm} options={{ headerShown: false }} />
         <Stack.Screen name='RelatoriosPrestador' component={ThemedRelatoriosPrestador} options={{ headerShown: false }} />
         <Stack.Screen name='EsqueceuSenha' component={ThemedEsqueceuSenha} options={{ headerShown: false }} />
         <Stack.Screen name='MensalidadeBloqueada' component={ThemedMensalidadeBloqueada} options={{ headerShown: false }} />
