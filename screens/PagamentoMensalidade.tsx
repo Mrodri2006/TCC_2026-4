@@ -206,6 +206,10 @@ export default function PagamentoMensalidade() {
             {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Já paguei, enviar para o ADM</Text>}
           </TouchableOpacity>
 
+          <TouchableOpacity onPress{() => navigation.replace("Login")}>
+            <Text> Voltar a tela de login</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.secondaryBtn}
             onPress={async () => {
@@ -223,7 +227,7 @@ export default function PagamentoMensalidade() {
 
 const styles = StyleSheet.create({
   container: { padding: 20, flexGrow: 1 },
-  title: { fontSize: 20, fontWeight: "800" },
+  title: { fontSize: 20, fontWeight: "800", marginTop:40 },
   subtitle: { marginTop: 6, fontSize: 13 },
   card: { backgroundColor: "#111827", borderRadius: 14, padding: 16, marginTop: 16 },
   row: { color: "#E5E7EB", marginBottom: 8 },
