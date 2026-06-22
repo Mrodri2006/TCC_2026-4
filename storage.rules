@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /servicos/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validImage();
+      allow delete: if isOwner(uid);
+    }
+
+    match /{uid}/avatar.jpg {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validImage();
+      allow delete: if isOwner(uid);
+    }
+  }
+}

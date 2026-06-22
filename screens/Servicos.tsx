@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 10,
-    marginTop: 5,
+    marginTop: 40,
     marginBottom: 6,
   },
   topBarTitle: { fontSize: 22, fontWeight: "800", color: "#0F2937" },

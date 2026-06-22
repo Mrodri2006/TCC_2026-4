@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
 import * as ImagePicker from "expo-image-picker";
+import { uploadImageUri } from "../utils/storageUpload";
 import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getMensalidadeStatus } from "../services/billingService";
@@ -293,29 +294,11 @@ export default function PerfilTrabalhador() {
       console.log("UID do usuário:", userId);
 
       try {
-        // Converter arquivo para blob
-        console.log("Buscando arquivo do URI:", uri);
-        const response = await fetch(uri);
-        if (!response.ok) {
-          throw new Error(`Falha ao buscar imagem: ${response.statusText}`);
-        }
-        
-        const blob = await response.blob();
-        console.log("Blob criado, tamanho:", blob.size);
-
-        // Usar Firebase Storage para upload
-        console.log("Referenciando armazenamento...");
-        const ref = storage.ref(caminho);
-        
         console.log("Iniciando upload...");
-        const metadata = { contentType: "image/jpeg" };
-        const uploadTaskSnapshot = await ref.put(blob, metadata);
+        const { snapshot: uploadTaskSnapshot, url } = await uploadImageUri(uri, caminho);
         
         console.log("Upload concluído! Bytes transferidos:", uploadTaskSnapshot.bytesTransferred);
 
-        // Obter URL de download
-        console.log("Obtendo URL de download...");
-        const url = await ref.getDownloadURL();
         console.log("URL de download:", url);
 
         // Salvar URL no Firestore

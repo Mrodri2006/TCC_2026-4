@@ -69,15 +69,10 @@ export default function Adm() {
   };
 
   const sairDoPainel = () => {
-    if (typeof navigation.canGoBack === 'function' && navigation.canGoBack()) {
-      navigation.goBack();
-      return;
-    }
-
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
-  const buscarUsuarios = async () => {
+  const buscarUsuarios = async (sairEmErro = false) => {
     setCarregandoUsuarios(true);
     try {
       const lista = await adminListUsuarios();
@@ -86,9 +81,11 @@ export default function Adm() {
       setAcessoLiberado(true);
     } catch (erro) {
       console.error('Erro ao buscar usuarios:', erro);
-      setAcessoLiberado(false);
       Alert.alert('Painel ADM', mensagemErroAdmin(erro));
-      sairDoPainel();
+      if (sairEmErro) {
+        setAcessoLiberado(false);
+        sairDoPainel();
+      }
     } finally {
       setCarregandoUsuarios(false);
     }
@@ -128,7 +125,7 @@ export default function Adm() {
           return;
         }
 
-        await buscarUsuarios();
+        await buscarUsuarios(true);
         await buscarSolicitacoesPagamento();
       } catch (erro) {
         console.error('Erro ao validar acesso admin:', erro);

@@ -426,6 +426,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: Platform.OS === "android" ? 16 : 10,
     paddingBottom: 10,
+    marginTop: 40,
   },
   headerIcon: {
     width: 40,

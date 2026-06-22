@@ -227,44 +227,55 @@ export default function HomeTrabalhador() {
         return;
       }
 
-      await firestore
+      const agora = new Date();
+      const batch = firestore.batch();
+      const rejeitadoRef = firestore
         .collection("ServicosRejeitados")
         .doc(usuarioId)
         .collection("ServicoStatus")
-        .doc(servico.id)
-        .set({
-          ...servico,
-          status: "rejeitado",
-          dataRejeicao: new Date(),
-        });
-
-      await firestore
+        .doc(servico.id);
+      const agendadoRef = firestore
         .collection("ServicosAgendados")
         .doc(usuarioId)
         .collection("ServicoStatus")
-        .doc(servico.id)
-        .set(
-          {
-            status: "rejeitado",
-            dataRejeicao: new Date(),
-          },
-          { merge: true }
-        );
+        .doc(servico.id);
+
+      batch.set(rejeitadoRef, {
+        ...servico,
+        prestadorId: usuarioId,
+        status: "rejeitado",
+        dataRejeicao: agora,
+      });
+
+      batch.set(
+        agendadoRef,
+        {
+          status: "rejeitado",
+          dataRejeicao: agora,
+        },
+        { merge: true }
+      );
 
       if (servico.clienteId) {
-        await firestore
+        const servicoClienteRef = firestore
           .collection("ServicosClientes")
           .doc(servico.clienteId)
           .collection("ServicoStatus")
-          .doc(servico.id)
-          .set(
-            {
-              status: "rejeitado",
-              dataRejeicao: new Date(),
-            },
-            { merge: true }
-          );
+          .doc(servico.id);
+
+        batch.set(
+          servicoClienteRef,
+          {
+            prestadorId: usuarioId,
+            clienteId: servico.clienteId,
+            status: "rejeitado",
+            dataRejeicao: agora,
+          },
+          { merge: true }
+        );
       }
+
+      await batch.commit();
 
       setServicosSolicitados((prev) => prev.filter((s) => s.id !== servico.id));
       setServicoRejeitado(servico);
