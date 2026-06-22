@@ -93,7 +93,8 @@ export default function ChatList() {
   }, []);
 
   const abrirChat = (item: ChatItem) => {
-    navigation.navigate("Chat", {
+    const rootNavigation = navigation.getParent?.() || navigation;
+    rootNavigation.navigate("Chat", {
       otherUserId: item.otherUserId,
       otherUserName: item.otherUserName,
     });

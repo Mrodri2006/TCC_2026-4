@@ -327,7 +327,8 @@ export default function Servicos() {
   };
 
   const handleAbrirChatCliente = (servico: ServicoCard) => {
-    navigation.navigate("Chat", {
+    const rootNavigation = navigation.getParent?.() || navigation;
+    rootNavigation.navigate("Chat", {
       otherUserId: servico.clienteId,
       otherUserName: servico.nomeCliente || "Cliente",
     });
