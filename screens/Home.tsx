@@ -238,7 +238,9 @@ export default function TelaInicialCliente({ onLogout }: any) {
           const aceitos = lista.filter((item: any) =>
             item.status === "valor_pendente" ||
             item.status === "a fazer" ||
-            item.status === "aceito"
+            item.status === "aceito" ||
+            item.status === "aguardando_confirmacao" ||
+            item.status === "problema"
           );
           setServicosAceitos(aceitos);
           setCarregandoAceitos(false);
@@ -415,6 +417,16 @@ export default function TelaInicialCliente({ onLogout }: any) {
       return;
     }
 
+    if (novoStatus === "realizado" && servicoSelecionado.status !== "aguardando_confirmacao") {
+      Alert.alert("Aguarde", "O prestador precisa informar que terminou o serviço antes da sua confirmação.");
+      return;
+    }
+
+    if (novoStatus === "problema" && !problemaTexto.trim()) {
+      Alert.alert("Descreva o problema", "Informe o que aconteceu para que o administrador possa analisar.");
+      return;
+    }
+
     try {
       const agora = new Date();
       const statusUpdate = {
@@ -454,6 +466,26 @@ export default function TelaInicialCliente({ onLogout }: any) {
           },
           { merge: true }
         );
+
+      if (novoStatus === "problema") {
+        const relatorId = auth.currentUser?.uid;
+        if (!relatorId) throw new Error("Usuario nao autenticado");
+        await firestore
+          .collection("ProblemasServicos")
+          .doc(`${servicoSelecionado.id}_${relatorId}`)
+          .set({
+            servicoId: servicoSelecionado.id,
+            requestId: servicoSelecionado.requestId || servicoSelecionado.id,
+            servico: servicoSelecionado.estilo || servicoSelecionado.tipo || "Serviço",
+            clienteId: servicoSelecionado.clienteId,
+            prestadorId: servicoSelecionado.prestadorId,
+            relatorId,
+            relatorTipo: "contratante",
+            descricao: problemaTexto.trim(),
+            status: "pendente",
+            criadoEm: agora,
+          }, { merge: true });
+      }
 
       Alert.alert("Sucesso", `Serviço atualizado para "${novoStatus}"`);
       fecharModal();
@@ -949,14 +981,20 @@ export default function TelaInicialCliente({ onLogout }: any) {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.modalButtonsRow}>
-                  <TouchableOpacity
-                    style={styles.modalFinishButton}
-                    onPress={() => atualizarStatusServico("realizado")}
-                  >
-                    <Text style={styles.modalFinishText}>Finalizar Serviço</Text>
-                  </TouchableOpacity>
-                </View>
+                {servicoSelecionado?.status === "aguardando_confirmacao" ? (
+                  <View style={styles.modalButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.modalFinishButton}
+                      onPress={() => atualizarStatusServico("realizado")}
+                    >
+                      <Text style={styles.modalFinishText}>Confirmar serviço finalizado</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Text style={styles.modalInfo}>
+                    A confirmação será liberada quando o prestador informar a finalização.
+                  </Text>
+                )}
               </>
             )}
 

@@ -134,3 +134,141 @@
 [info] +  Deploy complete! 
 [info] 
 [info] Project Console: https://console.firebase.google.com/project/info-650fe/overview
+[debug] [2026-06-22T13:53:33.519Z] ----------------------------------------------------------------------
+[debug] [2026-06-22T13:53:33.522Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Usuário\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project info-650fe
+[debug] [2026-06-22T13:53:33.522Z] CLI Version:   15.22.0
+[debug] [2026-06-22T13:53:33.522Z] Platform:      win32
+[debug] [2026-06-22T13:53:33.523Z] Node Version:  v24.14.0
+[debug] [2026-06-22T13:53:33.523Z] Detected Agent: codex_cli
+[debug] [2026-06-22T13:53:33.523Z] Time:          Mon Jun 22 2026 10:53:33 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-06-22T13:53:33.523Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-22T13:53:33.526Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-06-22T13:53:37.788Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-22T13:53:37.789Z] > authorizing via signed-in user (mig180506@gmail.com)
+[debug] [2026-06-22T13:53:37.789Z] [iam] checking project info-650fe for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-06-22T13:53:37.791Z] Checked if tokens are valid: false, expires at: 1780980330819
+[debug] [2026-06-22T13:53:37.791Z] Checked if tokens are valid: false, expires at: 1780980330819
+[debug] [2026-06-22T13:53:37.791Z] > refreshing access token with scopes: []
+[debug] [2026-06-22T13:53:37.793Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-22T13:53:37.793Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-22T13:53:38.169Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-22T13:53:38.170Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-22T13:53:38.190Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions [none]
+[debug] [2026-06-22T13:53:38.190Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions  x-goog-user-project=info-650fe
+[debug] [2026-06-22T13:53:38.190Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-06-22T13:53:38.287Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-06-22T13:53:38.287Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-06-22T13:53:39.322Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions 200
+[debug] [2026-06-22T13:53:39.322Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'info-650fe'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-06-22T13:53:39.329Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:39.329Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:39.329Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) [none]
+[debug] [2026-06-22T13:53:40.505Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) 200
+[debug] [2026-06-22T13:53:40.505Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) {"name":"projects/info-650fe/databases/(default)","uid":"a3e74f01-2017-440c-bdb8-b56f294909fc","createTime":"2025-09-18T19:47:27.097957Z","updateTime":"2025-09-18T19:47:27.097957Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-06-22T12:53:40.463217Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IIXhocL/mpUDMMHHkKC15pID"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-06-22T13:53:40.507Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:40.507Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:40.508Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test [none]
+[debug] [2026-06-22T13:53:40.508Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test [omitted]
+[debug] [2026-06-22T13:53:41.429Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test 200
+[debug] [2026-06-22T13:53:41.429Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-06-22T13:53:41.430Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:41.430Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:41.430Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases pageSize=10&pageToken=
+[debug] [2026-06-22T13:53:42.544Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases 200
+[debug] [2026-06-22T13:53:42.544Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases {"releases":[{"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/05a32b1b-ba05-4bc1-b5d5-9b743e4c7d37","createTime":"2025-09-18T19:47:32.071496Z","updateTime":"2026-06-09T04:03:09.781981Z"}]}
+[debug] [2026-06-22T13:53:42.544Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:42.544Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:42.545Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/05a32b1b-ba05-4bc1-b5d5-9b743e4c7d37 [none]
+[debug] [2026-06-22T13:53:43.705Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/05a32b1b-ba05-4bc1-b5d5-9b743e4c7d37 200
+[debug] [2026-06-22T13:53:43.705Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/05a32b1b-ba05-4bc1-b5d5-9b743e4c7d37 [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-06-22T13:53:43.706Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:43.706Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:43.706Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets [none]
+[debug] [2026-06-22T13:53:43.706Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets [omitted]
+[debug] [2026-06-22T13:53:44.402Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets 200
+[debug] [2026-06-22T13:53:44.402Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets {"name":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb","source":{"files":[{"content":"rules_version = '2';\r\nservice cloud.firestore {\r\n  match /databases/{database}/documents {\r\n    function signedIn() {\r\n      return request.auth != null;\r\n    }\r\n\r\n    function isOwner(uid) {\r\n      return signedIn() && request.auth.uid == uid;\r\n    }\r\n\r\n    function isAdmin() {\r\n      return signedIn()\r\n        && exists(/databases/$(database)/documents/Usuario/$(request.auth.uid))\r\n        && (\r\n          get(/databases/$(database)/documents/Usuario/$(request.auth.uid)).data.admin == true\r\n          || get(/databases/$(database)/documents/Usuario/$(request.auth.uid)).data.tipo == 'admin'\r\n        );\r\n    }\r\n\r\n    function activePrestador(uid) {\r\n      return exists(/databases/$(database)/documents/Usuario/$(uid))\r\n        && get(/databases/$(database)/documents/Usuario/$(uid)).data.tipo == 'prestador'\r\n        && get(/databases/$(database)/documents/Usuario/$(uid)).data.contaAtiva == true\r\n        && get(/databases/$(database)/documents/Usuario/$(uid)).data.assinaturaAtiva != false;\r\n    }\r\n\r\n    function touchesBillingFields() {\r\n      return request.resource.data.diff(resource.data).changedKeys().hasAny([\r\n        'assinaturaAtiva',\r\n        'contaAtiva',\r\n        'dataCadastro',\r\n        'dataVencimento',\r\n        'ultimoPagamento',\r\n        'statusPagamento',\r\n        'valorMensalidade',\r\n        'bloqueadoEm',\r\n        'motivoBloqueio'\r\n      ]);\r\n    }\r\n\r\n    function participantIn(data) {\r\n      return signedIn()\r\n        && data.participants is list\r\n        && request.auth.uid in data.participants;\r\n    }\r\n\r\n    function areaParticipant(data) {\r\n      return signedIn()\r\n        && data.prestadoresIds is list\r\n        && request.auth.uid in data.prestadoresIds;\r\n    }\r\n\r\n    match /Usuario/{uid} {\r\n      allow create: if isOwner(uid)\r\n        && request.resource.data.tipo in ['prestador', 'contratante']\r\n        && (\r\n          !request.resource.data.keys().hasAny(['admin'])\r\n          || request.resource.data.admin == false\r\n        );\r\n\r\n      allow read: if isOwner(uid)\r\n        || isAdmin()\r\n        || (\r\n          resource.data.tipo == 'prestador'\r\n          && resource.data.contaAtiva == true\r\n          && resource.data.assinaturaAtiva != false\r\n        )\r\n        || (signedIn() && resource.data.tipo == 'contratante');\r\n\r\n      allow update: if isAdmin()\r\n        || (\r\n          isOwner(uid)\r\n          && !touchesBillingFields()\r\n          && !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'tipo'])\r\n        );\r\n\r\n      allow delete: if isOwner(uid) || isAdmin();\r\n\r\n      match /Mensalidades/{periodKey} {\r\n        allow read: if isOwner(uid) || isAdmin();\r\n        allow create, update, delete: if false;\r\n      }\r\n\r\n      match /Notificacoes/{notifId} {\r\n        allow read: if isOwner(uid) || isAdmin();\r\n        allow create, delete: if isAdmin();\r\n        allow update: if isAdmin()\r\n          || (\r\n            isOwner(uid)\r\n            && request.resource.data.diff(resource.data).changedKeys().hasOnly(['lida'])\r\n          );\r\n      }\r\n\r\n      match /Serv/{servId} {\r\n        allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());\r\n        allow create, update, delete: if isOwner(uid) || isAdmin();\r\n      }\r\n\r\n      match /Posts/{postId} {\r\n        allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());\r\n        allow create, update, delete: if isOwner(uid) || isAdmin();\r\n      }\r\n    }\r\n\r\n    match /ServicosAdds/{uid}/ServicosOferecidos/{servicoId} {\r\n      allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());\r\n      allow create, update, delete: if isOwner(uid) || isAdmin();\r\n    }\r\n\r\n    match /ServicosAgendados/{prestadorId}/ServicoStatus/{servicoId} {\r\n      allow read: if isAdmin()\r\n        || isOwner(prestadorId)\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid);\r\n\r\n      allow create: if isAdmin()\r\n        || isOwner(prestadorId)\r\n        || (signedIn() && request.resource.data.clienteId == request.auth.uid);\r\n\r\n      allow update: if isAdmin()\r\n        || isOwner(prestadorId)\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid)\r\n        || (signedIn() && request.resource.data.clienteId == request.auth.uid);\r\n\r\n      allow delete: if isAdmin()\r\n        || isOwner(prestadorId)\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid);\r\n    }\r\n\r\n    match /ServicosClientes/{clienteId}/ServicoStatus/{servicoId} {\r\n      allow read: if isAdmin()\r\n        || isOwner(clienteId)\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid)\r\n        || (signedIn() && resource.data.prestadorId == request.auth.uid);\r\n\r\n      allow create: if isAdmin()\r\n        || isOwner(clienteId)\r\n        || (signedIn() && request.resource.data.prestadorId == request.auth.uid);\r\n\r\n      allow update: if isAdmin()\r\n        || isOwner(clienteId)\r\n        || (signedIn() && resource.data.prestadorId == request.auth.uid)\r\n        || (signedIn() && request.resource.data.prestadorId == request.auth.uid);\r\n\r\n      allow delete: if isAdmin()\r\n        || isOwner(clienteId)\r\n        || (signedIn() && resource.data.prestadorId == request.auth.uid);\r\n    }\r\n\r\n    match /ServicosRejeitados/{prestadorId}/ServicoStatus/{servicoId} {\r\n      allow read, create, update, delete: if isOwner(prestadorId) || isAdmin();\r\n    }\r\n\r\n    match /SolicitacoesArea/{requestId} {\r\n      allow read: if isAdmin()\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid)\r\n        || areaParticipant(resource.data);\r\n\r\n      allow create: if signedIn() && request.resource.data.clienteId == request.auth.uid;\r\n\r\n      allow update: if isAdmin()\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid)\r\n        || areaParticipant(resource.data);\r\n\r\n      allow delete: if isAdmin()\r\n        || (signedIn() && resource.data.clienteId == request.auth.uid);\r\n    }\r\n\r\n    match /SolicitacoesMensalidade/{requestId} {\n      allow read: if isAdmin()\r\n        || (signedIn() && resource.data.uid == request.auth.uid);\r\n\r\n      allow create: if signedIn()\r\n        && request.resource.data.uid == request.auth.uid\r\n        && request.resource.data.status == 'pendente';\r\n\r\n      allow update, delete: if isAdmin();\n    }\n\n    match /ProblemasServicos/{problemaId} {\n      allow read: if isAdmin()\n        || (signedIn() && resource.data.clienteId == request.auth.uid)\n        || (signedIn() && resource.data.prestadorId == request.auth.uid);\n\n      allow create: if signedIn()\n        && request.resource.data.relatorId == request.auth.uid\n        && (\n          request.resource.data.clienteId == request.auth.uid\n          || request.resource.data.prestadorId == request.auth.uid\n        )\n        && request.resource.data.status == 'pendente';\n\n      allow update: if isAdmin()\n        || (\n          signedIn()\n          && resource.data.relatorId == request.auth.uid\n          && request.resource.data.relatorId == resource.data.relatorId\n          && request.resource.data.clienteId == resource.data.clienteId\n          && request.resource.data.prestadorId == resource.data.prestadorId\n          && request.resource.data.status == 'pendente'\n          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['descricao', 'criadoEm'])\n        );\n      allow delete: if isAdmin();\n    }\n\r\n    match /Chats/{chatId} {\r\n      allow read, update, delete: if participantIn(resource.data) || isAdmin();\r\n      allow create: if participantIn(request.resource.data) || isAdmin();\r\n\r\n      match /Messages/{messageId} {\r\n        allow read: if isAdmin()\r\n          || participantIn(get(/databases/$(database)/documents/Chats/$(chatId)).data);\r\n\r\n        allow create: if signedIn()\r\n          && request.resource.data.senderId == request.auth.uid\r\n          && (\r\n            isAdmin()\r\n            || participantIn(getAfter(/databases/$(database)/documents/Chats/$(chatId)).data)\r\n          );\r\n\r\n        allow update, delete: if false;\r\n      }\r\n    }\r\n\r\n    match /MercadoPagoWebhooks/{webhookId} {\r\n      allow read, write: if false;\r\n    }\r\n\r\n    match /{document=**} {\r\n      allow read, write: if false;\r\n    }\r\n  }\r\n}\r\n","name":"firestore.rules"}]},"createTime":"2026-06-22T13:53:44.297775Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-06-22T13:53:44.402Z] [rules] created ruleset projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb
+[debug] [2026-06-22T13:53:44.403Z] [rules] releasing cloud.firestore with ruleset projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb
+[debug] [2026-06-22T13:53:44.404Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:44.404Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:53:44.405Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore [none]
+[debug] [2026-06-22T13:53:44.405Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore {"release":{"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb"}}
+[debug] [2026-06-22T13:53:45.177Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore 200
+[debug] [2026-06-22T13:53:45.178Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore {"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb","createTime":"2025-09-18T19:47:32.071496Z","updateTime":"2026-06-22T13:53:45.073496Z"}
+[debug] [2026-06-22T13:53:45.178Z] [rules] updated release projects/info-650fe/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/info-650fe/overview
+[debug] [2026-06-22T13:54:12.267Z] ----------------------------------------------------------------------
+[debug] [2026-06-22T13:54:12.269Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Usuário\AppData\Local\npm-cache\_npx\e378e84a5ad1bff6\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project info-650fe
+[debug] [2026-06-22T13:54:12.269Z] CLI Version:   15.19.1
+[debug] [2026-06-22T13:54:12.269Z] Platform:      win32
+[debug] [2026-06-22T13:54:12.270Z] Node Version:  v24.14.0
+[debug] [2026-06-22T13:54:12.270Z] Time:          Mon Jun 22 2026 10:54:12 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-06-22T13:54:12.270Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-22T13:54:15.586Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-22T13:54:15.587Z] > authorizing via signed-in user (mig180506@gmail.com)
+[debug] [2026-06-22T13:54:15.587Z] [iam] checking project info-650fe for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-06-22T13:54:15.589Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:15.589Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:15.590Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions [none]
+[debug] [2026-06-22T13:54:15.590Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions  x-goog-user-project=info-650fe
+[debug] [2026-06-22T13:54:15.591Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-06-22T13:54:16.599Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions 200
+[debug] [2026-06-22T13:54:16.599Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/info-650fe:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'info-650fe'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-06-22T13:54:16.605Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:16.606Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:16.606Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) [none]
+[debug] [2026-06-22T13:54:17.709Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) 200
+[debug] [2026-06-22T13:54:17.709Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/info-650fe/databases/(default) {"name":"projects/info-650fe/databases/(default)","uid":"a3e74f01-2017-440c-bdb8-b56f294909fc","createTime":"2025-09-18T19:47:27.097957Z","updateTime":"2025-09-18T19:47:27.097957Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-06-22T12:54:17.664796Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"INOugNT/mpUDMMHHkKC15pID"}
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-06-22T13:54:17.712Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:17.712Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:17.712Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test [none]
+[debug] [2026-06-22T13:54:17.713Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test [omitted]
+[debug] [2026-06-22T13:54:19.126Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test 200
+[debug] [2026-06-22T13:54:19.126Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/info-650fe:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-06-22T13:54:19.127Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:19.127Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:19.127Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases pageSize=10&pageToken=
+[debug] [2026-06-22T13:54:19.588Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases 200
+[debug] [2026-06-22T13:54:19.588Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/releases {"releases":[{"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb","createTime":"2025-09-18T19:47:32.071496Z","updateTime":"2026-06-22T13:53:45.073496Z"}]}
+[debug] [2026-06-22T13:54:19.589Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:19.589Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:19.590Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb [none]
+[debug] [2026-06-22T13:54:20.784Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb 200
+[debug] [2026-06-22T13:54:20.784Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb [omitted]
+[info] i  firestore: latest version of firestore.rules already up to date, skipping upload... 
+[debug] [2026-06-22T13:54:20.787Z] [rules] releasing cloud.firestore with ruleset projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb
+[debug] [2026-06-22T13:54:20.788Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:20.788Z] Checked if tokens are valid: true, expires at: 1782140017170
+[debug] [2026-06-22T13:54:20.788Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore [none]
+[debug] [2026-06-22T13:54:20.788Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore {"release":{"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb"}}
+[debug] [2026-06-22T13:54:21.370Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore 200
+[debug] [2026-06-22T13:54:21.370Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/info-650fe/releases/cloud.firestore {"name":"projects/info-650fe/releases/cloud.firestore","rulesetName":"projects/info-650fe/rulesets/048bcdae-5fd7-4fea-823f-1fac0b402dfb","createTime":"2025-09-18T19:47:32.071496Z","updateTime":"2026-06-22T13:54:21.253210Z"}
+[debug] [2026-06-22T13:54:21.370Z] [rules] updated release projects/info-650fe/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/info-650fe/overview

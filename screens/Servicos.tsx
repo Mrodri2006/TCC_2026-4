@@ -30,6 +30,7 @@ import {
   CircleCheck,
   Loader2,
   Hourglass,
+  AlertTriangle,
   X,
 } from "lucide-react-native";
 import { useTheme } from "../theme/ThemeContext";
@@ -52,6 +53,8 @@ type ServicoCard = {
   nomeCliente?: string;
   titulo?: string;
   tipo?: string;
+  statusFirebase?: string;
+  avaliacaoContratanteFeita?: boolean;
 };
 
 const TABS: { key: ServiceStatus; label: string }[] = [
@@ -122,7 +125,7 @@ function mapFirebaseStatusToServiceStatus(status: string): ServiceStatus {
   if (s === "a fazer" || s === "aceito" || s === "aguardando") return "pendente";
 
   // Demais status que indicam execuÃ§Ã£o do serviÃ§o
-  if (s === "em andamento" || s === "andamento" || s === "iniciado") return "andamento";
+  if (s === "em andamento" || s === "andamento" || s === "iniciado" || s === "aguardando_confirmacao") return "andamento";
 
   return "pendente";
 }
@@ -164,6 +167,11 @@ export default function Servicos() {
   const [detalheVisivel, setDetalheVisivel] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] =
     useState<ServicoCard | null>(null);
+  const [acaoFinalizacao, setAcaoFinalizacao] = useState<"finalizar" | "problema">("finalizar");
+  const [notaContratante, setNotaContratante] = useState(0);
+  const [comentarioContratante, setComentarioContratante] = useState("");
+  const [problemaPrestador, setProblemaPrestador] = useState("");
+  const [salvandoFinalizacao, setSalvandoFinalizacao] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -203,6 +211,8 @@ export default function Servicos() {
           nomeCliente: data.nomeCliente,
           titulo: data.titulo,
           tipo: data.tipo,
+          statusFirebase: data.status,
+          avaliacaoContratanteFeita: data.avaliacaoContratanteFeita === true,
         };
       });
 
@@ -276,54 +286,94 @@ export default function Servicos() {
     );
   };
 
-  const handleMarcarComoConcluido = async (servico: ServicoCard) => {
+  const abrirAcaoServico = (servico: ServicoCard, acao: "finalizar" | "problema") => {
     if (servico.status === "cancelado") {
       Alert.alert("Atenção", "Serviço cancelado não pode ser marcado como concluído.");
       return;
     }
+    setServicoSelecionado(servico);
+    setAcaoFinalizacao(acao);
+    setNotaContratante(0);
+    setComentarioContratante("");
+    setProblemaPrestador("");
+    setDetalheVisivel(true);
+  };
 
-    const titulo = servico.tipoServico;
+  const enviarAcaoServico = async () => {
+    const servico = servicoSelecionado;
+    const prestadorId = auth.currentUser?.uid;
+    if (!servico || !prestadorId || !servico.clienteId) return;
 
-    Alert.alert(
-      "Marcar como Concluído",
-      `Deseja marcar o serviço "${titulo}" como concluído?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          style: "default",
-          onPress: async () => {
-            try {
-              const usuarioId = auth.currentUser?.uid;
-              if (!usuarioId) return;
+    if (acaoFinalizacao === "finalizar" && (notaContratante < 1 || notaContratante > 5)) {
+      Alert.alert("Avalie o contratante", "Informe uma nota de 1 a 5 antes de concluir.");
+      return;
+    }
+    if (acaoFinalizacao === "problema" && !problemaPrestador.trim()) {
+      Alert.alert("Descreva o problema", "Informe o ocorrido para encaminhar ao administrador.");
+      return;
+    }
 
-              await firestore
-                .collection("ServicosAgendados")
-                .doc(usuarioId)
-                .collection("ServicoStatus")
-                .doc(servico.firestoreId)
-                .update({
-                  status: "realizado",
-                  dataFinalizado: new Date(),
-                });
+    setSalvandoFinalizacao(true);
+    try {
+      const agora = new Date();
+      const status = acaoFinalizacao === "finalizar" ? "aguardando_confirmacao" : "problema";
+      const payload = acaoFinalizacao === "finalizar"
+        ? {
+            status,
+            finalizacaoInformadaEm: agora,
+            avaliacaoContratanteNota: notaContratante,
+            avaliacaoContratanteComentario: comentarioContratante.trim(),
+            avaliacaoContratanteData: agora,
+            avaliacaoContratanteFeita: true,
+          }
+        : {
+            status,
+            problemaRelatado: problemaPrestador.trim(),
+            problemaRelatadoPor: "prestador",
+            dataAtualizacao: agora,
+          };
 
-              setServicosFirebase((prev) =>
-                prev.map((item) =>
-                  item.firestoreId === servico.firestoreId
-                    ? { ...item, status: "concluido" }
-                    : item
-                )
-              );
+      const prestadorRef = firestore.collection("ServicosAgendados").doc(prestadorId)
+        .collection("ServicoStatus").doc(servico.firestoreId);
+      const clienteRef = firestore.collection("ServicosClientes").doc(servico.clienteId)
+        .collection("ServicoStatus").doc(servico.firestoreId);
+      const batch = firestore.batch();
+      batch.set(prestadorRef, payload, { merge: true });
+      batch.set(clienteRef, { ...payload, prestadorId, clienteId: servico.clienteId }, { merge: true });
 
-              Alert.alert("Sucesso", "Serviço marcado como concluído!");
-            } catch (erro) {
-              console.log("Erro ao marcar serviço como concluído:", erro);
-              Alert.alert("Erro", "Não foi possível marcar o serviço como concluído");
-            }
-          },
-        },
-      ]
-    );
+      if (acaoFinalizacao === "problema") {
+        const problemaRef = firestore.collection("ProblemasServicos").doc(`${servico.firestoreId}_${prestadorId}`);
+        batch.set(problemaRef, {
+          servicoId: servico.firestoreId,
+          requestId: servico.firestoreId,
+          servico: servico.tipoServico,
+          clienteId: servico.clienteId,
+          prestadorId,
+          relatorId: prestadorId,
+          relatorTipo: "prestador",
+          descricao: problemaPrestador.trim(),
+          status: "pendente",
+          criadoEm: agora,
+        }, { merge: true });
+      }
+
+      await batch.commit();
+      setServicosFirebase((prev) => prev.map((item) => item.firestoreId === servico.firestoreId
+        ? { ...item, status: "andamento", statusFirebase: status, avaliacaoContratanteFeita: acaoFinalizacao === "finalizar" }
+        : item));
+      setDetalheVisivel(false);
+      Alert.alert(
+        "Sucesso",
+        acaoFinalizacao === "finalizar"
+          ? "Finalização informada. Aguardando a confirmação do contratante."
+          : "Problema encaminhado ao administrador."
+      );
+    } catch (erro) {
+      console.log("Erro ao atualizar serviço:", erro);
+      Alert.alert("Erro", "Não foi possível atualizar o serviço.");
+    } finally {
+      setSalvandoFinalizacao(false);
+    }
   };
 
   const handleAbrirChatCliente = (servico: ServicoCard) => {
@@ -483,7 +533,11 @@ export default function Servicos() {
                     >
                       {statusIcon(item.status)}
                       <Text style={[styles.statusText, { color: pill.text }]}>
-                        {statusLabel(item.status)}
+                        {item.statusFirebase === "aguardando_confirmacao"
+                          ? "Aguardando contratante"
+                          : item.statusFirebase === "problema"
+                            ? "Em análise pelo ADM"
+                            : statusLabel(item.status)}
                       </Text>
                     </View>
                   </View>
@@ -524,13 +578,23 @@ export default function Servicos() {
                       <ChevronRight size={18} color="#2563EB" />
                     </TouchableOpacity>
 
-                    {item.status !== "cancelado" && (
+                    {item.status !== "cancelado" && item.statusFirebase !== "aguardando_confirmacao" && item.statusFirebase !== "realizado" && item.statusFirebase !== "problema" && (
                       <TouchableOpacity
                         style={styles.concluirBtn}
-                        onPress={() => handleMarcarComoConcluido(item)}
+                        onPress={() => abrirAcaoServico(item, "finalizar")}
                         activeOpacity={0.85}
                       >
                         <CircleCheck size={16} color="#166534" />
+                      </TouchableOpacity>
+                    )}
+
+                    {item.status !== "cancelado" && item.statusFirebase !== "realizado" && (
+                      <TouchableOpacity
+                        style={styles.problemBtn}
+                        onPress={() => abrirAcaoServico(item, "problema")}
+                        activeOpacity={0.85}
+                      >
+                        <AlertTriangle size={16} color="#B45309" />
                       </TouchableOpacity>
                     )}
 
@@ -548,6 +612,56 @@ export default function Servicos() {
           />
         )}
       </ScrollView>
+
+      <Modal visible={detalheVisivel} transparent animationType="fade" onRequestClose={() => setDetalheVisivel(false)}>
+        <View style={styles.actionModalOverlay}>
+          <View style={[styles.actionModal, { backgroundColor: cardBackground, borderColor: cardBorder }]}>
+            <Text style={[styles.actionModalTitle, { color: theme.textPrimary }]}>
+              {acaoFinalizacao === "finalizar" ? "Informar finalização" : "Relatar problema"}
+            </Text>
+            <Text style={[styles.actionModalSubtitle, { color: theme.textMuted }]}>{servicoSelecionado?.tipoServico}</Text>
+
+            {acaoFinalizacao === "finalizar" ? (
+              <>
+                <Text style={[styles.actionLabel, { color: theme.textPrimary }]}>Avalie o contratante</Text>
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((valor) => (
+                    <TouchableOpacity key={valor} onPress={() => setNotaContratante(valor)} style={styles.starButton}>
+                      <Text style={[styles.starText, { color: valor <= notaContratante ? "#F59E0B" : "#CBD5E1" }]}>★</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.actionInput, { color: theme.textPrimary, borderColor: cardBorder }]}
+                  placeholder="Comentário sobre o contratante (opcional)"
+                  placeholderTextColor={theme.textMuted}
+                  value={comentarioContratante}
+                  onChangeText={setComentarioContratante}
+                  multiline
+                />
+              </>
+            ) : (
+              <TextInput
+                style={[styles.actionInput, styles.problemInput, { color: theme.textPrimary, borderColor: cardBorder }]}
+                placeholder="Descreva o problema para o administrador..."
+                placeholderTextColor={theme.textMuted}
+                value={problemaPrestador}
+                onChangeText={setProblemaPrestador}
+                multiline
+              />
+            )}
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity style={[styles.actionButton, styles.actionCancel]} onPress={() => setDetalheVisivel(false)} disabled={salvandoFinalizacao}>
+                <Text style={{ color: theme.textPrimary, fontWeight: "800" }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.actionConfirm]} onPress={enviarAcaoServico} disabled={salvandoFinalizacao}>
+                {salvandoFinalizacao ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.actionConfirmText}>Enviar</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -579,6 +693,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(34, 197, 94, 0.3)",
   },
+  problemBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FDBA74",
+  },
+  actionModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.48)", justifyContent: "center", padding: 20 },
+  actionModal: { borderRadius: 22, borderWidth: 1, padding: 20 },
+  actionModalTitle: { fontSize: 20, fontWeight: "900" },
+  actionModalSubtitle: { fontSize: 14, marginTop: 4, marginBottom: 18 },
+  actionLabel: { fontSize: 14, fontWeight: "800", marginBottom: 6 },
+  starsRow: { flexDirection: "row", marginBottom: 14 },
+  starButton: { paddingRight: 9, paddingVertical: 4 },
+  starText: { fontSize: 30 },
+  actionInput: { minHeight: 86, borderWidth: 1, borderRadius: 14, padding: 12, textAlignVertical: "top" },
+  problemInput: { minHeight: 120 },
+  actionButtons: { flexDirection: "row", gap: 12, marginTop: 18 },
+  actionButton: { flex: 1, minHeight: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  actionCancel: { backgroundColor: "rgba(148,163,184,0.15)" },
+  actionConfirm: { backgroundColor: "#2563EB" },
+  actionConfirmText: { color: "#FFFFFF", fontWeight: "900" },
   screen: { flex: 1 },
   container: { flex: 1 },
   content: {

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
-import { firestore } from "../firebase";
+import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { ArrowLeft } from "lucide-react-native";
 
@@ -85,6 +85,22 @@ export default function Avaliacao() {
 
       if (!prestadorId) {
         Alert.alert("Erro", "Nao foi possivel identificar o prestador");
+        return;
+      }
+
+      if (auth.currentUser?.uid !== servico.clienteId) {
+        Alert.alert("Erro", "Somente o contratante pode avaliar este serviço");
+        return;
+      }
+
+      const servicoSnap = await firestore
+        .collection("ServicosClientes")
+        .doc(servico.clienteId)
+        .collection("ServicoStatus")
+        .doc(servico.id)
+        .get();
+      if (!servicoSnap.exists || servicoSnap.data()?.status !== "realizado") {
+        Alert.alert("Aguarde", "A avaliação só é liberada após confirmar que o serviço foi finalizado");
         return;
       }
 

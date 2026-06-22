@@ -177,6 +177,32 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /ProblemasServicos/{problemaId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.clienteId == request.auth.uid)
+        || (signedIn() && resource.data.prestadorId == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.relatorId == request.auth.uid
+        && (
+          request.resource.data.clienteId == request.auth.uid
+          || request.resource.data.prestadorId == request.auth.uid
+        )
+        && request.resource.data.status == 'pendente';
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && resource.data.relatorId == request.auth.uid
+          && request.resource.data.relatorId == resource.data.relatorId
+          && request.resource.data.clienteId == resource.data.clienteId
+          && request.resource.data.prestadorId == resource.data.prestadorId
+          && request.resource.data.status == 'pendente'
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['descricao', 'criadoEm'])
+        );
+      allow delete: if isAdmin();
+    }
+
     match /Chats/{chatId} {
       allow read, update, delete: if participantIn(resource.data) || isAdmin();
       allow create: if participantIn(request.resource.data) || isAdmin();

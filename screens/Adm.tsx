@@ -30,6 +30,7 @@ import {
   UserCog,
   UserPlus,
   Users,
+  AlertTriangle,
   X,
 } from 'lucide-react-native';
 import { auth, firestore } from '../firebase';
@@ -48,6 +49,8 @@ export default function Adm() {
   const [acessoLiberado, setAcessoLiberado] = useState(false);
   const [solicitacoesPagamento, setSolicitacoesPagamento] = useState<any[]>([]);
   const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(true);
+  const [problemasServicos, setProblemasServicos] = useState<any[]>([]);
+  const [carregandoProblemas, setCarregandoProblemas] = useState(true);
   const [processandoPagamentoId, setProcessandoPagamentoId] = useState<string | null>(null);
   const [processandoUsuarioId, setProcessandoUsuarioId] = useState<string | null>(null);
   const [usuarioExpandidoId, setUsuarioExpandidoId] = useState<string | null>(null);
@@ -114,6 +117,38 @@ export default function Adm() {
     }
   };
 
+  const buscarProblemasServicos = async () => {
+    setCarregandoProblemas(true);
+    try {
+      const snap = await firestore.collection('ProblemasServicos').where('status', '==', 'pendente').get();
+      const lista = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).sort((a: any, b: any) => {
+        const aTime = a.criadoEm?.toDate?.()?.getTime?.() || 0;
+        const bTime = b.criadoEm?.toDate?.()?.getTime?.() || 0;
+        return bTime - aTime;
+      });
+      setProblemasServicos(lista);
+    } catch (erro) {
+      console.error('Erro ao buscar problemas de servicos:', erro);
+      Alert.alert('Problemas de serviços', 'Não foi possível carregar os relatos.');
+    } finally {
+      setCarregandoProblemas(false);
+    }
+  };
+
+  const resolverProblemaServico = async (problema: any) => {
+    try {
+      await firestore.collection('ProblemasServicos').doc(problema.id).set({
+        status: 'resolvido',
+        resolvidoEm: new Date(),
+        resolvidoPor: auth.currentUser?.uid || null,
+      }, { merge: true });
+      setProblemasServicos((prev) => prev.filter((item) => item.id !== problema.id));
+    } catch (erro) {
+      console.error('Erro ao resolver problema:', erro);
+      Alert.alert('Erro', 'Não foi possível concluir o atendimento.');
+    }
+  };
+
   useEffect(() => {
     const validarAcesso = async () => {
       try {
@@ -127,6 +162,7 @@ export default function Adm() {
 
         await buscarUsuarios(true);
         await buscarSolicitacoesPagamento();
+        await buscarProblemasServicos();
       } catch (erro) {
         console.error('Erro ao validar acesso admin:', erro);
         Alert.alert('Erro', 'Nao foi possivel validar suas permissoes.');
@@ -404,6 +440,7 @@ export default function Adm() {
   const totalAdmins = usuarios.filter((u) => u.admin === true || u.tipo === 'admin').length;
   const totalPendentes = solicitacoesPagamento.length;
   const totalAtrasados = prestadoresEmAtraso.length;
+  const totalProblemas = problemasServicos.length;
   const cardBg = isDark ? theme.surface : '#FFFFFF';
   const cardBorder = isDark ? theme.surfaceBorder : '#EDF1F6';
   const textColor = theme.textPrimary;
@@ -493,6 +530,17 @@ export default function Adm() {
           </View>
           <View style={[styles.alertDivider, { backgroundColor: isDark ? theme.surfaceBorder : '#E5EAF0' }]} />
           <View style={styles.alertRow}>
+            <View style={[styles.alertIcon, { backgroundColor: '#FEF2F2' }]}>
+              <AlertTriangle size={25} color="#DC2626" />
+            </View>
+            <View style={styles.alertCopy}>
+              <Text style={[styles.alertTitle, { color: textColor }]}>Problemas em serviços</Text>
+              <Text style={[styles.alertSub, { color: mutedColor }]}>Relatos aguardando análise</Text>
+            </View>
+            <Text style={[styles.alertValue, { color: '#DC2626' }]}>{totalProblemas}</Text>
+          </View>
+          <View style={[styles.alertDivider, { backgroundColor: isDark ? theme.surfaceBorder : '#E5EAF0' }]} />
+          <View style={styles.alertRow}>
             <View style={[styles.alertIcon, { backgroundColor: '#FEE2E2' }]}>
               <CreditCard size={25} color="#DC2626" />
             </View>
@@ -504,6 +552,33 @@ export default function Adm() {
             <ChevronRight size={22} color={mutedColor} />
           </View>
         </View>
+
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Problemas relatados</Text>
+        {carregandoProblemas ? (
+          <View style={[styles.loadingBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <ActivityIndicator size="small" color="#DC2626" />
+            <Text style={[styles.loadingText, { color: mutedColor }]}>Carregando relatos...</Text>
+          </View>
+        ) : problemasServicos.length === 0 ? (
+          <View style={[styles.loadingBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <Text style={[styles.emptyText, { color: mutedColor }]}>Nenhum problema pendente.</Text>
+          </View>
+        ) : (
+          problemasServicos.map((problema) => (
+            <View key={problema.id} style={[styles.problemCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={styles.problemHeader}>
+                <AlertTriangle size={20} color="#DC2626" />
+                <Text style={[styles.problemTitle, { color: textColor }]}>{problema.servico || 'Serviço'}</Text>
+              </View>
+              <Text style={[styles.problemMeta, { color: mutedColor }]}>Relatado por: {problema.relatorTipo || 'usuário'}</Text>
+              <Text style={[styles.problemDescription, { color: textColor }]}>{problema.descricao}</Text>
+              <TouchableOpacity style={styles.resolveProblemButton} onPress={() => resolverProblemaServico(problema)}>
+                <Check size={16} color="#FFFFFF" />
+                <Text style={styles.resolveProblemText}>Marcar como resolvido</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
 
         <Text style={[styles.sectionTitle, { color: textColor }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
@@ -851,6 +926,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginBottom: 14,
   },
+  problemCard: { borderWidth: 1, borderRadius: 18, padding: 16, marginBottom: 12 },
+  problemHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  problemTitle: { flex: 1, fontSize: 16, fontWeight: '900' },
+  problemMeta: { fontSize: 12, fontWeight: '700', marginTop: 8 },
+  problemDescription: { fontSize: 14, lineHeight: 20, marginTop: 8 },
+  resolveProblemButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#16A34A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginTop: 14 },
+  resolveProblemText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
