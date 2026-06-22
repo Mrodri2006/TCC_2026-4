@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
-import { Calendar, ChevronLeft, Download, Menu } from "lucide-react-native";
+import { Calendar, CircleCheck, Download, Menu, WalletCards } from "lucide-react-native";
 import Svg, { Rect } from "react-native-svg";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { auth, firestore } from "../firebase";
@@ -284,7 +284,7 @@ export default function RelatoriosPrestador() {
       >
         <View style={styles.header}>
           <TouchableOpacity
-            style={styles.headerIcon}
+            style={[styles.headerIcon, { backgroundColor: theme.headerBtnBg }]}
             onPress={() => {
               const anyNav = navigation as any;
               if (typeof anyNav?.openDrawer === "function") {
@@ -294,40 +294,40 @@ export default function RelatoriosPrestador() {
               anyNav?.dispatch?.(DrawerActions.openDrawer());
             }}
           >
-            <Menu size={22} color="#0F2937" />
+            <Menu size={22} color={theme.textPrimary} />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Relatórios</Text>
+          <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Relatórios</Text>
 
-          <TouchableOpacity style={styles.headerIcon} onPress={exportarPDF}>
-            <Download size={22} color="#0F2937" />
+          <TouchableOpacity style={[styles.headerIcon, { backgroundColor: theme.headerBtnBg }]} onPress={exportarPDF}>
+            <Download size={22} color={theme.textPrimary} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.rangeRow}>
-          <Calendar size={16} color="#64748B" />
-          <Text style={styles.rangeText}>{rangeTitle}</Text>
+          <Calendar size={16} color={theme.textMuted} />
+          <Text style={[styles.rangeText, { color: theme.textMuted }]}>{rangeTitle}</Text>
         </View>
-        <View style={styles.filterCard}>
-          <Text style={styles.filterTitle}>Filtrar datas</Text>
+        <View style={[styles.filterCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.filterTitle, { color: theme.textPrimary }]}>Filtrar período</Text>
           <View style={styles.filterRow}>
             <TouchableOpacity
-              style={styles.filterDateButton}
+              style={[styles.filterDateButton, { backgroundColor: theme.actionBg, borderColor: theme.border }]}
               activeOpacity={0.85}
               onPress={() => abrirSeletorData("inicio")}
             >
-              <Text style={styles.filterDateLabel}>De</Text>
-              <Text style={styles.filterDateValue}>
+              <Text style={[styles.filterDateLabel, { color: theme.textMuted }]}>De</Text>
+              <Text style={[styles.filterDateValue, { color: theme.textPrimary }]}>
                 {dataInicio.toLocaleDateString("pt-BR")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.filterDateButton}
+              style={[styles.filterDateButton, { backgroundColor: theme.actionBg, borderColor: theme.border }]}
               activeOpacity={0.85}
               onPress={() => abrirSeletorData("fim")}
             >
-              <Text style={styles.filterDateLabel}>Até</Text>
-              <Text style={styles.filterDateValue}>{dataFim.toLocaleDateString("pt-BR")}</Text>
+              <Text style={[styles.filterDateLabel, { color: theme.textMuted }]}>Até</Text>
+              <Text style={[styles.filterDateValue, { color: theme.textPrimary }]}>{dataFim.toLocaleDateString("pt-BR")}</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.quickButton} onPress={resetarUltimos7Dias} activeOpacity={0.85}>
@@ -338,24 +338,26 @@ export default function RelatoriosPrestador() {
         {carregando ? (
           <View style={styles.loading}>
             <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Calculando desempenho...</Text>
+            <Text style={[styles.loadingText, { color: theme.textMuted }]}>Calculando desempenho...</Text>
           </View>
         ) : (
           <>
             <View style={styles.kpisRow}>
-              <View style={styles.kpiCard}>
-                <Text style={styles.kpiLabel}>Serviços realizados</Text>
-                <Text style={styles.kpiValue}>{summary.realizados}</Text>
+              <View style={[styles.kpiCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={styles.kpiIconSuccess}><CircleCheck size={18} color="#15803D" /></View>
+                <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Serviços realizados</Text>
+                <Text style={[styles.kpiValue, { color: theme.textPrimary }]}>{summary.realizados}</Text>
               </View>
-              <View style={styles.kpiCard}>
-                <Text style={styles.kpiLabel}>Ganhos</Text>
-                <Text style={styles.kpiValue}>{currencyBRL(summary.ganhos)}</Text>
+              <View style={[styles.kpiCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={styles.kpiIconMoney}><WalletCards size={18} color="#1D4ED8" /></View>
+                <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Ganhos no período</Text>
+                <Text style={[styles.kpiValue, { color: theme.textPrimary }]} numberOfLines={1}>{currencyBRL(summary.ganhos)}</Text>
               </View>
             </View>
 
-            <View style={styles.chartCard}>
-              <Text style={styles.chartTitle}>Desempenho</Text>
-              <Text style={styles.chartSub}>Quantidade de serviços por dia no período</Text>
+            <View style={[styles.chartCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={[styles.chartTitle, { color: theme.textPrimary }]}>Desempenho</Text>
+              <Text style={[styles.chartSub, { color: theme.textMuted }]}>Quantidade de serviços por dia no período</Text>
 
               <View style={styles.chartWrap}>
                 <Svg width="100%" height="140" viewBox="0 0 320 140">
@@ -379,7 +381,7 @@ export default function RelatoriosPrestador() {
                 </Svg>
                 <View style={styles.chartLabels}>
                   {summary.porDia.map((d, i) => (
-                    <Text key={`${d.label}-${i}`} style={styles.chartLabel} numberOfLines={1}>
+                    <Text key={`${d.label}-${i}`} style={[styles.chartLabel, { color: theme.textMuted }]} numberOfLines={1}>
                       {d.label}
                     </Text>
                   ))}
@@ -489,6 +491,24 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 12 },
     elevation: 2,
+  },
+  kpiIconSuccess: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DCFCE7",
+    marginBottom: 12,
+  },
+  kpiIconMoney: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#DBEAFE",
+    marginBottom: 12,
   },
   kpiLabel: { fontSize: 12, color: "#64748B", fontWeight: "800" },
   kpiValue: { marginTop: 6, fontSize: 20, color: "#0F2937", fontWeight: "900" },

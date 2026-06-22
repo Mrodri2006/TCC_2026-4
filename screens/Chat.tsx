@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft, Send } from "lucide-react-native";
+import { ArrowLeft, MessageCircle, Send, ShieldCheck } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import firebase from "firebase/compat/app";
@@ -31,6 +31,7 @@ export default function Chat() {
 
   const [mensagens, setMensagens] = useState<Message[]>([]);
   const [texto, setTexto] = useState("");
+  const listRef = useRef<FlatList<Message>>(null);
 
   const chatId = useMemo(() => {
     const uid = auth.currentUser?.uid;
@@ -135,6 +136,11 @@ export default function Chat() {
 
   const renderItem = ({ item }: { item: Message }) => {
     const isMine = item.senderId === auth.currentUser?.uid;
+    const dataMensagem = item.createdAt?.toDate?.();
+    const horario = dataMensagem
+      ? dataMensagem.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      : "";
+
     return (
       <View
         style={[
@@ -150,35 +156,59 @@ export default function Chat() {
         >
           {item.text}
         </Text>
+        {!!horario && (
+          <Text style={[styles.messageTime, isMine ? styles.timeMine : { color: theme.textMuted }]}>
+            {horario}
+          </Text>
+        )}
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top"]}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: theme.background }]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
             onPress={() => navigation.goBack()}
           >
             <ArrowLeft size={22} color={theme.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>
-            {otherUserName || "Chat"}
-          </Text>
+          <View style={styles.headerCopy}>
+            <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
+              {otherUserName || "Conversa"}
+            </Text>
+            <View style={styles.secureRow}>
+              <ShieldCheck size={12} color="#16A34A" />
+              <Text style={styles.secureText}>Conversa protegida</Text>
+            </View>
+          </View>
           <View style={styles.headerBtnGhost} />
         </View>
 
         <FlatList
+          ref={listRef}
           data={mensagens}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
+                <MessageCircle size={30} color="#2563EB" />
+              </View>
+              <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Comece a conversa</Text>
+              <Text style={[styles.emptyText, { color: theme.textMuted }]}>
+                Combine os detalhes do serviço com clareza e segurança.
+              </Text>
+            </View>
+          }
+          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         />
@@ -195,8 +225,15 @@ export default function Chat() {
             placeholderTextColor={isDark ? theme.textMuted : "#7A8797"}
             value={texto}
             onChangeText={setTexto}
+            multiline
+            maxLength={1000}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={enviarMensagem}>
+          <TouchableOpacity
+            style={[styles.sendButton, !texto.trim() && styles.sendButtonDisabled]}
+            onPress={enviarMensagem}
+            disabled={!texto.trim()}
+            activeOpacity={0.8}
+          >
             <Send size={18} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -218,8 +255,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerBtn: {
     width: 44,
@@ -233,21 +270,40 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
   },
+  headerCopy: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 10,
+  },
   title: {
     fontSize: 18,
     fontWeight: "800",
     color: "#0F2937",
   },
+  secureRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 3,
+  },
+  secureText: {
+    color: "#16A34A",
+    fontSize: 10,
+    fontWeight: "700",
+  },
   listContent: {
-    padding: 16,
-    paddingBottom: 12,
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   bubble: {
     maxWidth: "80%",
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    marginBottom: 8,
+    paddingTop: 10,
+    paddingBottom: 7,
+    borderRadius: 18,
+    marginBottom: 10,
   },
   bubbleMine: {
     alignSelf: "flex-end",
@@ -262,7 +318,7 @@ const styles = StyleSheet.create({
   bubbleText: {
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   textMine: {
     color: "#fff",
@@ -270,21 +326,56 @@ const styles = StyleSheet.create({
   textOther: {
     color: "#0F2937",
   },
+  messageTime: {
+    alignSelf: "flex-end",
+    marginTop: 2,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: "600",
+  },
+  timeMine: {
+    color: "rgba(255,255,255,0.72)",
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 38,
+    paddingBottom: 56,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 19,
+  },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 64,
+    paddingVertical: 10,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
   },
   input: {
     flex: 1,
-    height: 48,
+    minHeight: 48,
+    maxHeight: 112,
     backgroundColor: "#F3F7FB",
-    borderRadius: 18,
+    borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
@@ -298,5 +389,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+  },
+  sendButtonDisabled: {
+    opacity: 0.45,
   },
 });
