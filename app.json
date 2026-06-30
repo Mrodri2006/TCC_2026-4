@@ -36,7 +36,8 @@
           "locationWhenInUsePermission": "Permita o acesso à localização para encontrar profissionais próximos ou aparecer voluntariamente no mapa."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

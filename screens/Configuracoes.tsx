@@ -1,16 +1,48 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert } from "react-native";
 import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { setPushNotificationsEnabled } from "../services/notificationService";
 
 export default function Configuracoes() {
   const navigation = useNavigation<any>();
   const [notificacoes, setNotificacoes] = useState(true);
   const [privacidade, setPrivacidade] = useState(true);
   const { isDark, setIsDark, theme } = useTheme();
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    firestore.collection("Usuario").doc(uid).get().then((snapshot) => {
+      setNotificacoes(snapshot.data()?.notificacoesAtivas !== false);
+      setPrivacidade(snapshot.data()?.perfilVisivel !== false);
+    }).catch((): void => undefined);
+  }, []);
+
+  const alternarNotificacoes = async (value: boolean) => {
+    setNotificacoes(value);
+    try {
+      await setPushNotificationsEnabled(value);
+    } catch {
+      setNotificacoes(!value);
+      Alert.alert("Notificações", "Não foi possível salvar essa preferência.");
+    }
+  };
+
+  const alternarPrivacidade = async (value: boolean) => {
+    setPrivacidade(value);
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    try {
+      await firestore.collection("Usuario").doc(uid).set({ perfilVisivel: value }, { merge: true });
+    } catch {
+      setPrivacidade(!value);
+      Alert.alert("Privacidade", "Não foi possível salvar essa preferência.");
+    }
+  };
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -90,7 +122,7 @@ export default function Configuracoes() {
           </View>
           <Switch
             value={notificacoes}
-            onValueChange={setNotificacoes}
+            onValueChange={alternarNotificacoes}
             trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
             thumbColor={isDark ? "#f2f2f2" : "#fff"}
             ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
@@ -134,7 +166,7 @@ export default function Configuracoes() {
           </View>
           <Switch
             value={privacidade}
-            onValueChange={setPrivacidade}
+            onValueChange={alternarPrivacidade}
             trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
             thumbColor={isDark ? "#f2f2f2" : "#fff"}
             ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}

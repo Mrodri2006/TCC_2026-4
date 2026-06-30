@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
-import { auth, firestore } from "../firebase";
+import { auth, firestore, functions } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { ArrowLeft } from "lucide-react-native";
 
@@ -104,33 +104,17 @@ export default function Avaliacao() {
         return;
       }
 
-      const payload = {
-        avaliacaoNota: nota,
-        avaliacaoComentario: comentario,
-        avaliacaoData: new Date(),
-        avaliacaoLiberada: false,
-        avaliado: true,
-      };
-
-      await firestore
-        .collection("ServicosAgendados")
-        .doc(prestadorId)
-        .collection("ServicoStatus")
-        .doc(servico.id)
-        .set(payload, { merge: true });
-
-      await firestore
-        .collection("ServicosClientes")
-        .doc(servico.clienteId)
-        .collection("ServicoStatus")
-        .doc(servico.id)
-        .set(
-          {
-            ...payload,
-            prestadorId,
-          },
-          { merge: true }
-        );
+      try {
+        await functions.httpsCallable("enviarAvaliacaoServico")({ prestadorId, servicoId: servico.id, nota, comentario });
+      } catch (functionError: any) {
+        const code = String(functionError?.code || "");
+        if (!code.includes("not-found") && !code.includes("unavailable") && !code.includes("internal")) throw functionError;
+        const payload = { avaliacaoNota: nota, avaliacaoComentario: comentario, avaliacaoData: new Date(), avaliacaoLiberada: false, avaliado: true };
+        const batch = firestore.batch();
+        batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
+        batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
+        await batch.commit();
+      }
 
       Alert.alert("Sucesso", "Avaliacao registrada");
       navigation.goBack();

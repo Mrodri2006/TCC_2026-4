@@ -30,6 +30,8 @@ import EsqueceuSenha from './screens/EsqueceuSenha';
 import MensalidadeBloqueada from './screens/MensalidadeBloqueada';
 import PagamentoMensalidade from './screens/PagamentoMensalidade';
 import MapaPrestadores from './screens/MapaPrestadores';
+import Notificacoes from './screens/Notificacoes';
+import AgendaPrestador from './screens/AgendaPrestador';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -37,6 +39,8 @@ import ServicosEmAndamento from './screens/ServicosEmAndamento';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { withThemeScreen } from './theme/withThemeScreen';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
+import { usePushNotifications } from './hooks/usePushNotifications';
+import { flushPendingNavigation, navigationRef } from './navigation/navigationRef';
 
 const Stack = createNativeStackNavigator();
 
@@ -72,9 +76,12 @@ const ThemedEsqueceuSenha = withThemeScreen(EsqueceuSenha);
 const ThemedMensalidadeBloqueada = withThemeScreen(MensalidadeBloqueada);
 const ThemedPagamentoMensalidade = withThemeScreen(PagamentoMensalidade);
 const ThemedMapaPrestadores = withThemeScreen(MapaPrestadores);
+const ThemedNotificacoes = withThemeScreen(Notificacoes);
+const ThemedAgendaPrestador = withThemeScreen(AgendaPrestador);
 
 function AppInner() {
   const { theme } = useTheme();
+  usePushNotifications();
   const navigationTheme = {
     ...DefaultTheme,
     colors: {
@@ -87,7 +94,7 @@ function AppInner() {
   };
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme} onReady={flushPendingNavigation}>
       <Stack.Navigator id="RootStack">
         <Stack.Screen name='Login'    component={ThemedLogin} options={{ headerShown: false }} /> 
         <Stack.Screen name='Register' component={ThemedRegister} options={{ headerShown: false }} />
@@ -122,6 +129,8 @@ function AppInner() {
         <Stack.Screen name='MensalidadeBloqueada' component={ThemedMensalidadeBloqueada} options={{ headerShown: false }} />
         <Stack.Screen name='PagamentoMensalidade' component={ThemedPagamentoMensalidade} options={{ headerShown: false }} />
         <Stack.Screen name='MapaPrestadores' component={ThemedMapaPrestadores} options={{ headerShown: false }} />
+        <Stack.Screen name='Notificacoes' component={ThemedNotificacoes} options={{ headerShown: false }} />
+        <Stack.Screen name='AgendaPrestador' component={ThemedAgendaPrestador} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     

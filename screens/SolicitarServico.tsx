@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert 
 import { ArrowLeft, Calendar, MapPin, FileText } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
-import { firestore, auth } from "../firebase";
+import { auth, firestore, functions } from "../firebase";
+import firebase from "firebase/compat/app";
 import { useTheme } from "../theme/ThemeContext";
 
 export default function SolicitarServico() {
@@ -13,53 +14,45 @@ export default function SolicitarServico() {
   const { theme } = useTheme();
 
   const [data, setData] = useState("");
+  const [horario, setHorario] = useState("");
   const [local, setLocal] = useState("");
   const [descricao, setDescricao] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  const salvarSemFunctions = async () => {
+    const usuarioLogado = auth.currentUser?.uid;
+    if (!usuarioLogado) throw new Error("Usuário não autenticado");
+    const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(data);
+    if (!partes || !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario)) throw new Error("Informe data e horário válidos");
+    const date = new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]));
+    const disponibilidade = await firestore.collection("Usuario").doc(prestadorId).collection("Disponibilidade").doc(String(date.getDay())).get();
+    if (disponibilidade.exists) {
+      const agenda = disponibilidade.data();
+      if (agenda?.enabled !== true || horario < agenda.start || horario >= agenda.end) throw new Error("O prestador não atende nesse dia ou horário");
+    }
+    const ref = firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc();
+    const payload = { id: ref.id, estilo: servico, tipo: servico, data, horario, local: local.trim(), descricao: descricao.trim(), status: "aguardando", clienteId: usuarioLogado, prestadorId, dataSolicitacao: firebase.firestore.FieldValue.serverTimestamp(), criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+    const batch = firestore.batch();
+    batch.set(ref, payload);
+    batch.set(firestore.collection("ServicosClientes").doc(usuarioLogado).collection("ServicoStatus").doc(ref.id), payload);
+    await batch.commit();
+  };
+
   const salvarSolicitacao = async () => {
-    if (!data || !local) {
+    if (!data || !horario || !local) {
       Alert.alert("Erro", "Preencha todos os campos obrigatórios");
       return;
     }
 
     setCarregando(true);
     try {
-      const usuarioLogado = auth.currentUser?.uid;
-      
-      if (!usuarioLogado) {
-        Alert.alert("Erro", "Usuário não autenticado");
-        setCarregando(false);
-        return;
+      try {
+        await functions.httpsCallable("criarSolicitacaoServico")({ prestadorId, prestadorNome, servico, data, horario, local, descricao });
+      } catch (functionError: any) {
+        const code = String(functionError?.code || "");
+        if (!code.includes("not-found") && !code.includes("unavailable") && !code.includes("internal")) throw functionError;
+        await salvarSemFunctions();
       }
-
-      const novoServico = {
-        id: Math.random().toString(),
-        estilo: servico,
-        tipo: servico,
-        data: data,
-        local: local,
-        descricao: descricao,
-        status: 'aguardando',
-        clienteId: usuarioLogado,
-        dataSolicitacao: new Date(),
-        criadoEm: new Date(),
-        prestadorId: prestadorId,
-      };
-
-      await firestore
-        .collection("ServicosAgendados")
-        .doc(prestadorId)
-        .collection("ServicoStatus")
-        .doc(novoServico.id)
-        .set(novoServico);
-
-      await firestore
-        .collection("ServicosClientes")
-        .doc(usuarioLogado)
-        .collection("ServicoStatus")
-        .doc(novoServico.id)
-        .set(novoServico);
 
       Alert.alert(
         "Sucesso!",
@@ -75,9 +68,9 @@ export default function SolicitarServico() {
       );
 
       setCarregando(false);
-    } catch (erro) {
+    } catch (erro: any) {
       console.error("Erro ao solicitar serviço:", erro);
-      Alert.alert("Erro", "Não foi possível solicitar o serviço. Tente novamente.");
+      Alert.alert("Não foi possível solicitar", erro?.message?.replace(/^.*?:\s*/, "") || "Tente novamente.");
       setCarregando(false);
     }
   };
@@ -100,6 +93,22 @@ export default function SolicitarServico() {
           <Text style={estilos.avatarTexto}>
             {prestadorNome?.charAt(0).toUpperCase()}
           </Text>
+        </View>
+
+        <View style={estilos.campoGrupo}>
+          <Text style={estilos.label}>
+            <Calendar size={16} color="#0F2937" /> Horário *
+          </Text>
+          <TextInput
+            style={estilos.input}
+            placeholder="HH:MM"
+            placeholderTextColor="#94A3B8"
+            value={horario}
+            onChangeText={setHorario}
+            keyboardType="numbers-and-punctuation"
+            maxLength={5}
+            editable={!carregando}
+          />
         </View>
         <View style={estilos.infoPrestador}>
           <Text style={estilos.nomePrestador}>{prestadorNome}</Text>

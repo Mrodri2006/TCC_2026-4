@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const { normalizeServiceStatus, canTransitionService } = require("./serviceLifecycle");
 
 admin.initializeApp();
 
@@ -207,6 +208,26 @@ const createCheckoutPreference = async ({
   };
 };
 
+const sendExpoPush = async (uid, { title, body, data }) => {
+  const tokensSnap = await db.collection("Usuario").doc(uid).collection("PushTokens")
+    .where("enabled", "==", true)
+    .get();
+  const messages = tokensSnap.docs
+    .map((doc) => doc.data()?.token)
+    .filter((token) => typeof token === "string" && token.startsWith("ExpoPushToken["))
+    .map((token) => ({ to: token, sound: "default", title, body, data: data || {}, channelId: "default" }));
+
+  if (!messages.length) return;
+  for (let index = 0; index < messages.length; index += 100) {
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(messages.slice(index, index + 100)),
+    });
+    if (!response.ok) console.error("Expo Push error", response.status, await response.text());
+  }
+};
+
 const writeNotification = async (uid, { type, title, body, data }) => {
   const ref = db.collection("Usuario").doc(uid).collection("Notificacoes").doc();
   await ref.set({
@@ -218,7 +239,232 @@ const writeNotification = async (uid, { type, title, body, data }) => {
     lida: false,
     criadoEm: admin.firestore.FieldValue.serverTimestamp(),
   });
+  await sendExpoPush(uid, { title, body, data }).catch((error) => console.error("Push notification error", error));
 };
+
+exports.onChatMessageCreated = functions.firestore
+  .document("Chats/{chatId}/Messages/{messageId}")
+  .onCreate(async (snapshot, context) => {
+    const message = snapshot.data() || {};
+    const chatSnapshot = await db.collection("Chats").doc(context.params.chatId).get();
+    const participants = Array.isArray(chatSnapshot.data()?.participants) ? chatSnapshot.data().participants : [];
+    const senderId = String(message.senderId || "");
+    if (!senderId) return;
+    const senderSnapshot = await db.collection("Usuario").doc(senderId).get();
+    const senderName = senderSnapshot.data()?.nome || "Nova mensagem";
+    const recipients = participants.filter((uid) => uid !== senderId);
+    await chatSnapshot.ref.set({ unreadFor: admin.firestore.FieldValue.arrayUnion(...recipients) }, { merge: true });
+    await Promise.all(recipients.map((uid) => writeNotification(uid, {
+      type: "chat_message",
+      title: senderName,
+      body: String(message.text || "Você recebeu uma nova mensagem").slice(0, 140),
+      data: { screen: "Chat", params: { otherUserId: senderId, otherUserName: senderName } },
+    })));
+  });
+
+const serviceStatusNotification = (status) => {
+  const messages = {
+    valor_pendente: ["Nova proposta", "O prestador enviou uma proposta de valor."],
+    aceito: ["Serviço confirmado", "A proposta foi aceita e o serviço está confirmado."],
+    realizado: ["Serviço finalizado", "O serviço foi marcado como concluído."],
+    cancelado: ["Serviço cancelado", "O serviço foi cancelado."],
+    rejeitado: ["Solicitação recusada", "O prestador não poderá atender esta solicitação."],
+  };
+  return messages[status] || null;
+};
+
+exports.onServicoAgendadoWritten = functions.firestore
+  .document("ServicosAgendados/{prestadorId}/ServicoStatus/{servicoId}")
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return;
+    const before = change.before.exists ? change.before.data() || {} : {};
+    const after = change.after.data() || {};
+    const status = String(after.status || "");
+    if (change.before.exists && before.status === status) return;
+
+    if (["cancelado", "rejeitado"].includes(status) && after.reservationKey) {
+      await db.collection("Usuario").doc(context.params.prestadorId)
+        .collection("ReservasAgenda").doc(String(after.reservationKey)).delete().catch(() => undefined);
+    }
+
+    if (!change.before.exists) {
+      await writeNotification(context.params.prestadorId, {
+        type: "service_request",
+        title: "Nova solicitação de serviço",
+        body: `${after.estilo || after.tipo || "Serviço"}${after.local ? ` em ${after.local}` : ""}`,
+        data: { screen: "MenuTrabalhador" },
+      });
+      return;
+    }
+
+    const content = serviceStatusNotification(status);
+    if (content && after.clienteId) {
+      await writeNotification(after.clienteId, {
+        type: `service_${status}`,
+        title: content[0],
+        body: content[1],
+        data: { screen: "Home" },
+      });
+    }
+  });
+
+const parseBrazilianDate = (value) => {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(value || ""));
+  if (!match) return null;
+  const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
+  if (date.getFullYear() !== Number(match[3]) || date.getMonth() !== Number(match[2]) - 1 || date.getDate() !== Number(match[1])) return null;
+  return date;
+};
+
+exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) => {
+  const clienteId = requireAuth(context);
+  const prestadorId = String(data?.prestadorId || "");
+  const dateText = String(data?.data || "").trim();
+  const horario = String(data?.horario || "").trim();
+  const local = String(data?.local || "").trim();
+  const descricao = String(data?.descricao || "").trim().slice(0, 1000);
+  const tipo = String(data?.servico || "Serviço").trim().slice(0, 120);
+  const date = parseBrazilianDate(dateText);
+
+  if (!prestadorId || !local || !date || !/^([01]\d|2[0-3]):[0-5]\d$/.test(horario)) {
+    throw new functions.https.HttpsError("invalid-argument", "Informe uma data, horário e local válidos.");
+  }
+  if (startOfDay(date) < startOfDay(new Date())) {
+    throw new functions.https.HttpsError("failed-precondition", "A data do serviço não pode estar no passado.");
+  }
+
+  const [providerSnapshot, clientSnapshot, availabilitySnapshot] = await Promise.all([
+    db.collection("Usuario").doc(prestadorId).get(),
+    db.collection("Usuario").doc(clienteId).get(),
+    db.collection("Usuario").doc(prestadorId).collection("Disponibilidade").doc(String(date.getDay())).get(),
+  ]);
+  const provider = providerSnapshot.data() || {};
+  if (!providerSnapshot.exists || provider.tipo !== "prestador" || provider.contaAtiva !== true || provider.assinaturaAtiva === false) {
+    throw new functions.https.HttpsError("failed-precondition", "Este prestador não está disponível para solicitações.");
+  }
+  if (availabilitySnapshot.exists) {
+    const availability = availabilitySnapshot.data() || {};
+    if (availability.enabled !== true || horario < availability.start || horario >= availability.end) {
+      throw new functions.https.HttpsError("failed-precondition", "O prestador não atende nesse dia ou horário.");
+    }
+  }
+
+  const serviceRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc();
+  const clientServiceRef = db.collection("ServicosClientes").doc(clienteId).collection("ServicoStatus").doc(serviceRef.id);
+  const reservationKey = `${dateText.replace(/\D/g, "")}_${horario.replace(":", "")}`;
+  const reservationRef = db.collection("Usuario").doc(prestadorId).collection("ReservasAgenda").doc(reservationKey);
+  const payload = {
+    id: serviceRef.id,
+    estilo: tipo,
+    tipo,
+    data: dateText,
+    horario,
+    local: local.slice(0, 300),
+    descricao,
+    status: "aguardando",
+    clienteId,
+    nomeCliente: clientSnapshot.data()?.nome || "Cliente",
+    prestadorId,
+    reservationKey,
+    dataSolicitacao: admin.firestore.FieldValue.serverTimestamp(),
+    criadoEm: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  await db.runTransaction(async (transaction) => {
+    const reservation = await transaction.get(reservationRef);
+    if (reservation.exists) {
+      throw new functions.https.HttpsError("already-exists", "Este horário acabou de ser reservado. Escolha outro.");
+    }
+    transaction.create(reservationRef, { serviceId: serviceRef.id, clienteId, data: dateText, horario, criadoEm: admin.firestore.FieldValue.serverTimestamp() });
+    transaction.create(serviceRef, payload);
+    transaction.create(clientServiceRef, payload);
+  });
+
+  return { id: serviceRef.id };
+});
+
+exports.enviarAvaliacaoServico = functions.https.onCall(async (data, context) => {
+  const clienteId = requireAuth(context);
+  const prestadorId = String(data?.prestadorId || "");
+  const servicoId = String(data?.servicoId || "");
+  const nota = Number(data?.nota);
+  const comentario = String(data?.comentario || "").trim().slice(0, 500);
+  if (!prestadorId || !servicoId || !Number.isInteger(nota) || nota < 1 || nota > 5) {
+    throw new functions.https.HttpsError("invalid-argument", "Avaliação inválida.");
+  }
+
+  const providerServiceRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId);
+  const clientServiceRef = db.collection("ServicosClientes").doc(clienteId).collection("ServicoStatus").doc(servicoId);
+  const providerRef = db.collection("Usuario").doc(prestadorId);
+
+  await db.runTransaction(async (transaction) => {
+    const serviceSnapshot = await transaction.get(providerServiceRef);
+    const clientServiceSnapshot = await transaction.get(clientServiceRef);
+    const providerSnapshot = await transaction.get(providerRef);
+    const service = serviceSnapshot.data() || {};
+    if (!serviceSnapshot.exists || !clientServiceSnapshot.exists || service.clienteId !== clienteId) {
+      throw new functions.https.HttpsError("permission-denied", "Este serviço não pertence ao contratante autenticado.");
+    }
+    if (service.status !== "realizado") {
+      throw new functions.https.HttpsError("failed-precondition", "A avaliação só é liberada após a conclusão do serviço.");
+    }
+    if (service.avaliado === true) {
+      throw new functions.https.HttpsError("already-exists", "Este serviço já foi avaliado.");
+    }
+
+    const provider = providerSnapshot.data() || {};
+    const count = Number(provider.numeroAvaliacoes || 0) + 1;
+    const sum = Number(provider.avaliacaoSoma || 0) + nota;
+    const review = {
+      avaliacaoNota: nota,
+      avaliacaoComentario: comentario,
+      avaliacaoData: admin.firestore.FieldValue.serverTimestamp(),
+      avaliacaoLiberada: false,
+      avaliado: true,
+    };
+    transaction.set(providerServiceRef, review, { merge: true });
+    transaction.set(clientServiceRef, review, { merge: true });
+    transaction.set(providerRef, { avaliacaoSoma: sum, numeroAvaliacoes: count, avaliacao: sum / count }, { merge: true });
+  });
+
+  await writeNotification(prestadorId, {
+    type: "service_review",
+    title: "Nova avaliação recebida",
+    body: `Você recebeu uma avaliação de ${nota} estrela${nota === 1 ? "" : "s"}.`,
+    data: { screen: "PerfilTrabalhador" },
+  });
+  return { ok: true };
+});
+
+exports.atualizarStatusServico = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context);
+  const prestadorId = String(data?.prestadorId || "");
+  const clienteId = String(data?.clienteId || "");
+  const servicoId = String(data?.servicoId || "");
+  const nextStatus = normalizeServiceStatus(data?.status);
+  if (!prestadorId || !clienteId || !servicoId) {
+    throw new functions.https.HttpsError("invalid-argument", "Serviço incompleto.");
+  }
+  const callerSnapshot = await db.collection("Usuario").doc(uid).get();
+  const caller = callerSnapshot.data() || {};
+  const actor = caller.admin === true || caller.tipo === "admin" ? "admin" : uid === prestadorId ? "prestador" : uid === clienteId ? "contratante" : "";
+  if (!actor) throw new functions.https.HttpsError("permission-denied", "Você não participa deste serviço.");
+
+  const providerRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId);
+  const clientRef = db.collection("ServicosClientes").doc(clienteId).collection("ServicoStatus").doc(servicoId);
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(providerRef);
+    if (!snapshot.exists) throw new functions.https.HttpsError("not-found", "Serviço não encontrado.");
+    const service = snapshot.data() || {};
+    if (!canTransitionService(service.status, nextStatus, actor)) {
+      throw new functions.https.HttpsError("failed-precondition", "Esta mudança de status não é permitida.");
+    }
+    const update = { status: nextStatus, dataAtualizacao: admin.firestore.FieldValue.serverTimestamp(), atualizadoPor: uid };
+    transaction.set(providerRef, update, { merge: true });
+    transaction.set(clientRef, update, { merge: true });
+  });
+  return { status: nextStatus };
+});
 
 const setActiveAfterPayment = async (uid, paidAt, nextDueDate, amount) => {
   const userRef = db.collection("Usuario").doc(uid);

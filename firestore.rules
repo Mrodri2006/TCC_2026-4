@@ -39,6 +39,27 @@ service cloud.firestore {
       ]);
     }
 
+    function touchesReviewFields() {
+      return request.resource.data.diff(resource.data).changedKeys().hasAny([
+        'avaliacaoNota', 'avaliacaoComentario', 'avaliacaoData', 'avaliacaoLiberada',
+        'avaliado', 'avaliacaoSoma', 'numeroAvaliacoes', 'avaliacao'
+      ]);
+    }
+
+    function validReviewUpdate() {
+      return signedIn()
+        && resource.data.clienteId == request.auth.uid
+        && resource.data.status == 'realizado'
+        && resource.data.avaliado != true
+        && request.resource.data.avaliado == true
+        && request.resource.data.avaliacaoNota is number
+        && request.resource.data.avaliacaoNota >= 1
+        && request.resource.data.avaliacaoNota <= 5
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'avaliacaoNota', 'avaliacaoComentario', 'avaliacaoData', 'avaliacaoLiberada', 'avaliado'
+        ]);
+    }
+
     function participantIn(data) {
       return signedIn()
         && data.participants is list
@@ -80,6 +101,7 @@ service cloud.firestore {
         || (
           isOwner(uid)
           && !touchesBillingFields()
+          && !touchesReviewFields()
           && !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'tipo'])
         );
 
@@ -98,6 +120,24 @@ service cloud.firestore {
             isOwner(uid)
             && request.resource.data.diff(resource.data).changedKeys().hasOnly(['lida'])
           );
+      }
+
+      match /PushTokens/{tokenId} {
+        allow read, create, update, delete: if isOwner(uid);
+      }
+
+      match /Disponibilidade/{diaId} {
+        allow read: if isOwner(uid) || isAdmin() || (signedIn() && activePrestador(uid));
+        allow create, update, delete: if isOwner(uid) || isAdmin();
+      }
+
+      match /ReservasAgenda/{reservaId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update, delete: if false;
+      }
+
+      match /Bloqueados/{blockedId} {
+        allow read, create, update, delete: if isOwner(uid);
       }
 
       match /Serv/{servId} {
@@ -126,9 +166,15 @@ service cloud.firestore {
         || (signedIn() && request.resource.data.clienteId == request.auth.uid);
 
       allow update: if isAdmin()
-        || isOwner(prestadorId)
-        || (signedIn() && resource.data.clienteId == request.auth.uid)
-        || (signedIn() && request.resource.data.clienteId == request.auth.uid);
+        || validReviewUpdate()
+        || (
+          !touchesReviewFields()
+          && (
+            isOwner(prestadorId)
+            || (signedIn() && resource.data.clienteId == request.auth.uid)
+            || (signedIn() && request.resource.data.clienteId == request.auth.uid)
+          )
+        );
 
       allow delete: if isAdmin()
         || isOwner(prestadorId)
@@ -146,9 +192,15 @@ service cloud.firestore {
         || (signedIn() && request.resource.data.prestadorId == request.auth.uid);
 
       allow update: if isAdmin()
-        || isOwner(clienteId)
-        || (signedIn() && resource.data.prestadorId == request.auth.uid)
-        || (signedIn() && request.resource.data.prestadorId == request.auth.uid);
+        || validReviewUpdate()
+        || (
+          !touchesReviewFields()
+          && (
+            isOwner(clienteId)
+            || (signedIn() && resource.data.prestadorId == request.auth.uid)
+            || (signedIn() && request.resource.data.prestadorId == request.auth.uid)
+          )
+        );
 
       allow delete: if isAdmin()
         || isOwner(clienteId)
@@ -245,6 +297,14 @@ service cloud.firestore {
       allow delete: if isOwner(prestadorId) || isAdmin();
     }
 
+    match /Denuncias/{denunciaId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        && request.resource.data.status == 'pendente';
+      allow read: if isAdmin() || (signedIn() && resource.data.reporterId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
     match /Chats/{chatId} {
       allow read, delete: if participantIn(resource.data) || isAdmin();
       allow create: if isAdmin()
@@ -252,7 +312,7 @@ service cloud.firestore {
           participantIn(request.resource.data)
           && request.resource.data.participants.size() == 2
           && request.resource.data.keys().hasOnly([
-            'participants', 'lastMessage', 'lastMessageAt', 'updatedAt'
+            'participants', 'lastMessage', 'lastMessageAt', 'updatedAt', 'unreadFor'
           ])
         );
       allow update: if isAdmin()
@@ -260,7 +320,7 @@ service cloud.firestore {
           participantIn(resource.data)
           && request.resource.data.participants == resource.data.participants
           && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-            'lastMessage', 'lastMessageAt', 'updatedAt'
+            'lastMessage', 'lastMessageAt', 'updatedAt', 'unreadFor'
           ])
         );
 

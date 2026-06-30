@@ -120,8 +120,14 @@ export default function Adm() {
   const buscarProblemasServicos = async () => {
     setCarregandoProblemas(true);
     try {
-      const snap = await firestore.collection('ProblemasServicos').where('status', '==', 'pendente').get();
-      const lista = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })).sort((a: any, b: any) => {
+      const [problemasSnap, denunciasSnap] = await Promise.all([
+        firestore.collection('ProblemasServicos').where('status', '==', 'pendente').get(),
+        firestore.collection('Denuncias').where('status', '==', 'pendente').get(),
+      ]);
+      const lista = [
+        ...problemasSnap.docs.map((doc) => ({ id: doc.id, origem: 'ProblemasServicos', ...doc.data() })),
+        ...denunciasSnap.docs.map((doc) => ({ id: doc.id, origem: 'Denuncias', servico: 'Denúncia de usuário', descricao: `Motivo: ${doc.data().motivo || 'não informado'} · Usuário: ${doc.data().targetId || '-'}`, relatorTipo: 'usuário', ...doc.data() })),
+      ].sort((a: any, b: any) => {
         const aTime = a.criadoEm?.toDate?.()?.getTime?.() || 0;
         const bTime = b.criadoEm?.toDate?.()?.getTime?.() || 0;
         return bTime - aTime;
@@ -137,7 +143,7 @@ export default function Adm() {
 
   const resolverProblemaServico = async (problema: any) => {
     try {
-      await firestore.collection('ProblemasServicos').doc(problema.id).set({
+      await firestore.collection(problema.origem || 'ProblemasServicos').doc(problema.id).set({
         status: 'resolvido',
         resolvidoEm: new Date(),
         resolvidoPor: auth.currentUser?.uid || null,

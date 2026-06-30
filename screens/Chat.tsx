@@ -9,9 +9,10 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft, MessageCircle, Send, ShieldCheck } from "lucide-react-native";
+import { ArrowLeft, Ban, MessageCircle, Send, ShieldCheck } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import firebase from "firebase/compat/app";
@@ -36,6 +37,7 @@ export default function Chat() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const [tentativa, setTentativa] = useState(0);
+  const [bloqueado, setBloqueado] = useState(false);
   const listRef = useRef<FlatList<Message>>(null);
 
   const chatId = useMemo(() => {
@@ -82,6 +84,9 @@ export default function Chat() {
                 ...(doc.data() as any),
               }));
               setMensagens(lista);
+              chatRef.set({
+                unreadFor: firebase.firestore.FieldValue.arrayRemove(uid),
+              }, { merge: true }).catch((): void => undefined);
               setCarregando(false);
               setErro("");
             },
@@ -110,9 +115,49 @@ export default function Chat() {
     };
   }, [chatId, otherUserId, tentativa]);
 
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !otherUserId) return;
+    return firestore.collection("Usuario").doc(uid).collection("Bloqueados").doc(otherUserId)
+      .onSnapshot((snapshot) => setBloqueado(snapshot.exists), () => undefined);
+  }, [otherUserId]);
+
+  const bloquearUsuario = () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !otherUserId) return;
+    Alert.alert(bloqueado ? "Desbloquear usuário?" : "Bloquear usuário?", bloqueado ? "Vocês poderão trocar mensagens novamente." : "Você não poderá enviar mensagens para esta pessoa.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: bloqueado ? "Desbloquear" : "Bloquear", style: bloqueado ? "default" : "destructive", onPress: async () => {
+        const ref = firestore.collection("Usuario").doc(uid).collection("Bloqueados").doc(otherUserId);
+        if (bloqueado) await ref.delete(); else await ref.set({ blockedUserId: otherUserId, criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+      } },
+    ]);
+  };
+
+  const denunciarUsuario = () => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !otherUserId) return;
+    const enviar = async (motivo: string) => {
+      await firestore.collection("Denuncias").add({ reporterId: uid, targetId: otherUserId, chatId, motivo, status: "pendente", criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
+      Alert.alert("Denúncia enviada", "Nossa equipe analisará o caso.");
+    };
+    Alert.alert("Denunciar usuário", "Selecione o motivo", [
+      { text: "Spam", onPress: () => enviar("spam") },
+      { text: "Ofensa", onPress: () => enviar("ofensa") },
+      { text: "Fraude", onPress: () => enviar("fraude") },
+      { text: "Cancelar", style: "cancel" },
+    ]);
+  };
+
+  const abrirSeguranca = () => Alert.alert("Segurança da conversa", undefined, [
+    { text: bloqueado ? "Desbloquear usuário" : "Bloquear usuário", onPress: bloquearUsuario },
+    { text: "Denunciar usuário", onPress: denunciarUsuario },
+    { text: "Cancelar", style: "cancel" },
+  ]);
+
   const enviarMensagem = async () => {
     const uid = auth.currentUser?.uid;
-    if (!uid || !otherUserId || !chatId || enviando) return;
+    if (!uid || !otherUserId || !chatId || enviando || bloqueado) return;
     const text = texto.trim();
     if (!text) return;
 
@@ -142,6 +187,7 @@ export default function Chat() {
           lastMessage: text,
           lastMessageAt: timestamp,
           updatedAt: timestamp,
+          unreadFor: firebase.firestore.FieldValue.arrayUnion(otherUserId),
         },
         { merge: true }
       );
@@ -212,7 +258,9 @@ export default function Chat() {
               <Text style={styles.secureText}>Conversa protegida</Text>
             </View>
           </View>
-          <View style={styles.headerBtnGhost} />
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]} onPress={abrirSeguranca} accessibilityLabel="Segurança da conversa">
+            <Ban size={19} color={bloqueado ? "#DC2626" : theme.textPrimary} />
+          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -261,19 +309,19 @@ export default function Chat() {
         >
           <TextInput
             style={[styles.input, { backgroundColor: theme.actionBg, color: theme.textPrimary }]}
-            placeholder="Digite sua mensagem..."
+            placeholder={bloqueado ? "Usuário bloqueado" : "Digite sua mensagem..."}
             placeholderTextColor={isDark ? theme.textMuted : "#7A8797"}
             value={texto}
             onChangeText={setTexto}
             multiline
             maxLength={1000}
-            editable={!enviando && !!chatId}
+            editable={!enviando && !!chatId && !bloqueado}
             accessibilityLabel="Mensagem"
           />
           <TouchableOpacity
-            style={[styles.sendButton, (!texto.trim() || enviando || !chatId) && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!texto.trim() || enviando || !chatId || bloqueado) && styles.sendButtonDisabled]}
             onPress={enviarMensagem}
-            disabled={!texto.trim() || enviando || !chatId}
+            disabled={!texto.trim() || enviando || !chatId || bloqueado}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel="Enviar mensagem"

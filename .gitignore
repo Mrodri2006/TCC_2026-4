@@ -9,6 +9,7 @@ dist/
 dist-android/
 web-build/
 .build-check/
+.bundle-validation/
 expo-env.d.ts
 
 # Native

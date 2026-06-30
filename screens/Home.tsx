@@ -144,7 +144,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         const userData = userDoc.data();
         
         // faz a contagem dos serviços oferecidos por cada profissão
-        if (userData.profissao && prestadorEstaAtivo(userData)) {
+        if (userData.profissao && userData.perfilVisivel !== false && prestadorEstaAtivo(userData)) {
           const count = (servicosUnicos.get(userData.profissao) || 0) + 1;
           servicosUnicos.set(userData.profissao, count);
           
@@ -617,7 +617,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
               </Text>
               <TouchableOpacity
                 style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
-                onPress={() => navigation.navigate("Conversas")}
+                onPress={() => navigation.navigate("Notificacoes")}
                 activeOpacity={0.7}
               >
                 <View style={styles.bellWrap}>

@@ -12,6 +12,7 @@ type ChatItem = {
   otherUserName: string;
   lastMessage?: string;
   lastMessageAt?: any;
+  unread?: boolean;
 };
 
 export default function ChatList() {
@@ -76,6 +77,7 @@ export default function ChatList() {
               otherUserName: otherName,
               lastMessage: doc.lastMessage,
               lastMessageAt: doc.lastMessageAt,
+              unread: Array.isArray(doc.unreadFor) && doc.unreadFor.includes(uid),
             };
           })
         );
@@ -200,6 +202,7 @@ export default function ChatList() {
               >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{item.otherUserName.trim().charAt(0).toUpperCase() || "U"}</Text>
+                  {item.unread && <View style={styles.unreadDot} />}
                 </View>
                 <View style={styles.cardCopy}>
                   <View style={styles.cardTop}>
@@ -289,6 +292,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800",
   },
+  unreadDot: { position: "absolute", right: -2, top: -2, width: 13, height: 13, borderRadius: 7, backgroundColor: "#22C55E", borderWidth: 2, borderColor: "#FFFFFF" },
   cardCopy: {
     flex: 1,
   },

@@ -3,10 +3,11 @@
   "description": "Firebase Cloud Functions for Pix QR generation",
   "main": "index.js",
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "scripts": {
-    "lint": "echo \"No lint configured\"",
+    "lint": "node --check index.js",
+    "test": "node --test serviceLifecycle.test.js",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"

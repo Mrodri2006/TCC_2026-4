@@ -83,3 +83,11 @@ Importante: as regras gerais ainda permitem `read/write` autenticado para outras
 
 Para o mapa funcionar em um APK Android próprio, configure `GOOGLE_MAPS_API_KEY` no ambiente do build com uma chave que tenha o Maps SDK for Android habilitado. O arquivo `app.config.js` injeta a chave na configuração nativa sem gravá-la no repositório.
 
+## Notificações, agenda e backend seguro
+
+- A central de notificações e o registro do dispositivo funcionam com `expo-notifications`.
+- A agenda semanal fica em `Usuario/{uid}/Disponibilidade`.
+- Pedidos, avaliações e mudanças de status possuem Cloud Functions transacionais em `functions/index.js`.
+- Enquanto o Firebase estiver no plano Spark, o aplicativo usa fallbacks seguros no Firestore para pedidos e avaliações.
+- Push remoto, reserva transacional de horários e os gatilhos automáticos exigem publicar as Functions, o que requer o plano Blaze e credenciais FCM para Android.
+

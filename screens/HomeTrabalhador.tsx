@@ -22,7 +22,6 @@ import {
   ClipboardList,
   Clock,
   FileText,
-  HelpCircle,
   MapPin,
   Menu,
   Plus,
@@ -326,7 +325,7 @@ export default function HomeTrabalhador() {
           <View style={styles.topBarRight}>
             <TouchableOpacity
               style={[styles.topBarIcon, { backgroundColor: topBarBtnBg }]}
-              onPress={() => Alert.alert("Notificações", "Em breve")}
+              onPress={() => navigation.navigate("Notificacoes")}
             >
               <Bell size={22} color={topBarIconColor} />
             </TouchableOpacity>
@@ -483,13 +482,13 @@ export default function HomeTrabalhador() {
           <TouchableOpacity
             activeOpacity={0.9}
             style={[styles.quickCard, { backgroundColor: cardBackground, borderColor: isDark ? theme.surfaceBorder : "transparent", borderWidth: isDark ? 1 : 0 }]}
-            onPress={() => Alert.alert("Ajuda", "Em breve")}
+            onPress={() => navigation.navigate("AgendaPrestador")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#FFF5E6" }]}>
-              <HelpCircle size={22} color="#F59E0B" />
+              <Calendar size={22} color="#F59E0B" />
             </View>
-            <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Ajuda</Text>
-            <Text style={[styles.quickSub, { color: mutedTextColor }]}>Central de ajuda</Text>
+            <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Minha agenda</Text>
+            <Text style={[styles.quickSub, { color: mutedTextColor }]}>Disponibilidade</Text>
           </TouchableOpacity>
         </View>
 

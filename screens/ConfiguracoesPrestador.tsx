@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
+import { setPushNotificationsEnabled } from "../services/notificationService";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation<any>();
@@ -22,6 +23,38 @@ export default function ConfiguracoesPrestador() {
   const [privacidade, setPrivacidade] = useState(true);
   const { status: mensalidade, loading: carregandoMensalidade, refresh: atualizarMensalidade } = useMensalidadeStatus(30000);
   const { isDark, setIsDark, theme } = useTheme();
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    firestore.collection("Usuario").doc(uid).get().then((snapshot) => {
+      setNotificacoes(snapshot.data()?.notificacoesAtivas !== false);
+      setPrivacidade(snapshot.data()?.perfilVisivel !== false);
+    }).catch((): void => undefined);
+  }, []);
+
+  const alternarNotificacoes = async (value: boolean) => {
+    setNotificacoes(value);
+    try {
+      await setPushNotificationsEnabled(value);
+    } catch {
+      setNotificacoes(!value);
+      Alert.alert("Notificações", "Não foi possível salvar essa preferência.");
+    }
+  };
+
+  const alternarPrivacidade = async (value: boolean) => {
+    setPrivacidade(value);
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    try {
+      await firestore.collection("Usuario").doc(uid).set({ perfilVisivel: value }, { merge: true });
+      if (!value) await firestore.collection("LocalizacoesPrestadores").doc(uid).delete().catch((): void => undefined);
+    } catch {
+      setPrivacidade(!value);
+      Alert.alert("Privacidade", "Não foi possível salvar essa preferência.");
+    }
+  };
 
   const formatarData = (valor: any) => {
     if (!valor) return "Nao informado";
@@ -118,7 +151,7 @@ export default function ConfiguracoesPrestador() {
           </View>
           <Switch
             value={notificacoes}
-            onValueChange={setNotificacoes}
+            onValueChange={alternarNotificacoes}
             trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
             thumbColor={isDark ? "#f2f2f2" : "#fff"}
             ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
@@ -162,7 +195,7 @@ export default function ConfiguracoesPrestador() {
           </View>
           <Switch
             value={privacidade}
-            onValueChange={setPrivacidade}
+            onValueChange={alternarPrivacidade}
             trackColor={{ false: isDark ? "#3a3a3a" : "#d0d0d0", true: "#5aa9b5" }}
             thumbColor={isDark ? "#f2f2f2" : "#fff"}
             ios_backgroundColor={isDark ? "#3a3a3a" : "#d0d0d0"}
