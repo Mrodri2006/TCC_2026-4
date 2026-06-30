@@ -85,7 +85,7 @@ const requireAdmin = async (context) => {
   const user = snap.data() || {};
   const isAdmin = user.admin === true || String(user.tipo || "").toLowerCase() === "admin";
   if (!isAdmin) {
-    throw new functions.https.HttpsError("permission-denied", "Somente administradores podem executar esta aÃ§Ã£o.");
+    throw new functions.https.HttpsError("permission-denied", "Somente administradores podem executar esta ação.");
   }
   return uid;
 };
@@ -104,10 +104,10 @@ const normalizeAdminUserPayload = (data = {}) => {
   const email = String(data.email || "").trim().toLowerCase();
 
   if (!nome) {
-    throw new functions.https.HttpsError("invalid-argument", "Nome Ã© obrigatÃ³rio.");
+    throw new functions.https.HttpsError("invalid-argument", "Nome é obrigatório.");
   }
   if (!email || !email.includes("@")) {
-    throw new functions.https.HttpsError("invalid-argument", "E-mail invÃ¡lido.");
+    throw new functions.https.HttpsError("invalid-argument", "E-mail inválido.");
   }
 
   return {
@@ -394,18 +394,18 @@ exports.adminUpdateUsuario = functions.https.onCall(async (data, context) => {
   const callerUid = await requireAdmin(context);
   const targetUid = String(data?.uid || "");
   if (!targetUid) {
-    throw new functions.https.HttpsError("invalid-argument", "UID do usuÃ¡rio Ã© obrigatÃ³rio.");
+    throw new functions.https.HttpsError("invalid-argument", "UID do usuário é obrigatório.");
   }
 
   const payload = normalizeAdminUserPayload(data?.usuario || data || {});
   if (callerUid === targetUid && payload.admin !== true) {
-    throw new functions.https.HttpsError("failed-precondition", "VocÃª nÃ£o pode remover seu prÃ³prio acesso admin.");
+    throw new functions.https.HttpsError("failed-precondition", "Você não pode remover seu próprio acesso admin.");
   }
 
   const userRef = db.collection("Usuario").doc(targetUid);
   const currentSnap = await userRef.get();
   if (!currentSnap.exists) {
-    throw new functions.https.HttpsError("not-found", "UsuÃ¡rio nÃ£o encontrado.");
+    throw new functions.https.HttpsError("not-found", "Usuário não encontrado.");
   }
 
   try {
@@ -428,10 +428,10 @@ exports.adminDeleteUsuario = functions.https.onCall(async (data, context) => {
   const callerUid = await requireAdmin(context);
   const targetUid = String(data?.uid || "");
   if (!targetUid) {
-    throw new functions.https.HttpsError("invalid-argument", "UID do usuÃ¡rio Ã© obrigatÃ³rio.");
+    throw new functions.https.HttpsError("invalid-argument", "UID do usuário é obrigatório.");
   }
   if (callerUid === targetUid) {
-    throw new functions.https.HttpsError("failed-precondition", "VocÃª nÃ£o pode apagar sua prÃ³pria conta admin.");
+    throw new functions.https.HttpsError("failed-precondition", "Você não pode apagar sua própria conta admin.");
   }
 
   await db.collection("Usuario").doc(targetUid).delete();

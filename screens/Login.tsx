@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +16,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
+import { getFirebaseErrorMessage } from "../utils/firebaseError";
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -68,8 +70,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const userCredentials = await auth.signInWithEmailAndPassword(email, senha);
-      console.log('Logado como: ' + userCredentials.user?.email);
+      const userCredentials = await auth.signInWithEmailAndPassword(email.trim().toLowerCase(), senha);
       const uid = userCredentials.user?.uid;
       if (uid) {
         const userDoc = await firestore.collection('Usuario').doc(uid).get();
@@ -90,8 +91,8 @@ export default function Login() {
       } else {
         navigation.replace('Menu');
       }
-    } catch (erro: any) {
-      alert(erro.message);
+    } catch (erro: unknown) {
+      Alert.alert("Não foi possível entrar", getFirebaseErrorMessage(erro, "Verifique seus dados e tente novamente."));
     } finally {
       setLoading(false);
     }
@@ -125,6 +126,9 @@ export default function Login() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                returnKeyType="next"
                 style={styles.input}
               />
             </View>
@@ -138,12 +142,18 @@ export default function Login() {
                 value={senha}
                 onChangeText={setSenha}
                 secureTextEntry={!mostrarSenha}
+                autoComplete="current-password"
+                textContentType="password"
+                returnKeyType="done"
+                onSubmitEditing={logar}
                 style={styles.input}
               />
               <TouchableOpacity
                 onPress={() => setMostrarSenha((v) => !v)}
                 activeOpacity={0.8}
                 style={styles.eyeBtn}
+                accessibilityRole="button"
+                accessibilityLabel={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
               >
                 {mostrarSenha ? (
                   <EyeOff size={18} color="#9CA3AF" />

@@ -21,6 +21,7 @@ import { auth, firestore } from '../firebase';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { Usuario } from '../model/Usuario';
+import { getFirebaseErrorMessage } from "../utils/firebaseError";
 
 export default function Register2() {
   const [formUsuario, setFormUsuario] = useState<Partial<Usuario>>({});
@@ -121,15 +122,21 @@ export default function Register2() {
     }
     if (!formUsuario.email?.trim()) {
       novoErros.email = 'E-mail é obrigatório'; valido = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formUsuario.email.trim())) {
+      novoErros.email = 'Informe um e-mail válido'; valido = false;
     }
     if (!formUsuario.senha?.trim()) {
       novoErros.senha = 'Senha é obrigatória'; valido = false;
+    } else if (formUsuario.senha.length < 6) {
+      novoErros.senha = 'A senha deve ter pelo menos 6 caracteres'; valido = false;
     }
     if (!formUsuario.fone?.trim()) {
       novoErros.fone = 'Telefone é obrigatório'; valido = false;
+    } else if (!/^\d{10,11}$/.test(formUsuario.fone.replace(/\D/g, ''))) {
+      novoErros.fone = 'Informe um telefone válido com DDD'; valido = false;
     }
     if (!formUsuario.localizacao?.trim()) {
-      novoErros.localizacao = 'Localiza??o ? obrigat?ria'; valido = false;
+      novoErros.localizacao = 'Localização é obrigatória'; valido = false;
     }
     if (!formUsuario.dataNascimento) {
       novoErros.dataNascimento = 'Data de nascimento é obrigatória'; valido = false;
@@ -137,7 +144,7 @@ export default function Register2() {
       novoErros.dataNascimento = 'Você deve ter no mínimo 18 anos'; valido = false;
     }
     if (!aceitouTermos) {
-      novoErros.termos = 'Aceite os termos e as especificacoes do app'; valido = false;
+      novoErros.termos = 'Aceite os termos e as especificações do app'; valido = false;
     }
 
     setErrors(novoErros);
@@ -148,14 +155,17 @@ export default function Register2() {
     if (!validarFormulario()) return;
 
     setLoading(true);
+    let criouAutenticacao = false;
     try {
-      await auth.createUserWithEmailAndPassword(formUsuario.email!, formUsuario.senha!);
+      const emailLimpo = formUsuario.email!.trim().toLowerCase();
+      await auth.createUserWithEmailAndPassword(emailLimpo, formUsuario.senha!);
+      criouAutenticacao = true;
 
       await firestore.collection('Usuario').doc(auth.currentUser!.uid).set({
         id: auth.currentUser!.uid,
-        nome: formUsuario.nome,
-        email: formUsuario.email,
-        fone: formUsuario.fone,
+        nome: formUsuario.nome!.trim(),
+        email: emailLimpo,
+        fone: formUsuario.fone!.trim(),
         localizacao: formUsuario.localizacao?.trim(),
         localizacaoNormalizada: normalizarLocalizacao(formUsuario.localizacao || ""),
         dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
@@ -165,8 +175,9 @@ export default function Register2() {
       });
 
       navigation.replace('Home');
-    } catch (erro: any) {
-      alert(erro.message);
+    } catch (erro: unknown) {
+      if (criouAutenticacao) await auth.currentUser?.delete().catch((): void => undefined);
+      alert(getFirebaseErrorMessage(erro, "Não foi possível concluir o cadastro. Tente novamente."));
     } finally {
       setLoading(false);
     }

@@ -19,6 +19,8 @@ export default function ChatList() {
   const { theme } = useTheme();
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
+  const [tentativa, setTentativa] = useState(0);
 
   const voltar = () => {
     if (navigation.canGoBack()) {
@@ -41,8 +43,13 @@ export default function ChatList() {
     const uid = auth.currentUser?.uid;
     if (!uid) {
       setLoading(false);
+      setErro("Entre novamente para acessar suas conversas.");
       return;
     }
+
+    let active = true;
+    setLoading(true);
+    setErro("");
 
     const unsub = firestore
       .collection("Chats")
@@ -53,14 +60,14 @@ export default function ChatList() {
         const items: ChatItem[] = await Promise.all(
           docs.map(async (doc: any) => {
             const otherId = (doc.participants || []).find((p: string) => p !== uid);
-            let otherName = "UsuÃ¡rio";
+            let otherName = "Usuário";
             if (otherId) {
               try {
                 const userSnap = await firestore.collection("Usuario").doc(otherId).get();
                 const userData = userSnap.data();
-                otherName = userData?.nome || userData?.email || "UsuÃ¡rio";
+                otherName = userData?.nome || userData?.email || "Usuário";
               } catch {
-                otherName = "UsuÃ¡rio";
+                otherName = "Usuário";
               }
             }
             return {
@@ -79,18 +86,25 @@ export default function ChatList() {
             const bTime = b.lastMessageAt?.toDate?.() || new Date(0);
             return bTime.getTime() - aTime.getTime();
           });
+        if (!active) return;
         setChats(sorted);
+          setErro("");
           setLoading(false);
         },
         (erro) => {
           console.error("Erro ao carregar conversas:", erro);
+          if (!active) return;
           setChats([]);
+          setErro("Não foi possível carregar as conversas.");
           setLoading(false);
         }
       );
 
-    return () => unsub();
-  }, []);
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, [tentativa]);
 
   const abrirChat = (item: ChatItem) => {
     const rootNavigation = navigation.getParent?.() || navigation;
@@ -140,6 +154,8 @@ export default function ChatList() {
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
             onPress={voltar}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
           >
             <ArrowLeft size={22} color={theme.textPrimary} />
           </TouchableOpacity>
@@ -147,7 +163,18 @@ export default function ChatList() {
           <View style={styles.headerBtnGhost} />
         </View>
 
-        {chats.length === 0 ? (
+        {erro ? (
+          <View style={styles.emptyState}>
+            <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
+              <MessageCircle size={31} color="#2563EB" />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Conversas indisponíveis</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>{erro}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => setTentativa((valor) => valor + 1)}>
+              <Text style={styles.retryButtonText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : chats.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
               <MessageCircle size={31} color="#2563EB" />
@@ -168,6 +195,8 @@ export default function ChatList() {
                 style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
                 onPress={() => abrirChat(item)}
                 activeOpacity={0.78}
+                accessibilityRole="button"
+                accessibilityLabel={`Abrir conversa com ${item.otherUserName}`}
               >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{item.otherUserName.trim().charAt(0).toUpperCase() || "U"}</Text>
@@ -311,4 +340,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  retryButton: { marginTop: 18, minHeight: 44, paddingHorizontal: 20, borderRadius: 14, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center" },
+  retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
 });

@@ -124,7 +124,7 @@ function mapFirebaseStatusToServiceStatus(status: string): ServiceStatus {
   // Ao aceitar, o app salva como "a fazer" (deve aparecer em Pendentes)
   if (s === "a fazer" || s === "aceito" || s === "aguardando") return "pendente";
 
-  // Demais status que indicam execuÃ§Ã£o do serviÃ§o
+  // Demais status que indicam execução do serviço
   if (s === "em andamento" || s === "andamento" || s === "iniciado" || s === "aguardando_confirmacao") return "andamento";
 
   return "pendente";

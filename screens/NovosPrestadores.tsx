@@ -45,7 +45,7 @@ export default function NovosPrestadores() {
             profissao: userData.profissao || "Geral",
             avaliacao: userData.avaliacao || 0,
             distancia: userData.distancia || "A calcular",
-            telefone: userData.fone || "NÃ£o informado",
+            telefone: userData.fone || "Não informado",
             criadoEm: userData.criadoEm,
           });
         }

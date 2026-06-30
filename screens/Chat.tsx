@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ActivityIndicator,
   TextInput,
   TouchableOpacity,
   FlatList,
@@ -31,6 +32,10 @@ export default function Chat() {
 
   const [mensagens, setMensagens] = useState<Message[]>([]);
   const [texto, setTexto] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [tentativa, setTentativa] = useState(0);
   const listRef = useRef<FlatList<Message>>(null);
 
   const chatId = useMemo(() => {
@@ -40,13 +45,19 @@ export default function Chat() {
   }, [otherUserId]);
 
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId) {
+      setCarregando(false);
+      setErro("Não foi possível identificar esta conversa.");
+      return;
+    }
 
     const uid = auth.currentUser?.uid;
     if (!uid || !otherUserId) return;
 
     let unsubscribe: undefined | (() => void);
     let active = true;
+    setCarregando(true);
+    setErro("");
 
     const prepararChat = async () => {
       try {
@@ -71,15 +82,21 @@ export default function Chat() {
                 ...(doc.data() as any),
               }));
               setMensagens(lista);
+              setCarregando(false);
+              setErro("");
             },
             (erro) => {
               console.error("Erro ao carregar mensagens:", erro);
-              setMensagens([]);
+              if (!active) return;
+              setCarregando(false);
+              setErro("Não foi possível carregar as mensagens.");
             }
           );
       } catch (erro) {
         console.error("Erro ao preparar chat:", erro);
-        setMensagens([]);
+        if (!active) return;
+        setCarregando(false);
+        setErro("Não foi possível abrir a conversa.");
       }
     };
 
@@ -91,15 +108,17 @@ export default function Chat() {
         unsubscribe();
       }
     };
-  }, [chatId, otherUserId]);
+  }, [chatId, otherUserId, tentativa]);
 
   const enviarMensagem = async () => {
     const uid = auth.currentUser?.uid;
-    if (!uid || !otherUserId || !chatId) return;
+    if (!uid || !otherUserId || !chatId || enviando) return;
     const text = texto.trim();
     if (!text) return;
 
     setTexto("");
+    setEnviando(true);
+    setErro("");
 
     try {
       const chatRef = firestore.collection("Chats").doc(chatId);
@@ -122,7 +141,7 @@ export default function Chat() {
           participants: [uid, otherUserId].sort(),
           lastMessage: text,
           lastMessageAt: timestamp,
-          createdAt: timestamp,
+          updatedAt: timestamp,
         },
         { merge: true }
       );
@@ -130,7 +149,10 @@ export default function Chat() {
       await batch.commit();
     } catch (erro) {
       console.error("Erro ao enviar mensagem:", erro);
-      setTexto(texto);
+      setTexto((atual) => (atual.trim() ? atual : text));
+      setErro("A mensagem não foi enviada. Verifique sua conexão e tente novamente.");
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -176,6 +198,8 @@ export default function Chat() {
           <TouchableOpacity
             style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
           >
             <ArrowLeft size={22} color={theme.textPrimary} />
           </TouchableOpacity>
@@ -197,7 +221,12 @@ export default function Chat() {
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
+          ListEmptyComponent={carregando ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="large" color="#2563EB" />
+              <Text style={[styles.loadingText, { color: theme.textMuted }]}>Carregando mensagens...</Text>
+            </View>
+          ) : (
             <View style={styles.emptyState}>
               <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
                 <MessageCircle size={30} color="#2563EB" />
@@ -207,11 +236,22 @@ export default function Chat() {
                 Combine os detalhes do serviço com clareza e segurança.
               </Text>
             </View>
-          }
+          )}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         />
+
+        {!!erro && (
+          <View style={[styles.errorBanner, { backgroundColor: isDark ? "#422006" : "#FFF7ED" }]}>
+            <Text style={[styles.errorText, { color: isDark ? "#FCD34D" : "#9A3412" }]}>{erro}</Text>
+            {!enviando && !carregando && mensagens.length === 0 && (
+              <TouchableOpacity onPress={() => setTentativa((valor) => valor + 1)} accessibilityRole="button">
+                <Text style={styles.retryText}>Tentar novamente</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <View
           style={[
@@ -227,14 +267,18 @@ export default function Chat() {
             onChangeText={setTexto}
             multiline
             maxLength={1000}
+            editable={!enviando && !!chatId}
+            accessibilityLabel="Mensagem"
           />
           <TouchableOpacity
-            style={[styles.sendButton, !texto.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!texto.trim() || enviando || !chatId) && styles.sendButtonDisabled]}
             onPress={enviarMensagem}
-            disabled={!texto.trim()}
+            disabled={!texto.trim() || enviando || !chatId}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Enviar mensagem"
           >
-            <Send size={18} color="#fff" />
+            {enviando ? <ActivityIndicator size="small" color="#fff" /> : <Send size={18} color="#fff" />}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -361,6 +405,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
+  loadingText: { fontSize: 13, fontWeight: "600", marginTop: 12 },
+  errorBanner: { marginHorizontal: 14, marginBottom: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 10 },
+  errorText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  retryText: { color: "#2563EB", fontSize: 12, fontWeight: "800" },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",

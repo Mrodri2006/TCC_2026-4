@@ -74,3 +74,12 @@ Arquivo: `firestore.rules`
 
 Importante: as regras gerais ainda permitem `read/write` autenticado para outras coleções; endureça por coleção conforme seu domínio.
 
+## Mapa e localização voluntária
+
+- O prestador ativa ou desativa a visibilidade na página inicial.
+- A posição é aproximada, fica na coleção `LocalizacoesPrestadores` e expira após duas horas.
+- Somente contratantes autenticados podem consultar localizações válidas de prestadores ativos.
+- Não há rastreamento em segundo plano.
+
+Para o mapa funcionar em um APK Android próprio, configure `GOOGLE_MAPS_API_KEY` no ambiente do build com uma chave que tenha o Maps SDK for Android habilitado. O arquivo `app.config.js` injeta a chave na configuração nativa sem gravá-la no repositório.
+

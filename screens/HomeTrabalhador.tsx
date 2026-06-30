@@ -32,6 +32,7 @@ import {
 import { Calendar } from "lucide-react-native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { LocationVisibilityCard } from "../components/LocationVisibilityCard";
 
 export default function HomeTrabalhador() {
   const navigation = useNavigation<any>();
@@ -357,6 +358,8 @@ export default function HomeTrabalhador() {
 
           <ChevronRight size={22} color={sectionTextColor} />
         </TouchableOpacity>
+
+        <LocationVisibilityCard />
 
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionTitle, { color: sectionTextColor }]}>Serviços solicitados</Text>

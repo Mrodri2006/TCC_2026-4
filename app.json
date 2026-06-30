@@ -20,7 +20,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo4.png",
         "backgroundColor": "#000000"
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/logo8.png"
@@ -29,16 +33,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Permita o acesso à localização para preencher sua cidade e região automaticamente."
+          "locationWhenInUsePermission": "Permita o acesso à localização para encontrar profissionais próximos ou aparecer voluntariamente no mapa."
         }
       ],
       "expo-sharing"
     ],
     "extra": {
       "eas": {
-        "projectId": "802b6a82-2958-48f4-8adb-b819c26c0d07"
+        "projectId": "8654630a-5eda-454e-9b97-eaa583394311"
       }
     },
-    "owner": "m2006"
+    "owner": "mrodri"
   }
 }

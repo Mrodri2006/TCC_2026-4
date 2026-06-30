@@ -57,6 +57,14 @@ service cloud.firestore {
         && (
           !request.resource.data.keys().hasAny(['admin'])
           || request.resource.data.admin == false
+        )
+        && (
+          request.resource.data.tipo == 'contratante'
+          || (
+            request.resource.data.assinaturaAtiva == false
+            && request.resource.data.contaAtiva == false
+            && request.resource.data.statusPagamento == 'primeiro_pagamento_pendente'
+          )
         );
 
       allow read: if isOwner(uid)
@@ -177,6 +185,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    function isContratante() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/Usuario/$(request.auth.uid))
+        && get(/databases/$(database)/documents/Usuario/$(request.auth.uid)).data.tipo == 'contratante';
+    }
+
     match /ProblemasServicos/{problemaId} {
       allow read: if isAdmin()
         || (signedIn() && resource.data.clienteId == request.auth.uid)
@@ -203,9 +217,52 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /LocalizacoesPrestadores/{prestadorId} {
+      allow read: if isOwner(prestadorId)
+        || isAdmin()
+        || (
+          isContratante()
+          && activePrestador(prestadorId)
+          && resource.data.expiresAt > request.time
+        );
+
+      allow create, update: if isOwner(prestadorId)
+        && activePrestador(prestadorId)
+        && request.resource.data.prestadorId == prestadorId
+        && request.resource.data.latitude is number
+        && request.resource.data.latitude >= -90
+        && request.resource.data.latitude <= 90
+        && request.resource.data.longitude is number
+        && request.resource.data.longitude >= -180
+        && request.resource.data.longitude <= 180
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(3, 'h')
+        && request.resource.data.keys().hasOnly([
+          'prestadorId', 'latitude', 'longitude', 'accuracy', 'updatedAt', 'expiresAt'
+        ]);
+
+      allow delete: if isOwner(prestadorId) || isAdmin();
+    }
+
     match /Chats/{chatId} {
-      allow read, update, delete: if participantIn(resource.data) || isAdmin();
-      allow create: if participantIn(request.resource.data) || isAdmin();
+      allow read, delete: if participantIn(resource.data) || isAdmin();
+      allow create: if isAdmin()
+        || (
+          participantIn(request.resource.data)
+          && request.resource.data.participants.size() == 2
+          && request.resource.data.keys().hasOnly([
+            'participants', 'lastMessage', 'lastMessageAt', 'updatedAt'
+          ])
+        );
+      allow update: if isAdmin()
+        || (
+          participantIn(resource.data)
+          && request.resource.data.participants == resource.data.participants
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'lastMessage', 'lastMessageAt', 'updatedAt'
+          ])
+        );
 
       match /Messages/{messageId} {
         allow read: if isAdmin()
@@ -213,6 +270,10 @@ service cloud.firestore {
 
         allow create: if signedIn()
           && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.keys().hasOnly(['text', 'senderId', 'createdAt'])
           && (
             isAdmin()
             || participantIn(getAfter(/databases/$(database)/documents/Chats/$(chatId)).data)

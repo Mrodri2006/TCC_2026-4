@@ -28,6 +28,7 @@ import { Usuario } from '../model/Usuario';
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { DEFAULT_MENSALIDADE_VALOR } from "../utils/billingConfig";
+import { getFirebaseErrorMessage } from "../utils/firebaseError";
 
 export default function Register() {
 
@@ -190,13 +191,27 @@ export default function Register() {
   };
 
   const registrar = async () => {
+    const emailLimpo = formUsuario.email?.trim().toLowerCase() || "";
+    const telefoneNumeros = (formUsuario.fone || "").replace(/\D/g, "");
 
-    if (!formUsuario.email || !formUsuario.senha || !profissao || !formUsuario.dataNascimento || !formUsuario.localizacao) {
+    if (!formUsuario.nome?.trim() || !emailLimpo || !formUsuario.senha || !formUsuario.fone?.trim() || !profissao || !formUsuario.dataNascimento || !formUsuario.localizacao?.trim()) {
       alert("Preencha todos os campos!");
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+      alert("Informe um e-mail válido.");
+      return;
+    }
+    if (formUsuario.senha.length < 6) {
+      alert("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (telefoneNumeros.length < 10 || telefoneNumeros.length > 11) {
+      alert("Informe um telefone válido com DDD.");
+      return;
+    }
     if (!aceitouTermos) {
-      alert("Aceite os termos e as especificacoes do app para continuar.");
+      alert("Aceite os termos e as especificações do app para continuar.");
       return;
     }
     if (calcularIdade(formUsuario.dataNascimento) < 18) {
@@ -205,22 +220,24 @@ export default function Register() {
     }
 
     setLoading(true);
+    let criouAutenticacao = false;
 
     try {
 
       await auth.createUserWithEmailAndPassword(
-        formUsuario.email,
+        emailLimpo,
         formUsuario.senha
       );
+      criouAutenticacao = true;
 
       await firestore
         .collection('Usuario')
         .doc(auth.currentUser!.uid)
         .set({
           id: auth.currentUser!.uid,
-          nome: formUsuario.nome,
-          email: formUsuario.email,
-          fone: formUsuario.fone,
+          nome: formUsuario.nome.trim(),
+          email: emailLimpo,
+          fone: formUsuario.fone.trim(),
           localizacao: formUsuario.localizacao?.trim(),
           localizacaoNormalizada: normalizarLocalizacao(formUsuario.localizacao || ""),
           dataNascimento: formUsuario.dataNascimento?.toISOString() || null,
@@ -239,8 +256,9 @@ export default function Register() {
 
       navigation.replace('PagamentoMensalidade');
 
-    } catch (erro: any) {
-      alert(erro.message);
+    } catch (erro: unknown) {
+      if (criouAutenticacao) await auth.currentUser?.delete().catch((): void => undefined);
+      alert(getFirebaseErrorMessage(erro, "Não foi possível concluir o cadastro. Tente novamente."));
     } finally {
       setLoading(false);
     }

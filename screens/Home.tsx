@@ -440,7 +440,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
           : {}),
       };
 
-      // Atualiza (ou cria, se nÃ£o existir) o status no documento do trabalhador
+      // Atualiza (ou cria, se não existir) o status no documento do trabalhador
       await firestore
         .collection("ServicosAgendados")
         .doc(servicoSelecionado.prestadorId)
@@ -664,6 +664,23 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 <User size={22} color="#2563EB" />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={[styles.mapDiscoveryCard, { backgroundColor: theme.surface, borderColor: theme.surfaceBorder }]}
+              onPress={() => navigation.navigate("MapaPrestadores")}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Ver profissionais disponíveis no mapa"
+            >
+              <View style={styles.mapDiscoveryIcon}>
+                <MapPin size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.mapDiscoveryCopy}>
+                <Text style={[styles.mapDiscoveryTitle, { color: theme.surfaceTextPrimary }]}>Profissionais disponíveis agora</Text>
+                <Text style={[styles.mapDiscoveryText, { color: theme.surfaceTextMuted }]}>Veja no mapa quem decidiu compartilhar a localização</Text>
+              </View>
+              <ArrowRight size={20} color="#2563EB" />
+            </TouchableOpacity>
 
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Serviços Populares</Text>
@@ -1887,5 +1904,37 @@ const styles = StyleSheet.create({
     color: "#2563EB",
     fontWeight: "700",
     fontSize: 12,
+  },
+  mapDiscoveryCard: {
+    minHeight: 84,
+    marginTop: 18,
+    marginBottom: 4,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  mapDiscoveryIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 17,
+    backgroundColor: "#16A34A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapDiscoveryCopy: {
+    flex: 1,
+  },
+  mapDiscoveryTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  mapDiscoveryText: {
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
   },
 });

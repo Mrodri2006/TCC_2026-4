@@ -29,12 +29,14 @@ import RelatoriosPrestador    from './screens/RelatoriosPrestador';
 import EsqueceuSenha from './screens/EsqueceuSenha';
 import MensalidadeBloqueada from './screens/MensalidadeBloqueada';
 import PagamentoMensalidade from './screens/PagamentoMensalidade';
+import MapaPrestadores from './screens/MapaPrestadores';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ServicosEmAndamento from './screens/ServicosEmAndamento';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { withThemeScreen } from './theme/withThemeScreen';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 
 const Stack = createNativeStackNavigator();
 
@@ -69,6 +71,7 @@ const ThemedRelatoriosPrestador = withThemeScreen(RelatoriosPrestador);
 const ThemedEsqueceuSenha = withThemeScreen(EsqueceuSenha);
 const ThemedMensalidadeBloqueada = withThemeScreen(MensalidadeBloqueada);
 const ThemedPagamentoMensalidade = withThemeScreen(PagamentoMensalidade);
+const ThemedMapaPrestadores = withThemeScreen(MapaPrestadores);
 
 function AppInner() {
   const { theme } = useTheme();
@@ -118,6 +121,7 @@ function AppInner() {
         <Stack.Screen name='EsqueceuSenha' component={ThemedEsqueceuSenha} options={{ headerShown: false }} />
         <Stack.Screen name='MensalidadeBloqueada' component={ThemedMensalidadeBloqueada} options={{ headerShown: false }} />
         <Stack.Screen name='PagamentoMensalidade' component={ThemedPagamentoMensalidade} options={{ headerShown: false }} />
+        <Stack.Screen name='MapaPrestadores' component={ThemedMapaPrestadores} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     
@@ -126,8 +130,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppInner />
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <AppInner />
+      </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
