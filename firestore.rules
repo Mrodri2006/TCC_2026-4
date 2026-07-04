@@ -146,8 +146,10 @@ service cloud.firestore {
       }
 
       match /Favoritos/{providerId} {
-        allow read, create, update, delete: if isOwner(uid)
-          && request.auth.uid != providerId;
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.auth.uid != providerId
+          && request.resource.data.providerId == providerId;
       }
 
       match /Serv/{servId} {
