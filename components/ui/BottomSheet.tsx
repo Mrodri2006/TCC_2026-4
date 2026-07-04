@@ -1,0 +1,5 @@
+import type { ReactNode } from "react";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { useTheme } from "../../theme/ThemeContext";
+export function BottomSheet({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: ReactNode }) { const { theme } = useTheme(); return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={styles.overlay}><Pressable style={StyleSheet.absoluteFill} onPress={onClose} /><View style={[styles.sheet, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={[styles.handle, { backgroundColor: theme.border }]} />{children}</View></View></Modal>; }
+const styles = StyleSheet.create({ overlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(15,23,42,0.48)" }, sheet: { maxHeight: "88%", borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 28 }, handle: { width: 42, height: 5, borderRadius: 3, alignSelf: "center", marginBottom: 10 } });

@@ -131,6 +131,11 @@ service cloud.firestore {
         allow create, update, delete: if isOwner(uid) || isAdmin();
       }
 
+      match /Indisponibilidades/{periodoId} {
+        allow read: if isOwner(uid) || isAdmin() || (signedIn() && activePrestador(uid));
+        allow create, update, delete: if isOwner(uid) || isAdmin();
+      }
+
       match /ReservasAgenda/{reservaId} {
         allow read: if isOwner(uid) || isAdmin();
         allow create, update, delete: if false;
@@ -138,6 +143,11 @@ service cloud.firestore {
 
       match /Bloqueados/{blockedId} {
         allow read, create, update, delete: if isOwner(uid);
+      }
+
+      match /Favoritos/{providerId} {
+        allow read, create, update, delete: if isOwner(uid)
+          && request.auth.uid != providerId;
       }
 
       match /Serv/{servId} {
@@ -179,6 +189,12 @@ service cloud.firestore {
       allow delete: if isAdmin()
         || isOwner(prestadorId)
         || (signedIn() && resource.data.clienteId == request.auth.uid);
+
+      match /Propostas/{propostaId} {
+        allow read: if isAdmin() || isOwner(prestadorId)
+          || (signedIn() && get(/databases/$(database)/documents/ServicosAgendados/$(prestadorId)/ServicoStatus/$(servicoId)).data.clienteId == request.auth.uid);
+        allow write: if false;
+      }
     }
 
     match /ServicosClientes/{clienteId}/ServicoStatus/{servicoId} {
@@ -205,6 +221,12 @@ service cloud.firestore {
       allow delete: if isAdmin()
         || isOwner(clienteId)
         || (signedIn() && resource.data.prestadorId == request.auth.uid);
+
+      match /Propostas/{propostaId} {
+        allow read: if isAdmin() || isOwner(clienteId)
+          || (signedIn() && get(/databases/$(database)/documents/ServicosClientes/$(clienteId)/ServicoStatus/$(servicoId)).data.prestadorId == request.auth.uid);
+        allow write: if false;
+      }
     }
 
     match /ServicosRejeitados/{prestadorId}/ServicoStatus/{servicoId} {
@@ -333,17 +355,35 @@ service cloud.firestore {
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 1000
-          && request.resource.data.keys().hasOnly(['text', 'senderId', 'createdAt'])
-          && (
-            isAdmin()
-            || participantIn(getAfter(/databases/$(database)/documents/Chats/$(chatId)).data)
-          );
-
+          && request.resource.data.keys().hasOnly(['text', 'senderId', 'createdAt', 'replyTo', 'readBy', 'attachment', 'location'])
+          && participantIn(getAfter(/databases/$(database)/documents/Chats/$(chatId)).data);
         allow update, delete: if false;
+      }
+
+      match /Presence/{presenceUid} {
+        allow read: if isAdmin()
+          || participantIn(get(/databases/$(database)/documents/Chats/$(chatId)).data);
+        allow create, update, delete: if signedIn()
+          && request.auth.uid == presenceUid
+          && participantIn(get(/databases/$(database)/documents/Chats/$(chatId)).data);
       }
     }
 
     match /MercadoPagoWebhooks/{webhookId} {
+      allow read, write: if false;
+    }
+
+    match /AuditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /PublicConfig/{configId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /RateLimits/{limitId} {
       allow read, write: if false;
     }
 

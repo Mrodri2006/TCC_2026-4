@@ -37,6 +37,7 @@ import { auth, firestore } from '../firebase';
 import { adminDeleteUsuario, adminListUsuarios, adminUpdateUsuario } from '../services/adminService';
 import { computeNextDueDate } from '../utils/billingDates';
 import { useTheme } from '../theme/ThemeContext';
+import firebase from 'firebase/compat/app';
 
 export default function Adm() {
   const navigation = useNavigation<any>();
@@ -51,6 +52,9 @@ export default function Adm() {
   const [carregandoSolicitacoes, setCarregandoSolicitacoes] = useState(true);
   const [problemasServicos, setProblemasServicos] = useState<any[]>([]);
   const [carregandoProblemas, setCarregandoProblemas] = useState(true);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [problemaParaResponder, setProblemaParaResponder] = useState<any>(null);
+  const [respostaAdmin, setRespostaAdmin] = useState('');
   const [processandoPagamentoId, setProcessandoPagamentoId] = useState<string | null>(null);
   const [processandoUsuarioId, setProcessandoUsuarioId] = useState<string | null>(null);
   const [usuarioExpandidoId, setUsuarioExpandidoId] = useState<string | null>(null);
@@ -141,14 +145,23 @@ export default function Adm() {
     }
   };
 
-  const resolverProblemaServico = async (problema: any) => {
+  const buscarAuditoria = async () => {
+    try { const snapshot = await firestore.collection('AuditLogs').orderBy('createdAt', 'desc').limit(20).get(); setAuditLogs(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))); }
+    catch (erro) { console.error('Erro ao carregar auditoria:', erro); }
+  };
+
+  const resolverProblemaServico = async (problema: any, resposta = respostaAdmin) => {
     try {
       await firestore.collection(problema.origem || 'ProblemasServicos').doc(problema.id).set({
         status: 'resolvido',
         resolvidoEm: new Date(),
         resolvidoPor: auth.currentUser?.uid || null,
+        respostaAdmin: resposta.trim(),
+        history: firebase.firestore.FieldValue.arrayUnion({ status: 'resolvido', resposta: resposta.trim(), actorId: auth.currentUser?.uid || null, at: new Date() }),
       }, { merge: true });
       setProblemasServicos((prev) => prev.filter((item) => item.id !== problema.id));
+      setProblemaParaResponder(null);
+      setRespostaAdmin('');
     } catch (erro) {
       console.error('Erro ao resolver problema:', erro);
       Alert.alert('Erro', 'Não foi possível concluir o atendimento.');
@@ -169,6 +182,7 @@ export default function Adm() {
         await buscarUsuarios(true);
         await buscarSolicitacoesPagamento();
         await buscarProblemasServicos();
+        await buscarAuditoria();
       } catch (erro) {
         console.error('Erro ao validar acesso admin:', erro);
         Alert.alert('Erro', 'Nao foi possivel validar suas permissoes.');
@@ -578,13 +592,15 @@ export default function Adm() {
               </View>
               <Text style={[styles.problemMeta, { color: mutedColor }]}>Relatado por: {problema.relatorTipo || 'usuário'}</Text>
               <Text style={[styles.problemDescription, { color: textColor }]}>{problema.descricao}</Text>
-              <TouchableOpacity style={styles.resolveProblemButton} onPress={() => resolverProblemaServico(problema)}>
+              <TouchableOpacity style={styles.resolveProblemButton} onPress={() => { setProblemaParaResponder(problema); setRespostaAdmin(''); }}>
                 <Check size={16} color="#FFFFFF" />
-                <Text style={styles.resolveProblemText}>Marcar como resolvido</Text>
+                <Text style={styles.resolveProblemText}>Responder e resolver</Text>
               </TouchableOpacity>
             </View>
           ))
         )}
+
+        {!!auditLogs.length && <View style={styles.detailsSection}><Text style={[styles.sectionTitle, { color: textColor }]}>Atividade recente</Text>{auditLogs.slice(0, 8).map((log) => <View key={log.id} style={[styles.auditRow, { backgroundColor: cardBg, borderColor: cardBorder }]}><ShieldCheck size={17} color="#2563EB" /><View style={{ flex: 1 }}><Text style={[styles.auditAction, { color: textColor }]}>{log.action || 'Ação do sistema'}</Text><Text style={[styles.auditMeta, { color: mutedColor }]}>{log.category || 'sistema'} • {log.createdAt?.toDate?.().toLocaleString('pt-BR') || 'agora'}</Text></View></View>)}</View>}
 
         <Text style={[styles.sectionTitle, { color: textColor }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
@@ -879,6 +895,9 @@ export default function Adm() {
             </View>
           </View>
         </Modal>
+        <Modal visible={!!problemaParaResponder} transparent animationType="fade" onRequestClose={() => setProblemaParaResponder(null)}>
+          <View style={styles.modalBackdrop}><View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: cardBorder }]}><Text style={[styles.modalTitle, { color: textColor }]}>Responder ocorrência</Text><Text style={[styles.problemDescription, { color: mutedColor }]}>{problemaParaResponder?.descricao}</Text><TextInput style={[styles.responseInput, { color: textColor, borderColor: theme.border }]} value={respostaAdmin} onChangeText={setRespostaAdmin} placeholder="Informe a decisão e as providências tomadas..." placeholderTextColor={mutedColor} multiline maxLength={1500} /><View style={styles.modalActions}><TouchableOpacity style={styles.outlineButton} onPress={() => setProblemaParaResponder(null)}><Text style={styles.outlineButtonText}>Cancelar</Text></TouchableOpacity><TouchableOpacity style={[styles.secondaryButton, !respostaAdmin.trim() && styles.disabledButton]} disabled={!respostaAdmin.trim()} onPress={() => resolverProblemaServico(problemaParaResponder)}><Text style={styles.secondaryButtonText}>Enviar e resolver</Text></TouchableOpacity></View></View></View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -937,6 +956,10 @@ const styles = StyleSheet.create({
   problemTitle: { flex: 1, fontSize: 16, fontWeight: '900' },
   problemMeta: { fontSize: 12, fontWeight: '700', marginTop: 8 },
   problemDescription: { fontSize: 14, lineHeight: 20, marginTop: 8 },
+  responseInput: { minHeight: 130, borderWidth: 1, borderRadius: 16, padding: 14, marginTop: 16, textAlignVertical: 'top' },
+  auditRow: { minHeight: 58, borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  auditAction: { fontSize: 13, fontWeight: '900' },
+  auditMeta: { fontSize: 10, fontWeight: '600', marginTop: 3 },
   resolveProblemButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#16A34A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginTop: 14 },
   resolveProblemText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
   statsGrid: {

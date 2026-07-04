@@ -35,6 +35,8 @@ import {
 } from "lucide-react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { auth, firestore } from "../firebase";
+import { ServiceTimeline } from "../components/ServiceTimeline";
+import type { ServiceTimelineEvent } from "../domain/service";
 
 type ServiceStatus = "pendente" | "andamento" | "concluido" | "cancelado";
 
@@ -55,6 +57,7 @@ type ServicoCard = {
   tipo?: string;
   statusFirebase?: string;
   avaliacaoContratanteFeita?: boolean;
+  timeline?: ServiceTimelineEvent[];
 };
 
 const TABS: { key: ServiceStatus; label: string }[] = [
@@ -213,6 +216,7 @@ export default function Servicos() {
           tipo: data.tipo,
           statusFirebase: data.status,
           avaliacaoContratanteFeita: data.avaliacaoContratanteFeita === true,
+          timeline: Array.isArray(data.timeline) ? data.timeline : [],
         };
       });
 
@@ -620,6 +624,7 @@ export default function Servicos() {
               {acaoFinalizacao === "finalizar" ? "Informar finalização" : "Relatar problema"}
             </Text>
             <Text style={[styles.actionModalSubtitle, { color: theme.textMuted }]}>{servicoSelecionado?.tipoServico}</Text>
+            <ServiceTimeline status={servicoSelecionado?.statusFirebase} events={servicoSelecionado?.timeline} />
 
             {acaoFinalizacao === "finalizar" ? (
               <>

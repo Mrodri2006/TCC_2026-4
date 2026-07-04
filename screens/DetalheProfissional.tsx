@@ -1,10 +1,12 @@
 
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { Star, MapPin, Phone, Mail, ArrowLeft, Award } from "lucide-react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { Star, MapPin, Phone, Mail, ArrowLeft, Award, Heart } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
 import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { ReputationCard } from "../components/ReputationCard";
+import { setProviderFavorite, subscribeProviderFavorite } from "../services/favoriteService";
 
 export default function DetalheProfissional() {
   const navigation = useNavigation<any>();
@@ -17,6 +19,8 @@ export default function DetalheProfissional() {
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [carregando, setCarregando] = useState(true);
+  const [favorito, setFavorito] = useState(false);
+  const [salvandoFavorito, setSalvandoFavorito] = useState(false);
 
   const formatDate = (value: any) => {
     if (!value) return "";
@@ -27,7 +31,15 @@ export default function DetalheProfissional() {
 
   useEffect(() => {
     buscarDetalhes();
+    if (!profissional?.id) return;
+    return subscribeProviderFavorite(profissional.id, setFavorito);
   }, [profissional?.id]);
+
+  const alternarFavorito = async () => {
+    try { setSalvandoFavorito(true); await setProviderFavorite({ id: profissional.id, nome: profissional.nome, profissao: profissional.profissao }, !favorito); }
+    catch { Alert.alert("Favoritos", "Não foi possível atualizar o favorito. Verifique sua conexão e tente novamente."); }
+    finally { setSalvandoFavorito(false); }
+  };
 
   const buscarDetalhes = async () => {
     setCarregando(true);
@@ -174,6 +186,15 @@ export default function DetalheProfissional() {
           )}
         </View>
       </View>
+
+      <ReputationCard data={{ ...profissional, ...usuarioData }} />
+
+      {!!(usuarioData.experiencia || usuarioData.especialidades?.length || usuarioData.certificados?.length || usuarioData.site || usuarioData.portfolio) && <View style={styles.professionalSection}><Text style={styles.sectionTitle}>Perfil profissional</Text>{!!usuarioData.experiencia && <Text style={styles.professionalText}>{usuarioData.experiencia}</Text>}{!!usuarioData.especialidades?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Especialidades: </Text>{usuarioData.especialidades.join(", ")}</Text>}{!!usuarioData.certificados?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Certificados: </Text>{usuarioData.certificados.join(", ")}</Text>}{!!usuarioData.site && <Text style={styles.professionalLink}>{usuarioData.site}</Text>}{!!usuarioData.portfolio && <Text style={styles.professionalLink}>{usuarioData.portfolio}</Text>}</View>}
+
+      <TouchableOpacity style={[styles.favoriteButton, favorito && styles.favoriteButtonActive]} onPress={alternarFavorito} disabled={salvandoFavorito}>
+        {salvandoFavorito ? <ActivityIndicator color="#EF4444" /> : <Heart size={20} color="#EF4444" fill={favorito ? "#EF4444" : "transparent"} />}
+        <Text style={styles.favoriteText}>{favorito ? "Remover dos favoritos" : "Salvar profissional"}</Text>
+      </TouchableOpacity>
 
       <View style={styles.servicosSection}>
         <View style={styles.sectionHeader}>
@@ -469,6 +490,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 44,
   },
+  professionalSection: { marginHorizontal: 16, marginBottom: 16, borderRadius: 18, padding: 16, backgroundColor: "#FFFFFF" },
+  professionalText: { color: "#475569", fontSize: 13, lineHeight: 20, marginTop: 7 },
+  professionalLabel: { color: "#0F172A", fontWeight: "800" },
+  professionalLink: { color: "#2563EB", fontSize: 12, fontWeight: "800", marginTop: 8 },
+  favoriteButton: { marginHorizontal: 16, marginBottom: 8, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  favoriteButtonActive: { backgroundColor: "#FEF2F2" },
+  favoriteText: { color: "#B91C1C", fontSize: 13, fontWeight: "800" },
 
   botaoContratar: {
     backgroundColor: "#2563EB",

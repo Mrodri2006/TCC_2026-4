@@ -14,6 +14,16 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    function validComplaintMedia() {
+      return request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video)/.*');
+    }
+
+    function validChatFile() {
+      return request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video|audio|application)/.*');
+    }
+
     match /servicos/{uid}/{fileName} {
       allow read: if signedIn();
       allow create, update: if isOwner(uid) && validImage();
@@ -23,6 +33,18 @@ service firebase.storage {
     match /{uid}/avatar.jpg {
       allow read: if signedIn();
       allow create, update: if isOwner(uid) && validImage();
+      allow delete: if isOwner(uid);
+    }
+
+    match /denuncias/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validComplaintMedia();
+      allow delete: if isOwner(uid);
+    }
+
+    match /chats/{chatId}/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validChatFile();
       allow delete: if isOwner(uid);
     }
   }

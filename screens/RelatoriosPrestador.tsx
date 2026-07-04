@@ -17,6 +17,7 @@ import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { printToFileAsync } from "expo-print";
 import { shareAsync } from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 
 type Summary = {
   realizados: number;
@@ -273,6 +274,22 @@ export default function RelatoriosPrestador() {
     }
   };
 
+  const exportarCSV = async () => {
+    const rows = summary.porDia.map((item) => `${item.label};${item.count};${item.ganhos.toFixed(2).replace(".", ",")}`).join("\n");
+    const uri = `${FileSystem.cacheDirectory}relatorio-${Date.now()}.csv`;
+    await FileSystem.writeAsStringAsync(uri, `\ufeffData;Serviços;Ganhos\n${rows}`, { encoding: FileSystem.EncodingType.UTF8 });
+    await shareAsync(uri, { mimeType: "text/csv", dialogTitle: "Exportar CSV" });
+  };
+
+  const exportarExcel = async () => {
+    const escape = (value: unknown) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rows = summary.porDia.map((item) => `<Row><Cell><Data ss:Type="String">${escape(item.label)}</Data></Cell><Cell><Data ss:Type="Number">${item.count}</Data></Cell><Cell><Data ss:Type="Number">${item.ganhos.toFixed(2)}</Data></Cell></Row>`).join("");
+    const workbook = `<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Relatorio"><Table><Row><Cell><Data ss:Type="String">Data</Data></Cell><Cell><Data ss:Type="String">Servicos</Data></Cell><Cell><Data ss:Type="String">Ganhos</Data></Cell></Row>${rows}</Table></Worksheet></Workbook>`;
+    const uri = `${FileSystem.cacheDirectory}relatorio-${Date.now()}.xls`;
+    await FileSystem.writeAsStringAsync(uri, workbook, { encoding: FileSystem.EncodingType.UTF8 });
+    await shareAsync(uri, { mimeType: "application/vnd.ms-excel", dialogTitle: "Exportar Excel" });
+  };
+
   const max = Math.max(1, ...summary.porDia.map((d) => d.count));
 
   return (
@@ -392,6 +409,7 @@ export default function RelatoriosPrestador() {
                 <Download size={18} color="#fff" />
                 <Text style={styles.exportText}>Exportar PDF (período)</Text>
               </TouchableOpacity>
+              <View style={styles.exportRow}><TouchableOpacity style={styles.exportSecondary} onPress={exportarExcel}><Text style={styles.exportSecondaryText}>Excel</Text></TouchableOpacity><TouchableOpacity style={styles.exportSecondary} onPress={exportarCSV}><Text style={styles.exportSecondaryText}>CSV</Text></TouchableOpacity></View>
             </View>
           </>
         )}
@@ -543,4 +561,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exportText: { color: "#fff", fontWeight: "900", fontSize: 13 },
+  exportRow: { flexDirection: "row", gap: 10, marginTop: 10 },
+  exportSecondary: { flex: 1, minHeight: 44, borderRadius: 13, backgroundColor: "#E2E8F0", alignItems: "center", justifyContent: "center" },
+  exportSecondaryText: { color: "#334155", fontSize: 12, fontWeight: "900" },
 });

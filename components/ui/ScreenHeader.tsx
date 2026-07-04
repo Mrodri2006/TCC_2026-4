@@ -1,0 +1,8 @@
+import type { ReactNode } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ArrowLeft } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../../theme/ThemeContext";
+import { spacing, typography } from "../../theme/tokens";
+export function ScreenHeader({ title, subtitle, right, onBack }: { title: string; subtitle?: string; right?: ReactNode; onBack?: () => void }) { const navigation = useNavigation<any>(); const { theme } = useTheme(); return <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}><TouchableOpacity style={[styles.button, { backgroundColor: theme.headerBtnBg }]} onPress={onBack || (() => navigation.goBack())} accessibilityLabel="Voltar"><ArrowLeft size={21} color={theme.textPrimary} /></TouchableOpacity><View style={styles.copy}><Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>{title}</Text>{subtitle && <Text style={[styles.subtitle, { color: theme.textMuted }]} numberOfLines={1}>{subtitle}</Text>}</View><View style={styles.right}>{right}</View></View>; }
+const styles = StyleSheet.create({ header: { minHeight: 68, paddingHorizontal: spacing.lg, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth }, button: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" }, copy: { flex: 1, alignItems: "center", paddingHorizontal: spacing.sm }, title: { ...typography.subtitle }, subtitle: { ...typography.caption, fontSize: 10 }, right: { width: 42, alignItems: "flex-end" } });

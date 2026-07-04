@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { ArrowLeft, Bell, CheckCheck, ChevronRight } from "lucide-react-native";
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ArrowLeft, Bell, Check, CheckCheck, ChevronRight } from "lucide-react-native";
+import { Swipeable } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import firebase from "firebase/compat/app";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { StateView } from "../components/ui";
+import { useFeedback } from "../components/ui";
 
 type NotificationItem = {
   id: string;
@@ -20,9 +23,11 @@ type NotificationItem = {
 export default function Notificacoes() {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
+  const feedback = useFeedback();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [category, setCategory] = useState("todas");
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -57,9 +62,12 @@ export default function Notificacoes() {
     const batch = firestore.batch();
     unread.forEach((item) => batch.set(notificationRef(item.id), { lida: true }, { merge: true }));
     await batch.commit();
+    feedback.show(`${unread.length} notificação${unread.length === 1 ? "" : "es"} marcada${unread.length === 1 ? "" : "s"} como lida${unread.length === 1 ? "" : "s"}.`, "success");
   };
 
   const unreadCount = items.filter((item) => !item.lida).length;
+  const categoryOf = (item: NotificationItem) => item.type?.startsWith("service") ? "servicos" : item.type?.startsWith("chat") ? "chat" : item.type?.includes("payment") || item.type?.includes("billing") ? "pagamentos" : "sistema";
+  const filteredItems = category === "todas" ? items : items.filter((item) => categoryOf(item) === category);
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
@@ -76,18 +84,23 @@ export default function Notificacoes() {
         </TouchableOpacity>
       </View>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        {[["todas", "Todas"], ["servicos", "Serviços"], ["chat", "Chat"], ["pagamentos", "Pagamentos"], ["sistema", "Sistema"]].map(([key, label]) => <TouchableOpacity key={key} style={[styles.filter, { borderColor: category === key ? "#2563EB" : theme.border, backgroundColor: category === key ? "#DBEAFE" : theme.card }]} onPress={() => setCategory(key)}><Text style={[styles.filterText, { color: category === key ? "#1D4ED8" : theme.textSecondary }]}>{label}</Text></TouchableOpacity>)}
+      </ScrollView>
+
       {loading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color="#2563EB" /><Text style={[styles.stateText, { color: theme.textMuted }]}>Carregando...</Text></View>
+        <StateView kind="loading" message="Buscando suas atualizações..." />
       ) : error ? (
-        <View style={styles.center}><Bell size={36} color="#DC2626" /><Text style={[styles.stateText, { color: theme.textPrimary }]}>{error}</Text></View>
-      ) : items.length === 0 ? (
-        <View style={styles.center}><View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}><Bell size={30} color="#2563EB" /></View><Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Nenhuma notificação</Text><Text style={[styles.stateText, { color: theme.textMuted }]}>As novidades dos seus serviços aparecerão aqui.</Text></View>
+        <StateView kind="error" message={error} />
+      ) : filteredItems.length === 0 ? (
+        <StateView kind="empty" title="Nenhuma notificação" message="As novidades dos seus serviços aparecerão aqui." />
       ) : (
         <FlatList
-          data={items}
+          data={filteredItems}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
+            <Swipeable overshootRight={false} renderRightActions={() => !item.lida ? <TouchableOpacity style={styles.swipeRead} onPress={async () => { await notificationRef(item.id).set({ lida: true }, { merge: true }); feedback.show("Notificação marcada como lida.", "success"); }}><Check size={21} color="#FFFFFF" /><Text style={styles.swipeText}>Lida</Text></TouchableOpacity> : null}>
             <TouchableOpacity style={[styles.card, { backgroundColor: theme.card, borderColor: item.lida ? theme.border : "#93C5FD" }]} onPress={() => openItem(item)} activeOpacity={0.8}>
               <View style={[styles.dot, { backgroundColor: item.lida ? theme.border : "#2563EB" }]} />
               <View style={styles.cardCopy}>
@@ -97,6 +110,7 @@ export default function Notificacoes() {
               </View>
               {item.data?.screen ? <ChevronRight size={18} color={theme.textMuted} /> : null}
             </TouchableOpacity>
+            </Swipeable>
           )}
         />
       )}
@@ -112,6 +126,11 @@ const styles = StyleSheet.create({
   title: { fontSize: 19, fontWeight: "800" },
   subtitle: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   list: { padding: 16, paddingBottom: 32 },
+  filters: { paddingHorizontal: 16, paddingVertical: 10, gap: 7 },
+  filter: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  filterText: { fontSize: 11, fontWeight: "800" },
+  swipeRead: { width: 86, minHeight: 92, marginBottom: 10, borderRadius: 18, backgroundColor: "#16A34A", alignItems: "center", justifyContent: "center", gap: 4 },
+  swipeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900" },
   card: { minHeight: 92, borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 11 },
   dot: { width: 9, height: 9, borderRadius: 5 },
   cardCopy: { flex: 1 },

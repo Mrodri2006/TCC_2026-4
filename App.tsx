@@ -32,6 +32,10 @@ import PagamentoMensalidade from './screens/PagamentoMensalidade';
 import MapaPrestadores from './screens/MapaPrestadores';
 import Notificacoes from './screens/Notificacoes';
 import AgendaPrestador from './screens/AgendaPrestador';
+import Favoritos from './screens/Favoritos';
+import Denunciar from './screens/Denunciar';
+import FinanceiroPrestador from './screens/FinanceiroPrestador';
+import SegurancaConta from './screens/SegurancaConta';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -41,6 +45,8 @@ import { withThemeScreen } from './theme/withThemeScreen';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { flushPendingNavigation, navigationRef } from './navigation/navigationRef';
+import { FeedbackProvider } from './components/ui';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const Stack = createNativeStackNavigator();
 
@@ -78,6 +84,10 @@ const ThemedPagamentoMensalidade = withThemeScreen(PagamentoMensalidade);
 const ThemedMapaPrestadores = withThemeScreen(MapaPrestadores);
 const ThemedNotificacoes = withThemeScreen(Notificacoes);
 const ThemedAgendaPrestador = withThemeScreen(AgendaPrestador);
+const ThemedFavoritos = withThemeScreen(Favoritos);
+const ThemedDenunciar = withThemeScreen(Denunciar);
+const ThemedFinanceiroPrestador = withThemeScreen(FinanceiroPrestador);
+const ThemedSegurancaConta = withThemeScreen(SegurancaConta);
 
 function AppInner() {
   const { theme } = useTheme();
@@ -131,6 +141,10 @@ function AppInner() {
         <Stack.Screen name='MapaPrestadores' component={ThemedMapaPrestadores} options={{ headerShown: false }} />
         <Stack.Screen name='Notificacoes' component={ThemedNotificacoes} options={{ headerShown: false }} />
         <Stack.Screen name='AgendaPrestador' component={ThemedAgendaPrestador} options={{ headerShown: false }} />
+        <Stack.Screen name='Favoritos' component={ThemedFavoritos} options={{ headerShown: false }} />
+        <Stack.Screen name='Denunciar' component={ThemedDenunciar} options={{ headerShown: false }} />
+        <Stack.Screen name='FinanceiroPrestador' component={ThemedFinanceiroPrestador} options={{ headerShown: false }} />
+        <Stack.Screen name='SegurancaConta' component={ThemedSegurancaConta} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     
@@ -139,10 +153,10 @@ function AppInner() {
 
 export default function App() {
   return (
-    <AppErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}><AppErrorBoundary>
       <ThemeProvider>
-        <AppInner />
+        <FeedbackProvider><AppInner /></FeedbackProvider>
       </ThemeProvider>
-    </AppErrorBoundary>
+    </AppErrorBoundary></GestureHandlerRootView>
   );
 }

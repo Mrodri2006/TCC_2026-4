@@ -229,10 +229,16 @@ const sendExpoPush = async (uid, { title, body, data }) => {
 };
 
 const writeNotification = async (uid, { type, title, body, data }) => {
+  const category = String(type || "").startsWith("service") ? "servicos"
+    : String(type || "").startsWith("chat") ? "chat"
+      : String(type || "").includes("payment") || String(type || "").includes("billing") ? "pagamentos" : "sistema";
+  const priority = ["service_problem", "billing_blocked", "payment_failed"].includes(String(type || "")) ? "high" : "normal";
   const ref = db.collection("Usuario").doc(uid).collection("Notificacoes").doc();
   await ref.set({
     id: ref.id,
     type: type || "info",
+    category,
+    priority,
     title: title || "",
     body: body || "",
     data: data || null,
@@ -241,6 +247,48 @@ const writeNotification = async (uid, { type, title, body, data }) => {
   });
   await sendExpoPush(uid, { title, body, data }).catch((error) => console.error("Push notification error", error));
 };
+
+const recordServiceTransition = async ({ eventId, prestadorId, servicoId, before, after }) => {
+  const auditRef = db.collection("AuditLogs").doc(String(eventId));
+  const providerRef = db.collection("Usuario").doc(prestadorId);
+  await db.runTransaction(async (transaction) => {
+    const [auditSnapshot, providerSnapshot] = await Promise.all([transaction.get(auditRef), transaction.get(providerRef)]);
+    if (auditSnapshot.exists) return;
+    const from = normalizeServiceStatus(before.status);
+    const to = normalizeServiceStatus(after.status);
+    const increments = {};
+    if (to === "aceito" && from !== "aceito") increments.servicosAceitos = admin.firestore.FieldValue.increment(1);
+    if (to === "rejeitado" && from !== "rejeitado") increments.servicosRejeitados = admin.firestore.FieldValue.increment(1);
+    if (to === "cancelado" && from !== "cancelado") increments.servicosCancelados = admin.firestore.FieldValue.increment(1);
+    if (to === "realizado" && from !== "realizado") increments.servicosConcluidos = admin.firestore.FieldValue.increment(1);
+    if (to === "valor_pendente" && from !== "valor_pendente") {
+      const requestedAt = toDate(after.dataSolicitacao || after.criadoEm);
+      const proposedAt = toDate(after.dataPropostaValor) || new Date();
+      if (requestedAt) {
+        const minutes = Math.max(0, Math.round((proposedAt.getTime() - requestedAt.getTime()) / 60000));
+        const provider = providerSnapshot.data() || {};
+        const count = Number(provider.respostasContadas || 0) + 1;
+        const total = Number(provider.tempoRespostaTotalMinutos || 0) + minutes;
+        increments.respostasContadas = count;
+        increments.tempoRespostaTotalMinutos = total;
+        increments.tempoMedioRespostaMinutos = Math.round(total / count);
+      }
+    }
+    if (Object.keys(increments).length) transaction.set(providerRef, increments, { merge: true });
+    transaction.create(auditRef, {
+      eventId, category: "service", action: "status_changed", prestadorId, servicoId,
+      clienteId: after.clienteId || null, from, to, actorId: after.atualizadoPor || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+};
+
+exports.onComplaintAnswered = functions.firestore.document("Denuncias/{complaintId}").onUpdate(async (change) => {
+  const before = change.before.data() || {}; const after = change.after.data() || {};
+  if (!after.reporterId || (before.status === after.status && before.respostaAdmin === after.respostaAdmin)) return null;
+  await writeNotification(after.reporterId, { type: "complaint_update", title: "Atualização da denúncia", body: after.respostaAdmin || `Status atualizado para ${after.status || "em análise"}.`, data: { screen: "Notificacoes" } });
+  return null;
+});
 
 exports.onChatMessageCreated = functions.firestore
   .document("Chats/{chatId}/Messages/{messageId}")
@@ -262,6 +310,62 @@ exports.onChatMessageCreated = functions.firestore
     })));
   });
 
+const getChatParticipant = async (chatId, uid) => {
+  const chatRef = db.collection("Chats").doc(chatId);
+  const snapshot = await chatRef.get();
+  if (!snapshot.exists || !(snapshot.data()?.participants || []).includes(uid)) throw new functions.https.HttpsError("permission-denied", "Você não participa desta conversa.");
+  return chatRef;
+};
+
+exports.sendChatMessage = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context); const chatId = String(data?.chatId || ""); const recipientId = String(data?.recipientId || ""); const text = String(data?.text || "").trim().slice(0, 1000);
+  if (!chatId || !recipientId || !text || chatId !== [uid, recipientId].sort().join("_")) throw new functions.https.HttpsError("invalid-argument", "Mensagem inválida.");
+  const chatRef = db.collection("Chats").doc(chatId); const messageRef = chatRef.collection("Messages").doc(); const rateRef = db.collection("RateLimits").doc(`chat_${uid}`); const now = Date.now();
+  const [myBlock, recipientBlock] = await Promise.all([db.collection("Usuario").doc(uid).collection("Bloqueados").doc(recipientId).get(), db.collection("Usuario").doc(recipientId).collection("Bloqueados").doc(uid).get()]);
+  if (myBlock.exists || recipientBlock.exists) throw new functions.https.HttpsError("permission-denied", "A conversa está bloqueada.");
+  await db.runTransaction(async (transaction) => {
+    const [chatSnapshot, rateSnapshot] = await Promise.all([transaction.get(chatRef), transaction.get(rateRef)]); const participants = chatSnapshot.data()?.participants || [uid, recipientId].sort(); if (chatSnapshot.exists && (!participants.includes(uid) || !participants.includes(recipientId))) throw new functions.https.HttpsError("permission-denied", "Conversa inválida.");
+    const rate = rateSnapshot.data() || {}; const windowStart = Number(rate.windowStart || 0); const count = now - windowStart < 10000 ? Number(rate.count || 0) + 1 : 1; if (count > 10) throw new functions.https.HttpsError("resource-exhausted", "Muitas mensagens em pouco tempo. Aguarde alguns segundos.");
+    transaction.set(rateRef, { windowStart: count === 1 ? now : windowStart, count, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    const message = { text, senderId: uid, createdAt: admin.firestore.FieldValue.serverTimestamp(), readBy: [uid], ...(data?.replyTo ? { replyTo: data.replyTo } : {}), ...(data?.attachment ? { attachment: data.attachment } : {}), ...(data?.location ? { location: data.location } : {}) };
+    transaction.create(messageRef, message); transaction.set(chatRef, { participants: [uid, recipientId].sort(), lastMessage: text, lastMessageAt: admin.firestore.FieldValue.serverTimestamp(), updatedAt: admin.firestore.FieldValue.serverTimestamp(), unreadFor: admin.firestore.FieldValue.arrayUnion(recipientId) }, { merge: true });
+  });
+  return { id: messageRef.id };
+});
+
+exports.editChatMessage = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context); const chatId = String(data?.chatId || ""); const messageId = String(data?.messageId || ""); const text = String(data?.text || "").trim().slice(0, 1000);
+  if (!chatId || !messageId || !text) throw new functions.https.HttpsError("invalid-argument", "Mensagem inválida.");
+  const ref = (await getChatParticipant(chatId, uid)).collection("Messages").doc(messageId);
+  await db.runTransaction(async (transaction) => { const snapshot = await transaction.get(ref); const message = snapshot.data() || {}; if (!snapshot.exists || message.senderId !== uid || message.deletedAt) throw new functions.https.HttpsError("permission-denied", "Esta mensagem não pode ser editada."); const createdAt = toDate(message.createdAt); if (createdAt && Date.now() - createdAt.getTime() > 900000) throw new functions.https.HttpsError("failed-precondition", "O prazo de edição terminou."); transaction.update(ref, { text, editedAt: admin.firestore.FieldValue.serverTimestamp() }); });
+  return { ok: true };
+});
+
+exports.deleteChatMessage = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context); const chatId = String(data?.chatId || ""); const messageId = String(data?.messageId || ""); const ref = (await getChatParticipant(chatId, uid)).collection("Messages").doc(messageId); const snapshot = await ref.get();
+  if (!snapshot.exists || snapshot.data()?.senderId !== uid) throw new functions.https.HttpsError("permission-denied", "Esta mensagem não pode ser apagada.");
+  await ref.set({ text: "", deletedAt: admin.firestore.FieldValue.serverTimestamp(), deletedBy: uid }, { merge: true }); return { ok: true };
+});
+
+exports.reactToChatMessage = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context); const chatId = String(data?.chatId || ""); const messageId = String(data?.messageId || ""); const emoji = String(data?.emoji || "");
+  if (!["👍", "❤️", "😂", "😮", "😢"].includes(emoji)) throw new functions.https.HttpsError("invalid-argument", "Reação inválida.");
+  const ref = (await getChatParticipant(chatId, uid)).collection("Messages").doc(messageId); await ref.set({ [`reactions.${uid}`]: emoji }, { merge: true }); return { ok: true };
+});
+
+exports.markChatRead = functions.https.onCall(async (data, context) => {
+  const uid = requireAuth(context); const chatId = String(data?.chatId || ""); const chatRef = await getChatParticipant(chatId, uid); const messages = await chatRef.collection("Messages").limit(100).get(); const batch = db.batch();
+  messages.docs.forEach((document) => { const message = document.data() || {}; if (message.senderId !== uid && !(message.readBy || []).includes(uid)) batch.set(document.ref, { readBy: admin.firestore.FieldValue.arrayUnion(uid) }, { merge: true }); });
+  batch.set(chatRef, { unreadFor: admin.firestore.FieldValue.arrayRemove(uid) }, { merge: true }); await batch.commit(); return { ok: true };
+});
+
+exports.revokeMySessions = functions.https.onCall(async (_data, context) => {
+  const uid = requireAuth(context);
+  await admin.auth().revokeRefreshTokens(uid);
+  await db.collection("AuditLogs").add({ category: "security", action: "sessions_revoked", actorId: uid, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  return { ok: true };
+});
+
 const serviceStatusNotification = (status) => {
   const messages = {
     valor_pendente: ["Nova proposta", "O prestador enviou uma proposta de valor."],
@@ -281,6 +385,10 @@ exports.onServicoAgendadoWritten = functions.firestore
     const after = change.after.data() || {};
     const status = String(after.status || "");
     if (change.before.exists && before.status === status) return;
+
+    if (change.before.exists) {
+      await recordServiceTransition({ eventId: context.eventId, prestadorId: context.params.prestadorId, servicoId: context.params.servicoId, before, after });
+    }
 
     if (["cancelado", "rejeitado"].includes(status) && after.reservationKey) {
       await db.collection("Usuario").doc(context.params.prestadorId)
@@ -333,10 +441,11 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
     throw new functions.https.HttpsError("failed-precondition", "A data do serviço não pode estar no passado.");
   }
 
-  const [providerSnapshot, clientSnapshot, availabilitySnapshot] = await Promise.all([
+  const [providerSnapshot, clientSnapshot, availabilitySnapshot, unavailableSnapshot] = await Promise.all([
     db.collection("Usuario").doc(prestadorId).get(),
     db.collection("Usuario").doc(clienteId).get(),
     db.collection("Usuario").doc(prestadorId).collection("Disponibilidade").doc(String(date.getDay())).get(),
+    db.collection("Usuario").doc(prestadorId).collection("Indisponibilidades").get(),
   ]);
   const provider = providerSnapshot.data() || {};
   if (!providerSnapshot.exists || provider.tipo !== "prestador" || provider.contaAtiva !== true || provider.assinaturaAtiva === false) {
@@ -347,6 +456,15 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
     if (availability.enabled !== true || horario < availability.start || horario >= availability.end) {
       throw new functions.https.HttpsError("failed-precondition", "O prestador não atende nesse dia ou horário.");
     }
+  }
+
+  const availability = availabilitySnapshot.data() || {};
+  if (availability.lunchStart && availability.lunchEnd && horario >= availability.lunchStart && horario < availability.lunchEnd) {
+    throw new functions.https.HttpsError("failed-precondition", "Este horário está reservado para o intervalo do prestador.");
+  }
+  const isoDate = `${String(date.getFullYear()).padStart(4, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  if (unavailableSnapshot.docs.some((document) => String(document.data()?.startDate || "") <= isoDate && String(document.data()?.endDate || "") >= isoDate)) {
+    throw new functions.https.HttpsError("failed-precondition", "O prestador está indisponível nesta data.");
   }
 
   const serviceRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc();
@@ -371,9 +489,14 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
   };
 
   await db.runTransaction(async (transaction) => {
-    const reservation = await transaction.get(reservationRef);
+    const dailyQuery = db.collection("Usuario").doc(prestadorId).collection("ReservasAgenda").where("data", "==", dateText);
+    const [reservation, dailyReservations] = await Promise.all([transaction.get(reservationRef), transaction.get(dailyQuery)]);
     if (reservation.exists) {
       throw new functions.https.HttpsError("already-exists", "Este horário acabou de ser reservado. Escolha outro.");
+    }
+    const dailyLimit = Number(availability.dailyLimit || 0);
+    if (dailyLimit > 0 && dailyReservations.size >= dailyLimit) {
+      throw new functions.https.HttpsError("resource-exhausted", "O prestador atingiu o limite de serviços para esta data.");
     }
     transaction.create(reservationRef, { serviceId: serviceRef.id, clienteId, data: dateText, horario, criadoEm: admin.firestore.FieldValue.serverTimestamp() });
     transaction.create(serviceRef, payload);
@@ -381,6 +504,123 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
   });
 
   return { id: serviceRef.id };
+});
+
+// Cria uma proposta detalhada e sincroniza os dois históricos em uma única transação.
+exports.enviarPropostaServico = functions.https.onCall(async (data, context) => {
+  const prestadorId = requireAuth(context);
+  const serviceId = String(data?.serviceId || "").trim();
+  const clientId = String(data?.clientId || "").trim();
+  const money = (value) => Number(Number(value || 0).toFixed(2));
+  const laborAmount = money(data?.laborAmount);
+  const materialsAmount = money(data?.materialsAmount);
+  const travelFee = money(data?.travelFee);
+  const discount = money(data?.discount);
+  const deadlineDays = Number(data?.deadlineDays);
+  const validityDays = Number(data?.validityDays);
+  const notes = String(data?.notes || "").trim().slice(0, 1000);
+
+  if (!serviceId || !clientId) {
+    throw new functions.https.HttpsError("invalid-argument", "Serviço incompleto.");
+  }
+  if ([laborAmount, materialsAmount, travelFee, discount].some((value) => !Number.isFinite(value) || value < 0)) {
+    throw new functions.https.HttpsError("invalid-argument", "Os valores da proposta devem ser números positivos.");
+  }
+  const subtotal = laborAmount + materialsAmount + travelFee;
+  if (subtotal <= 0 || discount > subtotal) {
+    throw new functions.https.HttpsError("invalid-argument", "Revise o total e o desconto da proposta.");
+  }
+  if (!Number.isInteger(deadlineDays) || deadlineDays < 1 || deadlineDays > 365 || !Number.isInteger(validityDays) || validityDays < 1 || validityDays > 90) {
+    throw new functions.https.HttpsError("invalid-argument", "Informe prazo e validade válidos.");
+  }
+
+  const providerRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(serviceId);
+  const clientRef = db.collection("ServicosClientes").doc(clientId).collection("ServicoStatus").doc(serviceId);
+  const proposalRef = providerRef.collection("Propostas").doc();
+  const clientProposalRef = clientRef.collection("Propostas").doc(proposalRef.id);
+  const validUntil = admin.firestore.Timestamp.fromMillis(Date.now() + validityDays * 86400000);
+  const totalAmount = money(subtotal - discount);
+  let version = 1;
+
+  await db.runTransaction(async (transaction) => {
+    const [providerSnapshot, clientSnapshot] = await Promise.all([transaction.get(providerRef), transaction.get(clientRef)]);
+    const service = providerSnapshot.data() || {};
+    if (!providerSnapshot.exists || !clientSnapshot.exists || service.prestadorId !== prestadorId || service.clienteId !== clientId) {
+      throw new functions.https.HttpsError("permission-denied", "Esta solicitação não pertence ao prestador autenticado.");
+    }
+    const currentStatus = normalizeServiceStatus(service.status);
+    if (!["aguardando", "valor_pendente"].includes(currentStatus)) {
+      throw new functions.https.HttpsError("failed-precondition", "Não é possível enviar proposta neste estágio do serviço.");
+    }
+    version = Number(service.proposalVersion || 0) + 1;
+    const proposal = {
+      laborAmount, materialsAmount, travelFee, discount, totalAmount, deadlineDays, validUntil, notes,
+      version, status: "pending", createdBy: prestadorId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    const timelineEvent = {
+      status: "valor_pendente", actor: "prestador", actorId: prestadorId,
+      note: `Proposta ${version} enviada`, at: admin.firestore.Timestamp.now(),
+    };
+    const update = {
+      status: "valor_pendente", valor: totalAmount, valorProposto: totalAmount,
+      currentProposal: proposal, proposalVersion: version,
+      timeline: admin.firestore.FieldValue.arrayUnion(timelineEvent),
+      dataPropostaValor: admin.firestore.FieldValue.serverTimestamp(),
+      dataAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    transaction.create(proposalRef, proposal);
+    transaction.create(clientProposalRef, proposal);
+    transaction.set(providerRef, update, { merge: true });
+    transaction.set(clientRef, update, { merge: true });
+  });
+
+  return { ok: true, totalAmount, version };
+});
+
+exports.responderPropostaServico = functions.https.onCall(async (data, context) => {
+  const clientId = requireAuth(context);
+  const providerId = String(data?.providerId || "").trim();
+  const serviceId = String(data?.serviceId || "").trim();
+  const action = String(data?.action || "");
+  const message = String(data?.message || "").trim().slice(0, 1000);
+  if (!providerId || !serviceId || !["accept", "reject", "request_change"].includes(action)) {
+    throw new functions.https.HttpsError("invalid-argument", "Resposta de proposta inválida.");
+  }
+  if (action === "request_change" && !message) {
+    throw new functions.https.HttpsError("invalid-argument", "Explique o que precisa ser alterado.");
+  }
+
+  const providerRef = db.collection("ServicosAgendados").doc(providerId).collection("ServicoStatus").doc(serviceId);
+  const clientRef = db.collection("ServicosClientes").doc(clientId).collection("ServicoStatus").doc(serviceId);
+  let nextStatus = "valor_pendente";
+  await db.runTransaction(async (transaction) => {
+    const [providerSnapshot, clientSnapshot] = await Promise.all([transaction.get(providerRef), transaction.get(clientRef)]);
+    const service = providerSnapshot.data() || {};
+    if (!providerSnapshot.exists || !clientSnapshot.exists || service.clienteId !== clientId || service.prestadorId !== providerId) {
+      throw new functions.https.HttpsError("permission-denied", "Esta proposta não pertence ao contratante autenticado.");
+    }
+    if (normalizeServiceStatus(service.status) !== "valor_pendente" || !service.currentProposal) {
+      throw new functions.https.HttpsError("failed-precondition", "Esta proposta não está mais disponível.");
+    }
+    nextStatus = action === "accept" ? "aceito" : action === "reject" ? "rejeitado" : "valor_pendente";
+    const proposalStatus = action === "accept" ? "accepted" : action === "reject" ? "rejected" : "change_requested";
+    const event = {
+      status: nextStatus, actor: "contratante", actorId: clientId, note: message || proposalStatus,
+      at: admin.firestore.Timestamp.now(),
+    };
+    const update = {
+      status: nextStatus, valorAceito: action === "accept",
+      currentProposal: { ...service.currentProposal, status: proposalStatus, responseMessage: message, respondedAt: admin.firestore.Timestamp.now() },
+      negotiationHistory: admin.firestore.FieldValue.arrayUnion({ action, message, actorId: clientId, at: admin.firestore.Timestamp.now(), version: Number(service.proposalVersion || 1) }),
+      timeline: admin.firestore.FieldValue.arrayUnion(event),
+      dataRespostaValor: admin.firestore.FieldValue.serverTimestamp(),
+      dataAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    transaction.set(providerRef, update, { merge: true });
+    transaction.set(clientRef, update, { merge: true });
+  });
+  return { ok: true, status: nextStatus };
 });
 
 exports.enviarAvaliacaoServico = functions.https.onCall(async (data, context) => {

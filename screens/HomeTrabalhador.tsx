@@ -5,6 +5,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +33,13 @@ import { Calendar } from "lucide-react-native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { LocationVisibilityCard } from "../components/LocationVisibilityCard";
+import { proposalTotal } from "../domain/service";
+import { sendServiceProposal } from "../services/serviceService";
+import { ProviderDashboard } from "../components/ProviderDashboard";
+import { BottomSheet } from "../components/ui";
+
+const emptyProposal = { labor: "", materials: "0", travel: "0", discount: "0", deadline: "1", validity: "7", notes: "" };
+const parseMoney = (value: string) => Number(value.replace(",", ".")) || 0;
 
 export default function HomeTrabalhador() {
   const navigation = useNavigation<any>();
@@ -49,13 +57,14 @@ export default function HomeTrabalhador() {
 
   const [servicosSolicitados, setServicosSolicitados] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [alertVisivel, setAlertVisivel] = useState(false);
   const [servicoAceito, setServicoAceito] = useState<any>(null);
   const [servicoRejeitado, setServicoRejeitado] = useState<any>(null);
   const [modalValorVisivel, setModalValorVisivel] = useState(false);
   const [servicoParaValor, setServicoParaValor] = useState<any>(null);
-  const [valorServico, setValorServico] = useState("");
+  const [proposal, setProposal] = useState(emptyProposal);
   const [enviandoValor, setEnviandoValor] = useState(false);
 
   const unsubscribeRef = useRef<any>(null);
@@ -124,7 +133,7 @@ export default function HomeTrabalhador() {
 
   const abrirModalValor = (servico: any) => {
     setServicoParaValor(servico);
-    setValorServico("");
+    setProposal(emptyProposal);
     setModalValorVisivel(true);
   };
 
@@ -132,20 +141,24 @@ export default function HomeTrabalhador() {
     if (enviandoValor) return;
     setModalValorVisivel(false);
     setServicoParaValor(null);
-    setValorServico("");
+    setProposal(emptyProposal);
   };
 
   const handleAceitarServico = async () => {
     const servico = servicoParaValor;
-    const valorNumerico = Number(valorServico.replace(",", "."));
+    const laborAmount = parseMoney(proposal.labor);
+    const materialsAmount = parseMoney(proposal.materials);
+    const travelFee = parseMoney(proposal.travel);
+    const discount = parseMoney(proposal.discount);
+    const totalAmount = proposalTotal({ laborAmount, materialsAmount, travelFee, discount });
 
     if (!servico) {
       Alert.alert("Erro", "Serviço não selecionado");
       return;
     }
 
-    if (!valorServico.trim() || Number.isNaN(valorNumerico) || valorNumerico <= 0) {
-      Alert.alert("Erro", "Informe um valor válido maior que zero.");
+    if (!proposal.labor.trim() || laborAmount < 0 || totalAmount <= 0 || discount > laborAmount + materialsAmount + travelFee) {
+      Alert.alert("Revise a proposta", "Informe valores válidos e um total maior que zero.");
       return;
     }
 
@@ -158,45 +171,23 @@ export default function HomeTrabalhador() {
       }
 
       setEnviandoValor(true);
-      const agora = new Date();
-      const propostaValor = {
-        status: "valor_pendente",
-        valor: valorNumerico,
-        valorProposto: valorNumerico,
-        dataPropostaValor: agora,
-        prestadorId: usuarioId,
-      };
-
-      await firestore
-        .collection("ServicosAgendados")
-        .doc(usuarioId)
-        .collection("ServicoStatus")
-        .doc(servico.id)
-        .set(propostaValor, { merge: true });
-
-      if (servico.clienteId) {
-        await firestore
-          .collection("ServicosClientes")
-          .doc(servico.clienteId)
-          .collection("ServicoStatus")
-          .doc(servico.id)
-          .set(
-            {
-              ...propostaValor,
-            },
-            { merge: true }
-          );
-      }
+      if (!servico.clienteId) throw new Error("client-not-found");
+      await sendServiceProposal({
+        serviceId: servico.id, clientId: servico.clienteId,
+        laborAmount, materialsAmount, travelFee, discount,
+        deadlineDays: Number(proposal.deadline), validityDays: Number(proposal.validity), notes: proposal.notes,
+      });
 
       if (servico.origem === "area" && servico.requestId) {
+        const agora = new Date();
         await firestore
           .collection("SolicitacoesArea")
           .doc(servico.requestId)
           .set(
             {
               status: "valor_pendente",
-              valor: valorNumerico,
-              valorProposto: valorNumerico,
+              valor: totalAmount,
+              valorProposto: totalAmount,
               propostoPor: usuarioId,
               dataPropostaValor: agora,
             },
@@ -208,7 +199,7 @@ export default function HomeTrabalhador() {
       setServicoRejeitado(null);
       setModalValorVisivel(false);
       setServicoParaValor(null);
-      setValorServico("");
+      setProposal(emptyProposal);
       setAlertVisivel(true);
     } catch (erro) {
       console.error("Erro ao aceitar serviço:", erro);
@@ -301,6 +292,7 @@ export default function HomeTrabalhador() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregarServicosSolicitados(); setTimeout(() => setRefreshing(false), 600); }} tintColor="#2563EB" colors={["#2563EB"]} />}
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -359,6 +351,8 @@ export default function HomeTrabalhador() {
         </TouchableOpacity>
 
         <LocationVisibilityCard />
+
+        <ProviderDashboard />
 
         <View style={styles.sectionRow}>
           <Text style={[styles.sectionTitle, { color: sectionTextColor }]}>Serviços solicitados</Text>
@@ -526,23 +520,29 @@ export default function HomeTrabalhador() {
           </View>
         </Modal>
 
-        <Modal visible={modalValorVisivel} transparent animationType="fade">
-          <View style={styles.alertOverlay}>
-            <View style={[styles.alertContainer, { backgroundColor: cardBackground, borderColor: theme.surfaceBorder }]}> 
-              <Text style={[styles.alertTitle, { color: sectionTextColor }]}>Informe o valor do serviço</Text>
+        <BottomSheet visible={modalValorVisivel} onClose={fecharModalValor}>
+              <Text style={[styles.alertTitle, { color: sectionTextColor }]}>Criar proposta</Text>
               <Text style={[styles.valorModalSubtitle, { color: mutedTextColor }]}> 
                 {servicoParaValor?.estilo || servicoParaValor?.tipo || "Serviço"}
               </Text>
 
-              <TextInput
-                style={[styles.valorInput, { backgroundColor: theme.actionBg, color: theme.textPrimary }]}
-                placeholder="Ex: 150,00"
-                placeholderTextColor={theme.textMuted}
-                value={valorServico}
-                onChangeText={setValorServico}
-                keyboardType="decimal-pad"
-                editable={!enviandoValor}
-              />
+              <ScrollView style={styles.proposalScroll} keyboardShouldPersistTaps="handled">
+                <View style={styles.proposalGrid}>
+                  {([
+                    ["labor", "Mão de obra"], ["materials", "Materiais"], ["travel", "Deslocamento"], ["discount", "Desconto"],
+                  ] as const).map(([key, label]) => <View key={key} style={styles.proposalField}>
+                    <Text style={[styles.proposalLabel, { color: mutedTextColor }]}>{label}</Text>
+                    <TextInput style={[styles.proposalInput, { backgroundColor: theme.actionBg, color: theme.textPrimary, borderColor: theme.border }]} value={proposal[key]} onChangeText={(value) => setProposal((current) => ({ ...current, [key]: value }))} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor={theme.textMuted} />
+                  </View>)}
+                </View>
+                <View style={styles.proposalGrid}>
+                  <View style={styles.proposalField}><Text style={[styles.proposalLabel, { color: mutedTextColor }]}>Prazo (dias)</Text><TextInput style={[styles.proposalInput, { backgroundColor: theme.actionBg, color: theme.textPrimary, borderColor: theme.border }]} value={proposal.deadline} onChangeText={(deadline) => setProposal((current) => ({ ...current, deadline }))} keyboardType="number-pad" /></View>
+                  <View style={styles.proposalField}><Text style={[styles.proposalLabel, { color: mutedTextColor }]}>Validade (dias)</Text><TextInput style={[styles.proposalInput, { backgroundColor: theme.actionBg, color: theme.textPrimary, borderColor: theme.border }]} value={proposal.validity} onChangeText={(validity) => setProposal((current) => ({ ...current, validity }))} keyboardType="number-pad" /></View>
+                </View>
+                <Text style={[styles.proposalLabel, { color: mutedTextColor }]}>Observações</Text>
+                <TextInput style={[styles.proposalInput, styles.proposalNotes, { backgroundColor: theme.actionBg, color: theme.textPrimary, borderColor: theme.border }]} value={proposal.notes} onChangeText={(notes) => setProposal((current) => ({ ...current, notes }))} multiline maxLength={1000} placeholder="Condições, materiais e detalhes..." placeholderTextColor={theme.textMuted} />
+                <View style={styles.proposalTotal}><Text style={[styles.proposalTotalLabel, { color: mutedTextColor }]}>Total da proposta</Text><Text style={[styles.proposalTotalValue, { color: sectionTextColor }]}>R$ {proposalTotal({ laborAmount: parseMoney(proposal.labor), materialsAmount: parseMoney(proposal.materials), travelFee: parseMoney(proposal.travel), discount: parseMoney(proposal.discount) }).toFixed(2).replace(".", ",")}</Text></View>
+              </ScrollView>
 
               <TouchableOpacity
                 style={[styles.openButton, enviandoValor && styles.disabledButton]}
@@ -561,9 +561,7 @@ export default function HomeTrabalhador() {
               >
                 <Text style={styles.valorCancelText}>Cancelar</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        </BottomSheet>
       </ScrollView>
     </View>
   );
@@ -995,6 +993,15 @@ const styles = StyleSheet.create({
     borderColor: "#DDEEFF",
     marginBottom: 16,
   },
+  proposalScroll: { width: "100%", maxHeight: 390, marginBottom: 16 },
+  proposalGrid: { flexDirection: "row", gap: 10 },
+  proposalField: { flex: 1 },
+  proposalLabel: { fontSize: 12, fontWeight: "800", marginBottom: 5 },
+  proposalInput: { minHeight: 46, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, marginBottom: 12, fontSize: 14 },
+  proposalNotes: { minHeight: 78, paddingTop: 12, textAlignVertical: "top" },
+  proposalTotal: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
+  proposalTotalLabel: { fontSize: 13, fontWeight: "700" },
+  proposalTotalValue: { fontSize: 20, fontWeight: "900" },
   valorCancelButton: {
     marginTop: 10,
     paddingVertical: 12,

@@ -1,49 +1,19 @@
 import * as React from "react";
-import { createDrawerNavigator } from "@react-navigation/drawer";
-import { ActivityIndicator, View } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { BarChart3, BriefcaseBusiness, Home, MessageCircle } from "lucide-react-native";
+import { View } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
-
+import { StateView } from "../components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import HomeTrabalhador from "./HomeTrabalhador";
 import ChatList from "./ChatList";
 import Servicos from "./Servicos";
 import RelatoriosPrestador from "./RelatoriosPrestador";
 import MensalidadeBloqueada from "./MensalidadeBloqueada";
-
-const Drawer = createDrawerNavigator();
-
-export default function MenuTrabalhador() {
-  const { theme } = useTheme();
-  const { status, loading } = useMensalidadeStatus(30000);
-
-  if (loading && !status) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.background }}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  if (status?.contaAtiva === false || status?.assinaturaAtiva === false) {
-    return <MensalidadeBloqueada />;
-  }
-
-  return (
-    <Drawer.Navigator
-      id="MenuTrabalhadorDrawer"
-      initialRouteName="Pagina Inicial"
-      screenOptions={{
-        headerShown: false,
-        drawerStyle: { backgroundColor: theme.background },
-        drawerActiveTintColor: "#2563EB",
-        drawerInactiveTintColor: theme.textSecondary,
-        drawerActiveBackgroundColor: theme.card,
-      }}
-    >
-      <Drawer.Screen name='Pagina Inicial' component={HomeTrabalhador} />
-      <Drawer.Screen name="Servicos" component={Servicos} options={{ title: "Serviços" }} />
-      <Drawer.Screen name="RelatoriosPrestador" component={RelatoriosPrestador} options={{ title: "Relatórios" }} />
-      <Drawer.Screen name='Conversas' component={ChatList} />
-    </Drawer.Navigator>
-  );
+const Tab = createBottomTabNavigator();
+export default function MenuTrabalhador() { const { theme } = useTheme(); const insets = useSafeAreaInsets(); const { status, loading } = useMensalidadeStatus(30000); if (loading && !status) return <View style={{ flex: 1, backgroundColor: theme.background }}><StateView kind="loading" message="Verificando sua assinatura..." /></View>; if (status?.contaAtiva === false || status?.assinaturaAtiva === false) return <MensalidadeBloqueada />;
+  return <Tab.Navigator id="MenuTrabalhadorTabs" initialRouteName="Pagina Inicial" screenOptions={({ route }) => ({ headerShown: false, tabBarActiveTintColor: "#2563EB", tabBarInactiveTintColor: theme.textMuted, tabBarStyle: { position: "absolute", left: 14, right: 14, bottom: Math.max(insets.bottom, 10), height: 64, paddingTop: 7, paddingBottom: 7, backgroundColor: theme.card, borderTopColor: theme.border, borderWidth: 1, borderRadius: 22, elevation: 10, shadowColor: "#0F172A", shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }, tabBarLabelStyle: { fontSize: 10, fontWeight: "800" }, tabBarIcon: ({ color, size }) => route.name === "Pagina Inicial" ? <Home color={color} size={size} /> : route.name === "Servicos" ? <BriefcaseBusiness color={color} size={size} /> : route.name === "RelatoriosPrestador" ? <BarChart3 color={color} size={size} /> : <MessageCircle color={color} size={size} /> })}>
+    <Tab.Screen name="Pagina Inicial" component={HomeTrabalhador} options={{ title: "Início" }} /><Tab.Screen name="Servicos" component={Servicos} options={{ title: "Serviços" }} /><Tab.Screen name="RelatoriosPrestador" component={RelatoriosPrestador} options={{ title: "Relatórios" }} /><Tab.Screen name="Conversas" component={ChatList} />
+  </Tab.Navigator>;
 }

@@ -1,0 +1,6 @@
+import type { ReactNode } from "react";
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { useTheme } from "../../theme/ThemeContext";
+import { radius, spacing, typography } from "../../theme/tokens";
+export function AppInput({ label, error, leading, style, ...props }: TextInputProps & { label?: string; error?: string; leading?: ReactNode }) { const { theme } = useTheme(); return <View style={styles.wrap}>{label && <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>}<View style={[styles.field, { backgroundColor: theme.actionBg, borderColor: error ? "#DC2626" : theme.border }]}>{leading}<TextInput {...props} style={[styles.input, { color: theme.textPrimary }, style]} placeholderTextColor={theme.textMuted} /></View>{error && <Text style={styles.error}>{error}</Text>}</View>; }
+const styles = StyleSheet.create({ wrap: { marginBottom: spacing.md }, label: { ...typography.caption, marginBottom: spacing.xs }, field: { minHeight: 50, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.sm }, input: { flex: 1, ...typography.body, paddingVertical: spacing.sm }, error: { color: "#DC2626", ...typography.caption, marginTop: spacing.xs } });

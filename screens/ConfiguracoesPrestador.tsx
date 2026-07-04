@@ -16,6 +16,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
 import { setPushNotificationsEnabled } from "../services/notificationService";
+import { AdvancedPreferences } from "../components/AdvancedPreferences";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation<any>();
@@ -142,6 +143,8 @@ export default function ConfiguracoesPrestador() {
           <View style={styles.sectionUnderline} />
         </View>
 
+        <AdvancedPreferences />
+
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
@@ -254,6 +257,9 @@ export default function ConfiguracoesPrestador() {
           <TouchableOpacity style={styles.secondaryPayButton} onPress={atualizarMensalidade}>
             <Text style={[styles.secondaryPayButtonText, { color: theme.textSecondary }]}>Atualizar status</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryPayButton} onPress={() => navigation.navigate("FinanceiroPrestador")}>
+            <Text style={[styles.secondaryPayButtonText, { color: theme.textSecondary }]}>Histórico, faturas e recibos</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -263,6 +269,13 @@ export default function ConfiguracoesPrestador() {
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("SegurancaConta")}
+        >
+          <Text style={[styles.actionText, { color: "#2563EB" }]}>Segurança da conta</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}

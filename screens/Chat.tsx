@@ -10,20 +10,35 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Linking,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { ArrowLeft, Ban, MessageCircle, Send, ShieldCheck } from "lucide-react-native";
+import { ArrowLeft, Ban, File, MapPin, MessageCircle, Mic, Paperclip, Play, Search, Send, ShieldCheck, Square, X } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import firebase from "firebase/compat/app";
 import { useTheme } from "../theme/ThemeContext";
+import { deleteChatMessage, editChatMessage, markChatRead, reactToChatMessage, sendChatMessage } from "../services/chatService";
+import * as DocumentPicker from "expo-document-picker";
+import * as Location from "expo-location";
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioPlayer, useAudioRecorder, useAudioRecorderState } from "expo-audio";
+import { uploadFileUri } from "../utils/storageUpload";
 
 type Message = {
   id: string;
   text: string;
   senderId: string;
   createdAt?: any;
+  editedAt?: any;
+  deletedAt?: any;
+  readBy?: string[];
+  replyTo?: { id: string; text: string; senderId: string };
+  reactions?: Record<string, string>;
+  attachment?: { url: string; name: string; mimeType: string; size?: number };
+  location?: { latitude: number; longitude: number };
 };
+
+function AudioAttachment({ url }: { url: string }) { const player = useAudioPlayer(url); return <TouchableOpacity style={styles.attachmentButton} onPress={() => player.play()}><Play size={16} color="#2563EB" /><Text style={styles.attachmentText}>Reproduzir áudio</Text></TouchableOpacity>; }
 
 export default function Chat() {
   const navigation = useNavigation<any>();
@@ -38,6 +53,13 @@ export default function Chat() {
   const [erro, setErro] = useState("");
   const [tentativa, setTentativa] = useState(0);
   const [bloqueado, setBloqueado] = useState(false);
+  const [editing, setEditing] = useState<Message | null>(null);
+  const [replying, setReplying] = useState<Message | null>(null);
+  const [search, setSearch] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [otherPresence, setOtherPresence] = useState<{ online?: boolean; typing?: boolean }>({});
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder, 250);
   const listRef = useRef<FlatList<Message>>(null);
 
   const chatId = useMemo(() => {
@@ -84,6 +106,7 @@ export default function Chat() {
                 ...(doc.data() as any),
               }));
               setMensagens(lista);
+              markChatRead(chatId).catch((): void => undefined);
               chatRef.set({
                 unreadFor: firebase.firestore.FieldValue.arrayRemove(uid),
               }, { merge: true }).catch((): void => undefined);
@@ -122,6 +145,24 @@ export default function Chat() {
       .onSnapshot((snapshot) => setBloqueado(snapshot.exists), () => undefined);
   }, [otherUserId]);
 
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!chatId || !uid || !otherUserId) return;
+    const ref = firestore.collection("Chats").doc(chatId).collection("Presence");
+    ref.doc(uid).set({ online: true, typing: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch((): void => undefined);
+    const unsubscribe = ref.doc(otherUserId).onSnapshot((snapshot) => setOtherPresence(snapshot.data() || {}), () => undefined);
+    return () => { unsubscribe(); ref.doc(uid).set({ online: false, typing: false, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch((): void => undefined); };
+  }, [chatId, otherUserId]);
+
+  useEffect(() => {
+    const uid = auth.currentUser?.uid;
+    if (!chatId || !uid) return;
+    const ref = firestore.collection("Chats").doc(chatId).collection("Presence").doc(uid);
+    ref.set({ typing: !!texto.trim(), online: true, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }).catch((): void => undefined);
+    const timer = setTimeout(() => ref.set({ typing: false }, { merge: true }).catch((): void => undefined), 1800);
+    return () => clearTimeout(timer);
+  }, [texto, chatId]);
+
   const bloquearUsuario = () => {
     const uid = auth.currentUser?.uid;
     if (!uid || !otherUserId) return;
@@ -137,23 +178,39 @@ export default function Chat() {
   const denunciarUsuario = () => {
     const uid = auth.currentUser?.uid;
     if (!uid || !otherUserId) return;
-    const enviar = async (motivo: string) => {
-      await firestore.collection("Denuncias").add({ reporterId: uid, targetId: otherUserId, chatId, motivo, status: "pendente", criadoEm: firebase.firestore.FieldValue.serverTimestamp() });
-      Alert.alert("Denúncia enviada", "Nossa equipe analisará o caso.");
-    };
-    Alert.alert("Denunciar usuário", "Selecione o motivo", [
-      { text: "Spam", onPress: () => enviar("spam") },
-      { text: "Ofensa", onPress: () => enviar("ofensa") },
-      { text: "Fraude", onPress: () => enviar("fraude") },
-      { text: "Cancelar", style: "cancel" },
-    ]);
+    navigation.navigate("Denunciar", { targetId: otherUserId, chatId });
   };
 
   const abrirSeguranca = () => Alert.alert("Segurança da conversa", undefined, [
+    { text: "Pesquisar na conversa", onPress: () => setShowSearch(true) },
     { text: bloqueado ? "Desbloquear usuário" : "Bloquear usuário", onPress: bloquearUsuario },
     { text: "Denunciar usuário", onPress: denunciarUsuario },
     { text: "Cancelar", style: "cancel" },
   ]);
+
+  const sendRichMessage = async (preview: string, extra: Record<string, unknown>) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid || !otherUserId || !chatId || bloqueado) return;
+    await sendChatMessage({ chatId, recipientId: otherUserId, text: preview, ...extra });
+  };
+
+  const attachDocument = async () => {
+    if (!chatId) return;
+    try { setEnviando(true); const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }); if (result.canceled) return; const asset = result.assets[0]; const uid = auth.currentUser!.uid; const safeName = asset.name.replace(/[^a-zA-Z0-9._-]/g, "_"); const uploaded = await uploadFileUri(asset.uri, `chats/${chatId}/${uid}/${Date.now()}_${safeName}`, asset.mimeType || "application/octet-stream"); await sendRichMessage(`📎 ${asset.name}`, { attachment: { url: uploaded.url, name: asset.name, mimeType: asset.mimeType || "application/octet-stream", size: asset.size || 0 } }); }
+    catch (error: any) { Alert.alert("Anexo", error?.message || "Não foi possível enviar o documento."); } finally { setEnviando(false); }
+  };
+
+  const shareLocation = async () => {
+    try { setEnviando(true); const permission = await Location.requestForegroundPermissionsAsync(); if (!permission.granted) return Alert.alert("Localização", "Autorize o acesso para compartilhar sua posição."); const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }); await sendRichMessage("📍 Localização compartilhada", { location: { latitude: position.coords.latitude, longitude: position.coords.longitude } }); }
+    catch { Alert.alert("Localização", "Não foi possível obter sua posição."); } finally { setEnviando(false); }
+  };
+
+  const toggleRecording = async () => {
+    try {
+      if (recorderState.isRecording) { await recorder.stop(); const uri = recorder.uri; if (!uri || !chatId) return; setEnviando(true); const uid = auth.currentUser!.uid; const uploaded = await uploadFileUri(uri, `chats/${chatId}/${uid}/${Date.now()}_audio.m4a`, "audio/mp4", 10 * 1024 * 1024); await sendRichMessage("🎙️ Mensagem de áudio", { attachment: { url: uploaded.url, name: "audio.m4a", mimeType: "audio/mp4" } }); setEnviando(false); return; }
+      const permission = await requestRecordingPermissionsAsync(); if (!permission.granted) return Alert.alert("Áudio", "Autorize o microfone para gravar mensagens."); await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true }); await recorder.prepareToRecordAsync(); recorder.record();
+    } catch (error: any) { setEnviando(false); Alert.alert("Áudio", error?.message || "Não foi possível gravar o áudio."); }
+  };
 
   const enviarMensagem = async () => {
     const uid = auth.currentUser?.uid;
@@ -166,33 +223,14 @@ export default function Chat() {
     setErro("");
 
     try {
-      const chatRef = firestore.collection("Chats").doc(chatId);
-      const msgRef = chatRef.collection("Messages").doc();
-      const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-
-      const batch = firestore.batch();
-      
-      // Adicionar mensagem
-      batch.set(msgRef, {
-        text,
-        senderId: uid,
-        createdAt: timestamp,
-      });
-      
-      // Atualizar documento do chat com merge true
-      batch.set(
-        chatRef,
-        {
-          participants: [uid, otherUserId].sort(),
-          lastMessage: text,
-          lastMessageAt: timestamp,
-          updatedAt: timestamp,
-          unreadFor: firebase.firestore.FieldValue.arrayUnion(otherUserId),
-        },
-        { merge: true }
-      );
-
-      await batch.commit();
+      if (editing) {
+        await editChatMessage(chatId, editing.id, text);
+        setEditing(null);
+        setReplying(null);
+        return;
+      }
+      await sendChatMessage({ chatId, recipientId: otherUserId, text, ...(replying ? { replyTo: { id: replying.id, text: replying.text.slice(0, 120), senderId: replying.senderId } } : {}) });
+      setReplying(null);
     } catch (erro) {
       console.error("Erro ao enviar mensagem:", erro);
       setTexto((atual) => (atual.trim() ? atual : text));
@@ -210,27 +248,48 @@ export default function Chat() {
       : "";
 
     return (
-      <View
+      <TouchableOpacity
+        onLongPress={() => messageActions(item)}
         style={[
           styles.bubble,
           isMine ? styles.bubbleMine : [styles.bubbleOther, { backgroundColor: theme.card }],
         ]}
       >
+        {!!item.replyTo && <Text style={[styles.replyQuote, { color: isMine ? "#DBEAFE" : theme.textMuted }]}>{item.replyTo.text}</Text>}
         <Text
           style={[
             styles.bubbleText,
             isMine ? styles.textMine : [styles.textOther, { color: theme.textPrimary }],
           ]}
         >
-          {item.text}
+          {item.deletedAt ? "Mensagem apagada" : item.text}
         </Text>
+        {!!item.editedAt && <Text style={[styles.edited, isMine ? styles.timeMine : { color: theme.textMuted }]}>editada</Text>}
+        {!!item.reactions && <Text style={styles.reactions}>{Object.values(item.reactions).join(" ")}</Text>}
+        {!!item.attachment && (item.attachment.mimeType.startsWith("audio/") ? <AudioAttachment url={item.attachment.url} /> : <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(item.attachment!.url)}><File size={16} color="#2563EB" /><Text style={styles.attachmentText} numberOfLines={1}>{item.attachment.name}</Text></TouchableOpacity>)}
+        {!!item.location && <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${item.location!.latitude},${item.location!.longitude}`)}><MapPin size={16} color="#2563EB" /><Text style={styles.attachmentText}>Abrir localização</Text></TouchableOpacity>}
         {!!horario && (
           <Text style={[styles.messageTime, isMine ? styles.timeMine : { color: theme.textMuted }]}>
-            {horario}
+            {horario}{isMine && item.readBy?.includes(otherUserId) ? "  ✓✓" : ""}
           </Text>
         )}
-      </View>
+      </TouchableOpacity>
     );
+  };
+
+  const messageActions = (item: Message) => {
+    const mine = item.senderId === auth.currentUser?.uid;
+    const actions: any[] = [
+      { text: "Responder", onPress: () => setReplying(item) },
+      { text: "Reagir 👍", onPress: () => chatId && reactToChatMessage(chatId, item.id, "👍") },
+      { text: "Reagir ❤️", onPress: () => chatId && reactToChatMessage(chatId, item.id, "❤️") },
+    ];
+    if (mine && !item.deletedAt) actions.push(
+      { text: "Editar", onPress: () => { setEditing(item); setTexto(item.text); } },
+      { text: "Apagar", style: "destructive", onPress: () => chatId && deleteChatMessage(chatId, item.id) },
+    );
+    actions.push({ text: "Cancelar", style: "cancel" });
+    Alert.alert("Mensagem", "Escolha uma ação", actions);
   };
 
   return (
@@ -255,7 +314,7 @@ export default function Chat() {
             </Text>
             <View style={styles.secureRow}>
               <ShieldCheck size={12} color="#16A34A" />
-              <Text style={styles.secureText}>Conversa protegida</Text>
+              <Text style={styles.secureText}>{otherPresence.typing ? "digitando..." : otherPresence.online ? "online" : "Conversa protegida"}</Text>
             </View>
           </View>
           <TouchableOpacity style={[styles.headerBtn, { backgroundColor: theme.headerBtnBg }]} onPress={abrirSeguranca} accessibilityLabel="Segurança da conversa">
@@ -263,9 +322,11 @@ export default function Chat() {
           </TouchableOpacity>
         </View>
 
+        {showSearch && <View style={[styles.searchRow, { borderBottomColor: theme.border }]}><Search size={17} color={theme.textMuted} /><TextInput style={[styles.searchInput, { color: theme.textPrimary }]} value={search} onChangeText={setSearch} placeholder="Pesquisar na conversa" placeholderTextColor={theme.textMuted} /><TouchableOpacity onPress={() => { setSearch(""); setShowSearch(false); }}><X size={18} color={theme.textMuted} /></TouchableOpacity></View>}
+
         <FlatList
           ref={listRef}
-          data={mensagens}
+          data={search.trim() ? mensagens.filter((message) => message.text.toLocaleLowerCase("pt-BR").includes(search.trim().toLocaleLowerCase("pt-BR"))) : mensagens}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
@@ -301,6 +362,8 @@ export default function Chat() {
           </View>
         )}
 
+        {!!(editing || replying) && <View style={[styles.composerContext, { backgroundColor: theme.card }]}><Text style={[styles.contextText, { color: theme.textSecondary }]} numberOfLines={1}>{editing ? `Editando: ${editing.text}` : `Respondendo: ${replying?.text}`}</Text><TouchableOpacity onPress={() => { setEditing(null); setReplying(null); setTexto(""); }}><X size={18} color={theme.textMuted} /></TouchableOpacity></View>}
+        <View style={[styles.mediaActions, { backgroundColor: theme.background }]}><TouchableOpacity style={styles.mediaButton} onPress={attachDocument} disabled={enviando}><Paperclip size={18} color="#2563EB" /><Text style={styles.mediaLabel}>Documento</Text></TouchableOpacity><TouchableOpacity style={styles.mediaButton} onPress={shareLocation} disabled={enviando}><MapPin size={18} color="#16A34A" /><Text style={styles.mediaLabel}>Local</Text></TouchableOpacity><TouchableOpacity style={[styles.mediaButton, recorderState.isRecording && styles.recording]} onPress={toggleRecording} disabled={enviando}>{recorderState.isRecording ? <Square size={17} color="#FFFFFF" /> : <Mic size={18} color="#DC2626" />}<Text style={[styles.mediaLabel, recorderState.isRecording && { color: "#FFFFFF" }]}>{recorderState.isRecording ? `${Math.round(recorderState.durationMillis / 1000)}s` : "Áudio"}</Text></TouchableOpacity></View>
         <View
           style={[
             styles.inputRow,
@@ -383,6 +446,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
+  searchRow: { minHeight: 46, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 9, borderBottomWidth: 1 },
+  searchInput: { flex: 1, fontSize: 13 },
   listContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
@@ -412,6 +477,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: "500",
   },
+  replyQuote: { fontSize: 11, fontWeight: "700", borderLeftWidth: 2, borderLeftColor: "#93C5FD", paddingLeft: 7, marginBottom: 5 },
+  edited: { fontSize: 9, alignSelf: "flex-end" },
+  reactions: { fontSize: 15, marginTop: 4 },
+  attachmentButton: { minHeight: 38, marginTop: 7, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "#EFF6FF", flexDirection: "row", alignItems: "center", gap: 7 },
+  attachmentText: { color: "#1D4ED8", fontSize: 11, fontWeight: "800", flexShrink: 1 },
   textMine: {
     color: "#fff",
   },
@@ -486,6 +556,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  composerContext: { minHeight: 40, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 10 },
+  contextText: { flex: 1, fontSize: 11, fontWeight: "700" },
+  mediaActions: { minHeight: 42, paddingHorizontal: 14, flexDirection: "row", gap: 8, alignItems: "center" },
+  mediaButton: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: "#F1F5F9" },
+  mediaLabel: { color: "#475569", fontSize: 10, fontWeight: "800" },
+  recording: { backgroundColor: "#DC2626" },
   sendButtonDisabled: {
     opacity: 0.45,
   },

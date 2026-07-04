@@ -1,97 +1,45 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { ArrowLeft, CalendarClock, Save } from "lucide-react-native";
+import { ArrowLeft, CalendarClock, Plus, Save, Trash2 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import firebase from "firebase/compat/app";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 
-type DayAvailability = { id: string; label: string; enabled: boolean; start: string; end: string };
-
-const INITIAL_DAYS: DayAvailability[] = [
-  { id: "0", label: "Domingo", enabled: false, start: "08:00", end: "18:00" },
-  { id: "1", label: "Segunda-feira", enabled: true, start: "08:00", end: "18:00" },
-  { id: "2", label: "Terça-feira", enabled: true, start: "08:00", end: "18:00" },
-  { id: "3", label: "Quarta-feira", enabled: true, start: "08:00", end: "18:00" },
-  { id: "4", label: "Quinta-feira", enabled: true, start: "08:00", end: "18:00" },
-  { id: "5", label: "Sexta-feira", enabled: true, start: "08:00", end: "18:00" },
-  { id: "6", label: "Sábado", enabled: false, start: "08:00", end: "13:00" },
-];
-
+type DayAvailability = { id: string; label: string; enabled: boolean; start: string; end: string; lunchStart: string; lunchEnd: string; dailyLimit: number };
+type TimeOff = { id: string; startDate: string; endDate: string; type: "folga" | "ferias" | "feriado"; reason: string };
+const labels = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+const INITIAL_DAYS: DayAvailability[] = labels.map((label, index) => ({ id: String(index), label, enabled: index > 0 && index < 6, start: "08:00", end: index === 6 ? "13:00" : "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: index === 6 ? 2 : 4 }));
 const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T12:00:00`).getTime());
 
 export default function AgendaPrestador() {
-  const navigation = useNavigation<any>();
-  const { theme } = useTheme();
-  const [days, setDays] = useState(INITIAL_DAYS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return setLoading(false);
-    firestore.collection("Usuario").doc(uid).collection("Disponibilidade").get()
-      .then((snapshot) => {
-        const stored = new Map(snapshot.docs.map((document) => [document.id, document.data()]));
-        setDays((current) => current.map((day) => stored.has(day.id) ? { ...day, ...stored.get(day.id), id: day.id, label: day.label } : day));
-      })
-      .catch(() => Alert.alert("Agenda", "Não foi possível carregar sua disponibilidade."))
-      .finally(() => setLoading(false));
+  const navigation = useNavigation<any>(); const { theme } = useTheme();
+  const [days, setDays] = useState(INITIAL_DAYS); const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
+  const [draft, setDraft] = useState<Omit<TimeOff, "id">>({ startDate: "", endDate: "", type: "folga", reason: "" });
+  const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false);
+  useEffect(() => { const uid = auth.currentUser?.uid; if (!uid) { setLoading(false); return; }
+    Promise.all([firestore.collection("Usuario").doc(uid).collection("Disponibilidade").get(), firestore.collection("Usuario").doc(uid).collection("Indisponibilidades").orderBy("startDate").get()]).then(([availability, unavailable]) => {
+      const stored = new Map(availability.docs.map((doc) => [doc.id, doc.data()]));
+      setDays((current) => current.map((day) => stored.has(day.id) ? { ...day, ...stored.get(day.id), id: day.id, label: day.label } : day));
+      setTimeOff(unavailable.docs.map((doc) => ({ id: doc.id, ...doc.data() } as TimeOff)));
+    }).catch(() => Alert.alert("Agenda", "Não foi possível carregar sua agenda.")).finally(() => setLoading(false));
   }, []);
-
-  const updateDay = (id: string, changes: Partial<DayAvailability>) => {
-    setDays((current) => current.map((day) => day.id === id ? { ...day, ...changes } : day));
-  };
-
-  const save = async () => {
-    const invalid = days.find((day) => day.enabled && (!validTime(day.start) || !validTime(day.end) || day.start >= day.end));
-    if (invalid) {
-      Alert.alert("Horário inválido", `Confira o período informado para ${invalid.label}.`);
-      return;
-    }
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
-    try {
-      setSaving(true);
-      const batch = firestore.batch();
-      days.forEach((day) => batch.set(
-        firestore.collection("Usuario").doc(uid).collection("Disponibilidade").doc(day.id),
-        { enabled: day.enabled, start: day.start, end: day.end, updatedAt: firebase.firestore.FieldValue.serverTimestamp() },
-        { merge: true }
-      ));
-      await batch.commit();
-      Alert.alert("Agenda atualizada", "Os contratantes já verão os novos horários disponíveis.");
-    } catch {
-      Alert.alert("Erro", "Não foi possível salvar sua agenda.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity style={[styles.headerButton, { backgroundColor: theme.headerBtnBg }]} onPress={() => navigation.goBack()}><ArrowLeft size={22} color={theme.textPrimary} /></TouchableOpacity>
-        <View style={styles.headerCopy}><Text style={[styles.title, { color: theme.textPrimary }]}>Minha agenda</Text><Text style={[styles.subtitle, { color: theme.textMuted }]}>Defina quando você pode atender</Text></View>
-        <View style={styles.headerPlaceholder} />
-      </View>
-      {loading ? <View style={styles.center}><ActivityIndicator size="large" color="#2563EB" /></View> : (
-        <ScrollView contentContainerStyle={styles.content}>
-          <View style={[styles.intro, { backgroundColor: theme.card, borderColor: theme.border }]}><CalendarClock size={27} color="#2563EB" /><Text style={[styles.introText, { color: theme.textSecondary }]}>Solicitações fora destes horários serão bloqueadas automaticamente.</Text></View>
-          {days.map((day) => (
-            <View key={day.id} style={[styles.dayCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <View style={styles.dayHeader}><Text style={[styles.dayName, { color: theme.textPrimary }]}>{day.label}</Text><Switch value={day.enabled} onValueChange={(enabled) => updateDay(day.id, { enabled })} /></View>
-              {day.enabled ? <View style={styles.timeRow}><TextInput style={[styles.timeInput, { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.actionBg }]} value={day.start} onChangeText={(start) => updateDay(day.id, { start })} placeholder="08:00" keyboardType="numbers-and-punctuation" maxLength={5} /><Text style={[styles.to, { color: theme.textMuted }]}>até</Text><TextInput style={[styles.timeInput, { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.actionBg }]} value={day.end} onChangeText={(end) => updateDay(day.id, { end })} placeholder="18:00" keyboardType="numbers-and-punctuation" maxLength={5} /></View> : <Text style={[styles.unavailable, { color: theme.textMuted }]}>Indisponível</Text>}
-            </View>
-          ))}
-          <TouchableOpacity style={[styles.saveButton, saving && styles.disabled]} onPress={save} disabled={saving}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <Save size={19} color="#FFFFFF" />}<Text style={styles.saveText}>{saving ? "Salvando..." : "Salvar disponibilidade"}</Text></TouchableOpacity>
-        </ScrollView>
-      )}
-    </SafeAreaView>
-  );
+  const updateDay = (id: string, changes: Partial<DayAvailability>) => setDays((current) => current.map((day) => day.id === id ? { ...day, ...changes } : day));
+  const save = async () => { const invalid = days.find((day) => day.enabled && (!validTime(day.start) || !validTime(day.end) || day.start >= day.end || !validTime(day.lunchStart) || !validTime(day.lunchEnd) || day.lunchStart >= day.lunchEnd || day.lunchStart < day.start || day.lunchEnd > day.end || day.dailyLimit < 1 || day.dailyLimit > 30));
+    if (invalid) return Alert.alert("Horário inválido", `Confira expediente, almoço e limite de ${invalid.label}.`);
+    const uid = auth.currentUser?.uid; if (!uid) return; try { setSaving(true); const batch = firestore.batch(); days.forEach((day) => batch.set(firestore.collection("Usuario").doc(uid).collection("Disponibilidade").doc(day.id), { enabled: day.enabled, start: day.start, end: day.end, lunchStart: day.lunchStart, lunchEnd: day.lunchEnd, dailyLimit: day.dailyLimit, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true })); await batch.commit(); Alert.alert("Agenda atualizada", "Os bloqueios passam a valer nas novas solicitações."); } catch { Alert.alert("Erro", "Não foi possível salvar sua agenda."); } finally { setSaving(false); } };
+  const addTimeOff = async () => { const uid = auth.currentUser?.uid; if (!uid || !validDate(draft.startDate) || !validDate(draft.endDate) || draft.startDate > draft.endDate) return Alert.alert("Período inválido", "Use AAAA-MM-DD e confira o intervalo.");
+    try { const ref = firestore.collection("Usuario").doc(uid).collection("Indisponibilidades").doc(); await ref.set({ ...draft, createdAt: firebase.firestore.FieldValue.serverTimestamp() }); setTimeOff((current) => [...current, { id: ref.id, ...draft }]); setDraft({ startDate: "", endDate: "", type: "folga", reason: "" }); } catch { Alert.alert("Erro", "Não foi possível adicionar o período."); } };
+  const removeTimeOff = async (item: TimeOff) => { const uid = auth.currentUser?.uid; if (!uid) return; try { await firestore.collection("Usuario").doc(uid).collection("Indisponibilidades").doc(item.id).delete(); setTimeOff((current) => current.filter((value) => value.id !== item.id)); } catch { Alert.alert("Erro", "Não foi possível remover o período."); } };
+  const inputStyle = { color: theme.textPrimary, borderColor: theme.border, backgroundColor: theme.actionBg };
+  return <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}><View style={[styles.header, { borderBottomColor: theme.border }]}><TouchableOpacity style={[styles.headerButton, { backgroundColor: theme.headerBtnBg }]} onPress={() => navigation.goBack()}><ArrowLeft size={22} color={theme.textPrimary} /></TouchableOpacity><View style={styles.headerCopy}><Text style={[styles.title, { color: theme.textPrimary }]}>Minha agenda</Text><Text style={[styles.subtitle, { color: theme.textMuted }]}>Disponibilidade profissional</Text></View><View style={styles.headerButton} /></View>
+    {loading ? <View style={styles.center}><ActivityIndicator size="large" color="#2563EB" /></View> : <ScrollView contentContainerStyle={styles.content}><View style={[styles.intro, { backgroundColor: theme.card, borderColor: theme.border }]}><CalendarClock size={27} color="#2563EB" /><Text style={[styles.introText, { color: theme.textSecondary }]}>Horários ocupados, almoço, folgas e limites diários são bloqueados automaticamente.</Text></View>
+      {days.map((day) => <View key={day.id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.cardHeader}><Text style={[styles.dayName, { color: theme.textPrimary }]}>{day.label}</Text><Switch value={day.enabled} onValueChange={(enabled) => updateDay(day.id, { enabled })} /></View>{day.enabled ? <><Text style={[styles.label, { color: theme.textMuted }]}>Expediente</Text><View style={styles.row}><TextInput style={[styles.time, inputStyle]} value={day.start} onChangeText={(start) => updateDay(day.id, { start })} maxLength={5} /><Text style={{ color: theme.textMuted }}>até</Text><TextInput style={[styles.time, inputStyle]} value={day.end} onChangeText={(end) => updateDay(day.id, { end })} maxLength={5} /></View><Text style={[styles.label, { color: theme.textMuted }]}>Almoço</Text><View style={styles.row}><TextInput style={[styles.time, inputStyle]} value={day.lunchStart} onChangeText={(lunchStart) => updateDay(day.id, { lunchStart })} maxLength={5} /><Text style={{ color: theme.textMuted }}>até</Text><TextInput style={[styles.time, inputStyle]} value={day.lunchEnd} onChangeText={(lunchEnd) => updateDay(day.id, { lunchEnd })} maxLength={5} /></View><Text style={[styles.label, { color: theme.textMuted }]}>Limite diário</Text><TextInput style={[styles.limit, inputStyle]} value={String(day.dailyLimit)} onChangeText={(value) => updateDay(day.id, { dailyLimit: Number(value) || 0 })} keyboardType="number-pad" /></> : <Text style={[styles.off, { color: theme.textMuted }]}>Indisponível</Text>}</View>)}
+      <TouchableOpacity style={[styles.save, saving && styles.disabled]} onPress={save} disabled={saving}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <Save size={18} color="#FFFFFF" />}<Text style={styles.saveText}>Salvar disponibilidade</Text></TouchableOpacity>
+      <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Folgas, férias e feriados</Text><View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={styles.row}><TextInput style={[styles.date, inputStyle]} placeholder="Início AAAA-MM-DD" placeholderTextColor={theme.textMuted} value={draft.startDate} onChangeText={(startDate) => setDraft((current) => ({ ...current, startDate }))} /><TextInput style={[styles.date, inputStyle]} placeholder="Fim AAAA-MM-DD" placeholderTextColor={theme.textMuted} value={draft.endDate} onChangeText={(endDate) => setDraft((current) => ({ ...current, endDate }))} /></View><View style={styles.types}>{(["folga", "ferias", "feriado"] as const).map((type) => <TouchableOpacity key={type} style={[styles.chip, draft.type === type && styles.chipActive]} onPress={() => setDraft((current) => ({ ...current, type }))}><Text style={[styles.chipText, draft.type === type && styles.chipTextActive]}>{type === "ferias" ? "Férias" : type[0].toUpperCase() + type.slice(1)}</Text></TouchableOpacity>)}</View><TextInput style={[styles.date, inputStyle]} placeholder="Motivo (opcional)" placeholderTextColor={theme.textMuted} value={draft.reason} onChangeText={(reason) => setDraft((current) => ({ ...current, reason }))} /><TouchableOpacity style={styles.add} onPress={addTimeOff}><Plus size={17} color="#FFFFFF" /><Text style={styles.saveText}>Adicionar período</Text></TouchableOpacity></View>
+      {timeOff.map((item) => <View key={item.id} style={[styles.timeOff, { backgroundColor: theme.card, borderColor: theme.border }]}><View style={{ flex: 1 }}><Text style={[styles.dayName, { color: theme.textPrimary }]}>{item.type === "ferias" ? "Férias" : item.type[0].toUpperCase() + item.type.slice(1)}</Text><Text style={[styles.off, { color: theme.textMuted }]}>{item.startDate} até {item.endDate}{item.reason ? ` • ${item.reason}` : ""}</Text></View><TouchableOpacity onPress={() => removeTimeOff(item)}><Trash2 size={19} color="#DC2626" /></TouchableOpacity></View>)}</ScrollView>}
+  </SafeAreaView>;
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1 }, header: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: StyleSheet.hairlineWidth }, headerButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, headerCopy: { flex: 1, alignItems: "center" }, headerPlaceholder: { width: 44 }, title: { fontSize: 19, fontWeight: "800" }, subtitle: { fontSize: 11, marginTop: 2 }, center: { flex: 1, alignItems: "center", justifyContent: "center" }, content: { padding: 16, paddingBottom: 36 }, intro: { borderRadius: 18, borderWidth: 1, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }, introText: { flex: 1, fontSize: 12, lineHeight: 18 }, dayCard: { borderRadius: 17, borderWidth: 1, padding: 14, marginBottom: 9 }, dayHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, dayName: { fontSize: 14, fontWeight: "800" }, timeRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 }, timeInput: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 9, textAlign: "center", fontWeight: "700" }, to: { fontSize: 12, fontWeight: "600" }, unavailable: { fontSize: 12, marginTop: 4 }, saveButton: { minHeight: 50, borderRadius: 16, backgroundColor: "#2563EB", flexDirection: "row", gap: 9, alignItems: "center", justifyContent: "center", marginTop: 10 }, saveText: { color: "#FFFFFF", fontWeight: "800", fontSize: 14 }, disabled: { opacity: 0.6 },
-});
+const styles = StyleSheet.create({ safe: { flex: 1 }, header: { flexDirection: "row", alignItems: "center", padding: 16, borderBottomWidth: 1 }, headerButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, headerCopy: { flex: 1, alignItems: "center" }, title: { fontSize: 19, fontWeight: "900" }, subtitle: { fontSize: 11, marginTop: 2 }, center: { flex: 1, alignItems: "center", justifyContent: "center" }, content: { padding: 16, paddingBottom: 42 }, intro: { borderRadius: 18, borderWidth: 1, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }, introText: { flex: 1, fontSize: 12, lineHeight: 18 }, card: { borderRadius: 17, borderWidth: 1, padding: 14, marginBottom: 9 }, cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, dayName: { fontSize: 14, fontWeight: "900" }, label: { fontSize: 11, fontWeight: "700", marginTop: 10 }, row: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 }, time: { flex: 1, minHeight: 42, borderWidth: 1, borderRadius: 11, textAlign: "center", fontWeight: "800" }, limit: { width: 80, minHeight: 42, borderWidth: 1, borderRadius: 11, textAlign: "center", fontWeight: "800", marginTop: 6 }, off: { fontSize: 11, marginTop: 4 }, save: { minHeight: 50, borderRadius: 15, backgroundColor: "#2563EB", flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 8 }, disabled: { opacity: 0.6 }, saveText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" }, sectionTitle: { fontSize: 17, fontWeight: "900", marginTop: 28, marginBottom: 10 }, date: { flex: 1, minHeight: 44, borderWidth: 1, borderRadius: 11, paddingHorizontal: 10, marginTop: 7 }, types: { flexDirection: "row", gap: 7, marginTop: 12 }, chip: { borderRadius: 999, backgroundColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 8 }, chipActive: { backgroundColor: "#2563EB" }, chipText: { color: "#475569", fontSize: 11, fontWeight: "800" }, chipTextActive: { color: "#FFFFFF" }, add: { minHeight: 44, borderRadius: 12, backgroundColor: "#2563EB", flexDirection: "row", gap: 7, alignItems: "center", justifyContent: "center", marginTop: 12 }, timeOff: { flexDirection: "row", alignItems: "center", padding: 13, borderRadius: 14, borderWidth: 1, marginTop: 8 } });

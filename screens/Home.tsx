@@ -1,21 +1,24 @@
 
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert, RefreshControl } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, Bell, FileText, Home as HomeIcon, Leaf, MapPin, Menu, Search as SearchIcon, Sofa, User, Wrench, X, Zap } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { useState, useCallback, useRef } from "react";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { auth, firestore } from "../firebase";
 import { Picker } from "@react-native-picker/picker";
 import { useTheme } from "../theme/ThemeContext";
+import { respondServiceProposal } from "../services/serviceService";
+import { smartFilter } from "../utils/smartSearch";
 
 export default function TelaInicialCliente({ onLogout }: any) {
 
   const navigation = useNavigation() as any;
+  const route = useRoute<any>();
   const { isDark, theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [searchText, setSearchText] = useState("");
-  const [abaAtiva, setAbaAtiva] = useState("inicio");
+  const [abaAtiva] = useState(route.params?.initialTab === "busca" ? "busca" : "inicio");
   const [profissionaisRecomendados, setProfissionaisRecomendados] = useState([]);
   const [servicosPopulares, setServicosPopulares] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -24,6 +27,8 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [servicoSelecionado, setServicoSelecionado] = useState<any>(null);
   const [problemaTexto, setProblemaTexto] = useState("");
+  const [mensagemProposta, setMensagemProposta] = useState("");
+  const [respondendoProposta, setRespondendoProposta] = useState(false);
   const [modalAreaVisivel, setModalAreaVisivel] = useState(false);
   const [areaSelecionada, setAreaSelecionada] = useState("");
   const [dataSolicitacao, setDataSolicitacao] = useState("");
@@ -31,7 +36,13 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [descricaoSolicitacao, setDescricaoSolicitacao] = useState("");
   const [enviandoSolicitacao, setEnviandoSolicitacao] = useState(false);
   const [userName, setUserName] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const unsubscribeAceitosRef = useRef<null | (() => void)>(null);
+
+  const refreshHome = async () => {
+    try { setRefreshing(true); await Promise.all([buscarDadosFirebase(), fetchUserName()]); carregarServicosAceitos(); }
+    finally { setRefreshing(false); }
+  };
 
   const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
@@ -180,17 +191,9 @@ export default function TelaInicialCliente({ onLogout }: any) {
     }
   };
 
-  const query = searchText.trim().toLowerCase();
-
-  const servicosFiltrados = servicosPopulares.filter((serv) =>
-    serv.nome.toLowerCase().includes(query)
-  );
-
-  const prestadoresFiltrados = profissionaisRecomendados.filter((pro: any) => {
-    const nome = (pro?.nome || "").toLowerCase();
-    const profissao = (pro?.profissao || pro?.tipo || "").toLowerCase();
-    return nome.includes(query) || profissao.includes(query);
-  });
+  const query = searchText.trim();
+  const servicosFiltrados = useMemo(() => smartFilter(servicosPopulares, query, (serv: any) => [serv.nome, serv.categoria, serv.descricao]), [servicosPopulares, query]);
+  const prestadoresFiltrados = useMemo(() => smartFilter(profissionaisRecomendados, query, (pro: any) => [pro.nome, pro.profissao || pro.tipo, pro.bairro, pro.cidade, pro.especialidades?.join?.(" "), pro.avaliacao]), [profissionaisRecomendados, query]);
 
   const contarProfissionaisPorServico = (nomeServico: any) => {
     return servicosPopulares.find(s => s.nome === nomeServico)?.quantidade || 0;
@@ -262,6 +265,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
     setModalVisivel(false);
     setServicoSelecionado(null);
     setProblemaTexto("");
+    setMensagemProposta("");
   };
 
   const formatarValor = (valor: any) => {
@@ -498,55 +502,26 @@ export default function TelaInicialCliente({ onLogout }: any) {
     }
   };
 
-  const responderPropostaValor = async (aceitou: boolean) => {
+  const responderPropostaValor = async (action: "accept" | "reject" | "request_change") => {
     if (!servicoSelecionado?.prestadorId || !servicoSelecionado?.clienteId) {
       Alert.alert("Erro", "Informações da proposta incompletas");
       return;
     }
 
+    if (action === "request_change" && !mensagemProposta.trim()) {
+      Alert.alert("Descreva a alteração", "Informe ao prestador o que deve ser ajustado.");
+      return;
+    }
     try {
-      const agora = new Date();
-      const novoStatus = aceitou ? "a fazer" : "rejeitado";
-      const statusUpdate = {
-        status: novoStatus,
-        dataRespostaValor: agora,
-        ...(aceitou
-          ? { dataAceito: agora, valorAceito: true }
-          : { dataRejeicao: agora, valorAceito: false }),
-      };
-
-      await firestore
-        .collection("ServicosAgendados")
-        .doc(servicoSelecionado.prestadorId)
-        .collection("ServicoStatus")
-        .doc(servicoSelecionado.id)
-        .set(
-          {
-            ...servicoSelecionado,
-            ...statusUpdate,
-          },
-          { merge: true }
-        );
-
-      await firestore
-        .collection("ServicosClientes")
-        .doc(servicoSelecionado.clienteId)
-        .collection("ServicoStatus")
-        .doc(servicoSelecionado.id)
-        .set(
-          {
-            ...servicoSelecionado,
-            ...statusUpdate,
-          },
-          { merge: true }
-        );
+      setRespondendoProposta(true);
+      await respondServiceProposal({ serviceId: servicoSelecionado.id, providerId: servicoSelecionado.prestadorId, action, message: mensagemProposta });
 
       if (servicoSelecionado.origem === "area" && servicoSelecionado.requestId) {
         const reqRef = firestore
           .collection("SolicitacoesArea")
           .doc(servicoSelecionado.requestId);
 
-        if (aceitou) {
+        if (action === "accept") {
           const reqSnap = await reqRef.get();
           const reqData: any = reqSnap.exists ? reqSnap.data() : {};
           const prestadoresIds: string[] = reqData?.prestadoresIds || [];
@@ -565,17 +540,17 @@ export default function TelaInicialCliente({ onLogout }: any) {
         }
 
         await reqRef.set(
-          aceitou
+          action === "accept"
             ? {
                 status: "aceito",
                 aceitoPor: servicoSelecionado.prestadorId,
-                dataAceito: agora,
+                dataAceito: new Date(),
                 valor: servicoSelecionado.valor,
                 valorAceito: true,
               }
             : {
                 status: "valor_recusado",
-                dataRespostaValor: agora,
+                dataRespostaValor: new Date(),
                 valorAceito: false,
               },
           { merge: true }
@@ -584,18 +559,21 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
       Alert.alert(
         "Sucesso",
-        aceitou ? "Valor aceito. Serviço confirmado." : "Valor recusado. Serviço rejeitado."
+        action === "accept" ? "Proposta aceita. Serviço confirmado." : action === "reject" ? "Proposta recusada." : "Alteração solicitada ao prestador."
       );
       fecharModal();
     } catch (erro) {
       console.error("Erro ao responder proposta de valor:", erro);
       Alert.alert("Erro", "Não foi possível responder a proposta.");
+    } finally {
+      setRespondendoProposta(false);
     }
   };
 
   return (
     <SafeAreaView edges={["top"]} style={[styles.containerFull, { backgroundColor: theme.background }]}>
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshHome} tintColor="#2563EB" colors={["#2563EB"]} />}
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={[
           styles.containerContent,
@@ -819,6 +797,20 @@ export default function TelaInicialCliente({ onLogout }: any) {
             {!carregando && (
               <TouchableOpacity
                 style={styles.sectionButtonContainer}
+                onPress={() => navigation.navigate("Favoritos")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sectionButtonContent}>
+                  <Text style={styles.sectionButtonTitle}>Prestadores favoritos</Text>
+                  <Text style={styles.sectionButtonSubtitle}>Acesse rapidamente e contrate novamente</Text>
+                </View>
+                <Text style={styles.sectionButtonArrow}>♥</Text>
+              </TouchableOpacity>
+            )}
+
+            {!carregando && (
+              <TouchableOpacity
+                style={styles.sectionButtonContainer}
                 onPress={() => navigation.navigate("NovosPrestadores")}
                 activeOpacity={0.7}
               >
@@ -960,18 +952,26 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 <View style={styles.modalButtonsRow}>
                   <TouchableOpacity
                     style={styles.modalFinishButton}
-                    onPress={() => responderPropostaValor(true)}
+                    onPress={() => responderPropostaValor("accept")}
+                    disabled={respondendoProposta}
                   >
-                    <Text style={styles.modalFinishText}>Aceitar valor</Text>
+                    <Text style={styles.modalFinishText}>{respondendoProposta ? "Enviando..." : "Aceitar proposta"}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.modalButtonsRow}>
                   <TouchableOpacity
                     style={styles.modalProblemButton}
-                    onPress={() => responderPropostaValor(false)}
+                    onPress={() => responderPropostaValor("reject")}
+                    disabled={respondendoProposta}
                   >
-                    <Text style={styles.modalProblemText}>Recusar valor</Text>
+                    <Text style={styles.modalProblemText}>Recusar proposta</Text>
+                  </TouchableOpacity>
+                </View>
+                <TextInput style={styles.modalInput} value={mensagemProposta} onChangeText={setMensagemProposta} placeholder="Peça uma alteração ou explique sua resposta..." placeholderTextColor="#999" multiline />
+                <View style={styles.modalButtonsRow}>
+                  <TouchableOpacity style={styles.modalProblemButton} onPress={() => responderPropostaValor("request_change")} disabled={respondendoProposta}>
+                    <Text style={styles.modalProblemText}>Solicitar alteração</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -1097,42 +1097,6 @@ export default function TelaInicialCliente({ onLogout }: any) {
         </View>
       </Modal>
       </ScrollView>
-
-      <View
-        style={[
-          styles.bottomTabsContainer,
-          {
-            backgroundColor: theme.background,
-            borderTopColor: theme.border,
-            paddingBottom: Math.max(insets.bottom, 16),
-            minHeight: 62 + Math.max(insets.bottom, 16),
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[
-            styles.bottomTab,
-            { backgroundColor: theme.background },
-            abaAtiva === "inicio" && styles.bottomTabActive,
-          ]}
-          onPress={() => setAbaAtiva("inicio")}
-        >
-          <HomeIcon size={22} color={abaAtiva === "inicio" ? "#2563EB" : "#64748B"} />
-          <Text style={[styles.bottomTabLabel, abaAtiva === "inicio" && styles.bottomTabLabelActive]}>Início</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.bottomTab,
-            { backgroundColor: theme.background },
-            abaAtiva === "busca" && styles.bottomTabActive,
-          ]}
-          onPress={() => setAbaAtiva("busca")}
-        >
-          <SearchIcon size={22} color={abaAtiva === "busca" ? "#2563EB" : "#64748B"} />
-          <Text style={[styles.bottomTabLabel, abaAtiva === "busca" && styles.bottomTabLabelActive]}>Buscar</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-nativ
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { AdvancedPreferences } from "../components/AdvancedPreferences";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { setPushNotificationsEnabled } from "../services/notificationService";
 
@@ -152,6 +153,8 @@ export default function Configuracoes() {
         </View>
       </View>
 
+      <AdvancedPreferences />
+
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Privacidade</Text>
         <View style={styles.sectionUnderline} />
@@ -180,6 +183,13 @@ export default function Configuracoes() {
       </View>
 
       <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
+          onPress={() => navigation.navigate("SegurancaConta")}
+        >
+          <Text style={[styles.actionText, { color: "#2563EB" }]}>Segurança da conta</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}

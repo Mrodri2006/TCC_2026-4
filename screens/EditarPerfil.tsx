@@ -24,6 +24,12 @@ export default function EditarPerfil() {
     fone: "",
     distancia: "",
     profissao: "",
+    experiencia: "",
+    especialidades: "",
+    certificados: "",
+    site: "",
+    redesSociais: "",
+    portfolio: "",
   });
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -55,6 +61,12 @@ export default function EditarPerfil() {
             fone: dados.fone || "",
             distancia: dados.distancia || "",
             profissao: dados.profissao || "",
+            experiencia: dados.experiencia || "",
+            especialidades: Array.isArray(dados.especialidades) ? dados.especialidades.join(", ") : dados.especialidades || "",
+            certificados: Array.isArray(dados.certificados) ? dados.certificados.join(", ") : dados.certificados || "",
+            site: dados.site || "",
+            redesSociais: dados.redesSociais || "",
+            portfolio: dados.portfolio || "",
           });
         } else {
           setFormDados((prev) => ({
@@ -101,6 +113,12 @@ export default function EditarPerfil() {
           fone: formDados.fone,
           distancia: formDados.distancia,
           profissao: formDados.profissao,
+          experiencia: formDados.experiencia.trim(),
+          especialidades: formDados.especialidades.split(",").map((item) => item.trim()).filter(Boolean),
+          certificados: formDados.certificados.split(",").map((item) => item.trim()).filter(Boolean),
+          site: formDados.site.trim(),
+          redesSociais: formDados.redesSociais.trim(),
+          portfolio: formDados.portfolio.trim(),
         });
 
         Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
@@ -250,6 +268,15 @@ export default function EditarPerfil() {
             />
           </View>
 
+          {([
+            ["experiencia", "Experiência profissional", "Conte sua trajetória e tempo de atuação"],
+            ["especialidades", "Especialidades", "Separe por vírgulas"],
+            ["certificados", "Certificados", "Cursos e certificados, separados por vírgulas"],
+            ["site", "Site", "https://seusite.com.br"],
+            ["redesSociais", "Redes sociais", "Instagram, LinkedIn ou outra rede"],
+            ["portfolio", "Portfólio", "Link para seu portfólio"],
+          ] as const).map(([key, label, placeholder]) => <View style={styles.fieldGroup} key={key}><Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>{label}</Text><TextInput style={[styles.input, key === "experiencia" && styles.multilineInput, inputThemeStyle]} placeholder={placeholder} placeholderTextColor={theme.textMuted} value={formDados[key]} onChangeText={(value) => setFormDados({ ...formDados, [key]: value })} multiline={key === "experiencia"} editable={!salvando} /></View>)}
+
           <TouchableOpacity
             style={[styles.botaoSalvarCompleto, salvando && styles.botaoDesabilitado]}
             onPress={salvarDados}
@@ -360,6 +387,7 @@ const styles = StyleSheet.create({
     color: "#0F2937",
     backgroundColor: "#F8FAFC",
   },
+  multilineInput: { minHeight: 100, textAlignVertical: "top" },
   inputError: {
     borderColor: "#E74C3C",
     backgroundColor: "#FEF2F2",

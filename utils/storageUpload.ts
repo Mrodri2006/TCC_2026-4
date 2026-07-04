@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { auth, storage } from "../firebase";
 
-export async function uploadImageUri(uri: string, caminho: string) {
+export async function uploadFileUri(uri: string, caminho: string, contentType = "image/jpeg", maxBytes = 20 * 1024 * 1024) {
   const usuario = auth.currentUser;
   if (!usuario) {
     throw new Error("Usuário não autenticado para enviar a imagem.");
@@ -19,6 +19,7 @@ export async function uploadImageUri(uri: string, caminho: string) {
   }
 
   const tamanho = Number(arquivo.size || 0);
+  if (!tamanho || tamanho > maxBytes) throw new Error("O arquivo excede o limite permitido.");
   const inicio = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -27,9 +28,9 @@ export async function uploadImageUri(uri: string, caminho: string) {
       "X-Goog-Upload-Protocol": "resumable",
       "X-Goog-Upload-Command": "start",
       "X-Goog-Upload-Header-Content-Length": String(tamanho),
-      "X-Goog-Upload-Header-Content-Type": "image/jpeg",
+      "X-Goog-Upload-Header-Content-Type": contentType,
     },
-    body: JSON.stringify({ name: caminho, contentType: "image/jpeg" }),
+    body: JSON.stringify({ name: caminho, contentType }),
   });
 
   if (!inicio.ok) {
@@ -77,3 +78,5 @@ export async function uploadImageUri(uri: string, caminho: string) {
     url,
   };
 }
+
+export const uploadImageUri = (uri: string, caminho: string) => uploadFileUri(uri, caminho, "image/jpeg", 5 * 1024 * 1024);

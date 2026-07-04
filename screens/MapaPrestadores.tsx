@@ -15,6 +15,7 @@ type MapProvider = ProviderPresence & {
   profissao: string;
   avaliacao?: number;
   distancia?: number;
+  precoMedio?: number;
 };
 
 const DEFAULT_REGION: Region = {
@@ -35,6 +36,9 @@ export default function MapaPrestadores() {
   const [clock, setClock] = useState(Date.now());
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState("Todos");
+  const [maxDistance, setMaxDistance] = useState(25);
+  const [minimumRating, setMinimumRating] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(0);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -86,6 +90,7 @@ export default function MapaPrestadores() {
                   nome: user?.nome || "Profissional",
                   profissao: user?.profissao || "Serviços gerais",
                   avaliacao: Number(user?.avaliacao || 0),
+                  precoMedio: Number(user?.precoMedio || user?.valorMedio || 0),
                 } as MapProvider;
               })
             );
@@ -123,8 +128,12 @@ export default function MapaPrestadores() {
   const normalizedSearch = search.trim().toLocaleLowerCase("pt-BR");
   const filteredProviders = visibleProviders.filter((provider) =>
     (selectedJob === "Todos" || provider.profissao === selectedJob)
+    && (provider.distancia === undefined || provider.distancia <= maxDistance)
+    && Number(provider.avaliacao || 0) >= minimumRating
+    && (!maxPrice || !provider.precoMedio || provider.precoMedio <= maxPrice)
     && (!normalizedSearch || `${provider.nome} ${provider.profissao}`.toLocaleLowerCase("pt-BR").includes(normalizedSearch))
   );
+  const clusters = Object.values(filteredProviders.reduce<Record<string, MapProvider[]>>((groups, provider) => { const key = `${Math.round(provider.latitude * 50)}_${Math.round(provider.longitude * 50)}`; (groups[key] ||= []).push(provider); return groups; }, {}));
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -179,6 +188,11 @@ export default function MapaPrestadores() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {jobs.map((job) => <TouchableOpacity key={job} style={[styles.chip, { borderColor: selectedJob === job ? "#2563EB" : theme.border, backgroundColor: selectedJob === job ? "#EFF6FF" : theme.card }]} onPress={() => setSelectedJob(job)}><Text style={[styles.chipText, { color: selectedJob === job ? "#1D4ED8" : theme.textSecondary }]}>{job}</Text></TouchableOpacity>)}
         </ScrollView>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          {[5, 10, 25, 50].map((distance) => <TouchableOpacity key={distance} style={[styles.chip, { borderColor: maxDistance === distance ? "#16A34A" : theme.border }]} onPress={() => setMaxDistance(distance)}><Text style={[styles.chipText, { color: maxDistance === distance ? "#15803D" : theme.textSecondary }]}>{distance} km</Text></TouchableOpacity>)}
+          {[0, 4, 4.5].map((rating) => <TouchableOpacity key={rating} style={[styles.chip, { borderColor: minimumRating === rating ? "#F59E0B" : theme.border }]} onPress={() => setMinimumRating(rating)}><Text style={[styles.chipText, { color: minimumRating === rating ? "#B45309" : theme.textSecondary }]}>{rating ? `★ ${rating}+` : "Todas as notas"}</Text></TouchableOpacity>)}
+          {[0, 100, 250, 500].map((price) => <TouchableOpacity key={`price-${price}`} style={[styles.chip, { borderColor: maxPrice === price ? "#7C3AED" : theme.border }]} onPress={() => setMaxPrice(price)}><Text style={[styles.chipText, { color: maxPrice === price ? "#6D28D9" : theme.textSecondary }]}>{price ? `Até R$ ${price}` : "Qualquer preço"}</Text></TouchableOpacity>)}
+        </ScrollView>
       </View>
 
       <MapView ref={mapRef} style={styles.map} initialRegion={DEFAULT_REGION} showsCompass showsMyLocationButton={false}>
@@ -187,7 +201,7 @@ export default function MapaPrestadores() {
             <View style={styles.userMarker}><Navigation size={17} color="#FFFFFF" /></View>
           </Marker>
         )}
-        {filteredProviders.map((provider) => (
+        {clusters.map((cluster) => cluster.length > 1 ? <Marker key={`cluster-${cluster.map((item) => item.id).join("-")}`} coordinate={{ latitude: cluster.reduce((sum, item) => sum + item.latitude, 0) / cluster.length, longitude: cluster.reduce((sum, item) => sum + item.longitude, 0) / cluster.length }} onPress={() => mapRef.current?.fitToCoordinates(cluster.map(({ latitude, longitude }) => ({ latitude, longitude })), { animated: true, edgePadding: { top: 100, right: 60, bottom: 180, left: 60 } })}><View style={styles.clusterMarker}><Text style={styles.clusterText}>{cluster.length}</Text></View></Marker> : (() => { const provider = cluster[0]; return (
           <Marker key={provider.id} coordinate={{ latitude: provider.latitude, longitude: provider.longitude }} onCalloutPress={() => openProvider(provider)}>
             <View style={styles.providerMarker}><UserRound size={20} color="#FFFFFF" /></View>
             <Callout tooltip>
@@ -195,11 +209,12 @@ export default function MapaPrestadores() {
                 <Text style={styles.calloutName} numberOfLines={1}>{provider.nome}</Text>
                 <Text style={styles.calloutJob} numberOfLines={1}>{provider.profissao}</Text>
                 {provider.distancia !== undefined && <Text style={styles.calloutDistance}>{provider.distancia.toFixed(1)} km de você</Text>}
+                {provider.distancia !== undefined && <Text style={styles.calloutDistance}>Cerca de {Math.max(1, Math.round(provider.distancia / 0.5))} min</Text>}
+                {!!provider.precoMedio && <Text style={styles.calloutJob}>Média R$ {provider.precoMedio.toFixed(2).replace(".", ",")}</Text>}
                 <Text style={styles.calloutAction}>Ver perfil</Text>
               </View>
             </Callout>
-          </Marker>
-        ))}
+          </Marker>); })())}
       </MapView>
 
       {userPosition && (
@@ -239,6 +254,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   map: { flex: 1 },
   providerMarker: { width: 43, height: 43, borderRadius: 22, backgroundColor: "#16A34A", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 5 },
+  clusterMarker: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#7C3AED", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 6 },
+  clusterText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
   userMarker: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#2563EB", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   callout: { width: 190, backgroundColor: "#FFFFFF", padding: 14, borderRadius: 16, shadowColor: "#000000", shadowOpacity: 0.16, shadowRadius: 12, elevation: 6 },
   calloutName: { color: "#0F172A", fontSize: 15, fontWeight: "800" },

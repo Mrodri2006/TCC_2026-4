@@ -3,6 +3,7 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    plugins: [...(config.plugins || []), "expo-audio"],
     android: {
       ...config.android,
       ...(googleMapsApiKey
