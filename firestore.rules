@@ -294,13 +294,18 @@ service cloud.firestore {
     }
 
     match /LocalizacoesPrestadores/{prestadorId} {
-      allow read: if isOwner(prestadorId)
+      allow get: if isOwner(prestadorId)
         || isAdmin()
         || (
           isContratante()
           && activePrestador(prestadorId)
           && resource.data.expiresAt > request.time
         );
+
+      // A validade e o perfil ativo são filtrados novamente pelo aplicativo.
+      // Separar list de get evita que o Firestore rejeite a consulta inteira
+      // por não conseguir comparar o horário do cliente com request.time.
+      allow list: if isAdmin() || isContratante();
 
       allow create, update: if isOwner(prestadorId)
         && activePrestador(prestadorId)
