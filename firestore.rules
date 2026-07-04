@@ -50,7 +50,7 @@ service cloud.firestore {
       return signedIn()
         && resource.data.clienteId == request.auth.uid
         && resource.data.status == 'realizado'
-        && resource.data.avaliado != true
+        && resource.data.get('avaliado', false) == false
         && request.resource.data.avaliado == true
         && request.resource.data.avaliacaoNota is number
         && request.resource.data.avaliacaoNota >= 1
