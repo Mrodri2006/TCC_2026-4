@@ -38,7 +38,7 @@ type Message = {
   location?: { latitude: number; longitude: number };
 };
 
-function AudioAttachment({ url }: { url: string }) { const player = useAudioPlayer(url); return <TouchableOpacity style={styles.attachmentButton} onPress={() => player.play()}><Play size={16} color="#2563EB" /><Text style={styles.attachmentText}>Reproduzir áudio</Text></TouchableOpacity>; }
+function AudioAttachment({ url }: { url: string }) { const player = useAudioPlayer(url); return <TouchableOpacity style={styles.attachmentButton} onPress={() => player.play()}><Play size={16} color="#FF8700" /><Text style={styles.attachmentText}>Reproduzir áudio</Text></TouchableOpacity>; }
 
 export default function Chat() {
   const navigation = useNavigation<any>();
@@ -255,7 +255,7 @@ export default function Chat() {
           isMine ? styles.bubbleMine : [styles.bubbleOther, { backgroundColor: theme.card }],
         ]}
       >
-        {!!item.replyTo && <Text style={[styles.replyQuote, { color: isMine ? "#DBEAFE" : theme.textMuted }]}>{item.replyTo.text}</Text>}
+        {!!item.replyTo && <Text style={[styles.replyQuote, { color: isMine ? "#FFEDD5" : theme.textMuted }]}>{item.replyTo.text}</Text>}
         <Text
           style={[
             styles.bubbleText,
@@ -266,8 +266,8 @@ export default function Chat() {
         </Text>
         {!!item.editedAt && <Text style={[styles.edited, isMine ? styles.timeMine : { color: theme.textMuted }]}>editada</Text>}
         {!!item.reactions && <Text style={styles.reactions}>{Object.values(item.reactions).join(" ")}</Text>}
-        {!!item.attachment && (item.attachment.mimeType.startsWith("audio/") ? <AudioAttachment url={item.attachment.url} /> : <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(item.attachment!.url)}><File size={16} color="#2563EB" /><Text style={styles.attachmentText} numberOfLines={1}>{item.attachment.name}</Text></TouchableOpacity>)}
-        {!!item.location && <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${item.location!.latitude},${item.location!.longitude}`)}><MapPin size={16} color="#2563EB" /><Text style={styles.attachmentText}>Abrir localização</Text></TouchableOpacity>}
+        {!!item.attachment && (item.attachment.mimeType.startsWith("audio/") ? <AudioAttachment url={item.attachment.url} /> : <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(item.attachment!.url)}><File size={16} color="#FF8700" /><Text style={styles.attachmentText} numberOfLines={1}>{item.attachment.name}</Text></TouchableOpacity>)}
+        {!!item.location && <TouchableOpacity style={styles.attachmentButton} onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${item.location!.latitude},${item.location!.longitude}`)}><MapPin size={16} color="#FF8700" /><Text style={styles.attachmentText}>Abrir localização</Text></TouchableOpacity>}
         {!!horario && (
           <Text style={[styles.messageTime, isMine ? styles.timeMine : { color: theme.textMuted }]}>
             {horario}{isMine && item.readBy?.includes(otherUserId) ? "  ✓✓" : ""}
@@ -332,13 +332,13 @@ export default function Chat() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={carregando ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="large" color="#2563EB" />
+              <ActivityIndicator size="large" color="#FF8700" />
               <Text style={[styles.loadingText, { color: theme.textMuted }]}>Carregando mensagens...</Text>
             </View>
           ) : (
             <View style={styles.emptyState}>
               <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
-                <MessageCircle size={30} color="#2563EB" />
+                <MessageCircle size={30} color="#FF8700" />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Comece a conversa</Text>
               <Text style={[styles.emptyText, { color: theme.textMuted }]}>
@@ -363,7 +363,7 @@ export default function Chat() {
         )}
 
         {!!(editing || replying) && <View style={[styles.composerContext, { backgroundColor: theme.card }]}><Text style={[styles.contextText, { color: theme.textSecondary }]} numberOfLines={1}>{editing ? `Editando: ${editing.text}` : `Respondendo: ${replying?.text}`}</Text><TouchableOpacity onPress={() => { setEditing(null); setReplying(null); setTexto(""); }}><X size={18} color={theme.textMuted} /></TouchableOpacity></View>}
-        <View style={[styles.mediaActions, { backgroundColor: theme.background }]}><TouchableOpacity style={styles.mediaButton} onPress={attachDocument} disabled={enviando}><Paperclip size={18} color="#2563EB" /><Text style={styles.mediaLabel}>Documento</Text></TouchableOpacity><TouchableOpacity style={styles.mediaButton} onPress={shareLocation} disabled={enviando}><MapPin size={18} color="#16A34A" /><Text style={styles.mediaLabel}>Local</Text></TouchableOpacity><TouchableOpacity style={[styles.mediaButton, recorderState.isRecording && styles.recording]} onPress={toggleRecording} disabled={enviando}>{recorderState.isRecording ? <Square size={17} color="#FFFFFF" /> : <Mic size={18} color="#DC2626" />}<Text style={[styles.mediaLabel, recorderState.isRecording && { color: "#FFFFFF" }]}>{recorderState.isRecording ? `${Math.round(recorderState.durationMillis / 1000)}s` : "Áudio"}</Text></TouchableOpacity></View>
+        <View style={[styles.mediaActions, { backgroundColor: theme.background }]}><TouchableOpacity style={styles.mediaButton} onPress={attachDocument} disabled={enviando}><Paperclip size={18} color="#FF8700" /><Text style={styles.mediaLabel}>Documento</Text></TouchableOpacity><TouchableOpacity style={styles.mediaButton} onPress={shareLocation} disabled={enviando}><MapPin size={18} color="#16A34A" /><Text style={styles.mediaLabel}>Local</Text></TouchableOpacity><TouchableOpacity style={[styles.mediaButton, recorderState.isRecording && styles.recording]} onPress={toggleRecording} disabled={enviando}>{recorderState.isRecording ? <Square size={17} color="#FFFFFF" /> : <Mic size={18} color="#DC2626" />}<Text style={[styles.mediaLabel, recorderState.isRecording && { color: "#FFFFFF" }]}>{recorderState.isRecording ? `${Math.round(recorderState.durationMillis / 1000)}s` : "Áudio"}</Text></TouchableOpacity></View>
         <View
           style={[
             styles.inputRow,
@@ -464,12 +464,12 @@ const styles = StyleSheet.create({
   },
   bubbleMine: {
     alignSelf: "flex-end",
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     borderBottomRightRadius: 6,
   },
   bubbleOther: {
     alignSelf: "flex-start",
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderBottomLeftRadius: 6,
   },
   bubbleText: {
@@ -480,8 +480,8 @@ const styles = StyleSheet.create({
   replyQuote: { fontSize: 11, fontWeight: "700", borderLeftWidth: 2, borderLeftColor: "#93C5FD", paddingLeft: 7, marginBottom: 5 },
   edited: { fontSize: 9, alignSelf: "flex-end" },
   reactions: { fontSize: 15, marginTop: 4 },
-  attachmentButton: { minHeight: 38, marginTop: 7, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "#EFF6FF", flexDirection: "row", alignItems: "center", gap: 7 },
-  attachmentText: { color: "#1D4ED8", fontSize: 11, fontWeight: "800", flexShrink: 1 },
+  attachmentButton: { minHeight: 38, marginTop: 7, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "#FFF7ED", flexDirection: "row", alignItems: "center", gap: 7 },
+  attachmentText: { color: "#E86F00", fontSize: 11, fontWeight: "800", flexShrink: 1 },
   textMine: {
     color: "#fff",
   },
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 13, fontWeight: "600", marginTop: 12 },
   errorBanner: { marginHorizontal: 14, marginBottom: 8, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 10 },
   errorText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" },
-  retryText: { color: "#2563EB", fontSize: 12, fontWeight: "800" },
+  retryText: { color: "#FF8700", fontSize: 12, fontWeight: "800" },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     width: 48,
     height: 48,
     borderRadius: 24,

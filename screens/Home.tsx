@@ -1,10 +1,10 @@
 
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert, RefreshControl } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal, Alert, RefreshControl, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowRight, Bell, FileText, Home as HomeIcon, Leaf, MapPin, Menu, Search as SearchIcon, Sofa, User, Wrench, X, Zap } from "lucide-react-native";
+import { ArrowRight, Bell, FileText, Home as HomeIcon, Leaf, MapPin, Search as SearchIcon, Sofa, User, Wrench, X, Zap } from "lucide-react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { auth, firestore } from "../firebase";
 import { Picker } from "@react-native-picker/picker";
 import { useTheme } from "../theme/ThemeContext";
@@ -38,15 +38,34 @@ export default function TelaInicialCliente({ onLogout }: any) {
   const [userName, setUserName] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const unsubscribeAceitosRef = useRef<null | (() => void)>(null);
+  const brandOpacity = useRef(new Animated.Value(0)).current;
+  const brandScale = useRef(new Animated.Value(0.92)).current;
+
+  useEffect(() => {
+    const entrance = Animated.parallel([
+      Animated.timing(brandOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
+      Animated.spring(brandScale, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }),
+    ]);
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brandScale, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
+        Animated.timing(brandScale, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    entrance.start(({ finished }) => finished && pulse.start());
+    return () => {
+      entrance.stop();
+      pulse.stop();
+    };
+  }, [brandOpacity, brandScale]);
 
   const refreshHome = async () => {
     try { setRefreshing(true); await Promise.all([buscarDadosFirebase(), fetchUserName()]); carregarServicosAceitos(); }
     finally { setRefreshing(false); }
   };
 
-  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
-  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
 
   useFocusEffect(
     useCallback(() => {
@@ -61,34 +80,24 @@ export default function TelaInicialCliente({ onLogout }: any) {
     }, [])
   );
 
-  const openDrawer = () => {
-    try {
-      if (typeof (navigation as any)?.openDrawer === "function") {
-        (navigation as any).openDrawer();
-      }
-    } catch {
-      // no-op
-    }
-  };
-
   const getServicoUi = (nome: string) => {
     const n = String(nome || "").toLowerCase();
 
     if (n.includes("diarista")) {
       return {
         subtitle: "Serviços de limpeza e organização",
-        icon: <User size={26} color="#2563EB" />,
-        iconBg: "#E8F4FF",
-        badgeBg: "#2563EB",
+        icon: <User size={26} color="#FF8700" />,
+        iconBg: "#FFF4E5",
+        badgeBg: "#FF8700",
       };
     }
 
     if (n.includes("eletric")) {
       return {
         subtitle: "Instalações e reparos elétricos",
-        icon: <Zap size={26} color="#2563EB" />,
-        iconBg: "#E8F4FF",
-        badgeBg: "#2563EB",
+        icon: <Zap size={26} color="#FF8700" />,
+        iconBg: "#FFF4E5",
+        badgeBg: "#FF8700",
       };
     }
 
@@ -112,9 +121,9 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
     return {
       subtitle: "Serviço profissional",
-      icon: <Wrench size={26} color="#2563EB" />,
-      iconBg: "#E8F4FF",
-      badgeBg: "#2563EB",
+      icon: <Wrench size={26} color="#FF8700" />,
+      iconBg: "#FFF4E5",
+      badgeBg: "#FF8700",
     };
   };
 
@@ -573,26 +582,27 @@ export default function TelaInicialCliente({ onLogout }: any) {
   return (
     <SafeAreaView edges={["top"]} style={[styles.containerFull, { backgroundColor: theme.background }]}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshHome} tintColor="#2563EB" colors={["#2563EB"]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshHome} tintColor="#FF8700" colors={["#FF8700"]} />}
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={[
           styles.containerContent,
-          { paddingBottom: 24 + Math.max(insets.bottom, 16) },
+          { paddingBottom: 88 + Math.max(insets.bottom, 10) },
         ]}
       >
         {abaAtiva === "inicio" ? (
           <>
             <View style={styles.topBar}>
-              <TouchableOpacity
-                style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
-                onPress={openDrawer}
-                activeOpacity={0.7}
+              <View style={{ width: 44, height: 44 }} />
+              <Animated.Text
+                accessibilityRole="header"
+                style={[
+                  styles.topBarTitle,
+                  { opacity: brandOpacity, transform: [{ scale: brandScale }] },
+                ]}
               >
-                <Menu size={24} color={topBarIconColor} />
-              </TouchableOpacity>
-              <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>
-                Página Inicial
-              </Text>
+                <Text style={{ color: isDark ? "#F8FAFC" : "#071A33" }}>Pra</Text>
+                <Text style={{ color: "#FF8700" }}>Ontem</Text>
+              </Animated.Text>
               <TouchableOpacity
                 style={[styles.topBarBtn, { backgroundColor: topBarBtnBg }]}
                 onPress={() => navigation.navigate("Notificacoes")}
@@ -614,7 +624,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
               style={[
                 styles.greetingCard,
                 {
-                  backgroundColor: isDark ? theme.surface : "#E8F4FF",
+                  backgroundColor: isDark ? theme.surface : "#FFF4E5",
                   borderColor: isDark ? theme.surfaceBorder : "transparent",
                   borderWidth: isDark ? 1 : 0,
                 },
@@ -639,7 +649,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 onPress={() => navigation.navigate("Perfil")}
                 activeOpacity={0.8}
               >
-                <User size={22} color="#2563EB" />
+                <User size={22} color="#FF8700" />
               </TouchableOpacity>
             </View>
 
@@ -657,7 +667,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 <Text style={[styles.mapDiscoveryTitle, { color: theme.surfaceTextPrimary }]}>Profissionais disponíveis agora</Text>
                 <Text style={[styles.mapDiscoveryText, { color: theme.surfaceTextMuted }]}>Veja no mapa quem decidiu compartilhar a localização</Text>
               </View>
-              <ArrowRight size={20} color="#2563EB" />
+              <ArrowRight size={20} color="#FF8700" />
             </TouchableOpacity>
 
             <View style={styles.sectionHeader}>
@@ -667,7 +677,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
             <TouchableOpacity style={styles.primaryActionWrap} onPress={abrirModalArea} activeOpacity={0.88}>
               <LinearGradient
-                colors={["#1D4ED8", "#2563EB", "#1D4ED8"]}
+                colors={["#E86F00", "#FF8700", "#E86F00"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.primaryAction}
@@ -682,14 +692,14 @@ export default function TelaInicialCliente({ onLogout }: any) {
                   </Text>
                 </View>
                 <View style={styles.primaryActionArrow}>
-                  <ArrowRight size={20} color="#2563EB" />
+                  <ArrowRight size={20} color="#FF8700" />
                 </View>
               </LinearGradient>
             </TouchableOpacity>
 
             {carregando ? (
               <View style={styles.carregandoContainer}>
-                <ActivityIndicator size="large" color="#005362" />
+                <ActivityIndicator size="large" color="#FF8700" />
                 <Text style={styles.carregandoTexto}>Carregando serviços...</Text>
               </View>
             ) : servicosFiltrados.length > 0 ? (
@@ -716,7 +726,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                           {
                             backgroundColor: isDark
                               ? "rgba(255,255,255,0.06)"
-                              : serv.iconBg || "#E8F4FF",
+                              : serv.iconBg || "#FFF4E5",
                           },
                         ]}
                       >
@@ -731,7 +741,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                       >
                         {serv.subtitle || "Serviço profissional"}
                       </Text>
-                      <View style={[styles.badgeContainer, { backgroundColor: serv.badgeBg || "#2563EB" }]}>
+                      <View style={[styles.badgeContainer, { backgroundColor: serv.badgeBg || "#FF8700" }]}>
                         <Text style={styles.badgeTexto}>{quantidadeProf} profissional{quantidadeProf !== 1 ? "s" : ""}</Text>
                       </View>
                     </TouchableOpacity>
@@ -751,22 +761,22 @@ export default function TelaInicialCliente({ onLogout }: any) {
 
             {carregandoAceitos ? (
               <View style={styles.carregandoContainer}>
-                <ActivityIndicator size="small" color="#005362" />
-                <Text style={styles.carregandoTexto}>Carregando serviços aceitos...</Text>
+                <ActivityIndicator size="small" color="#FF8700" />
+                <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando serviços aceitos...</Text>
               </View>
             ) : servicosAceitos.length > 0 ? (
               <View style={styles.servicosAceitosList}>
                 {servicosAceitos.map((serv) => (
                   <TouchableOpacity
                     key={`${serv.id}-${serv.prestadorId}`}
-                    style={styles.servicoAceitoCard}
+                    style={[styles.servicoAceitoCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: "#FF8700" }]}
                     onPress={() => abrirModal(serv)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.servicoAceitoTitulo}>
+                    <Text style={[styles.servicoAceitoTitulo, { color: theme.textPrimary }]}>
                       {serv.estilo || serv.tipo || "Serviço"}
                     </Text>
-                    <Text style={styles.servicoAceitoInfo}>
+                    <Text style={[styles.servicoAceitoInfo, { color: theme.textMuted }]}>
                       {serv.data || "Data não informada"} • {serv.local || "Local não informado"}
                     </Text>
                     {serv.status === "valor_pendente" && (
@@ -783,29 +793,15 @@ export default function TelaInicialCliente({ onLogout }: any) {
                 ))}
               </View>
             ) : (
-              <View style={styles.emptyStateCard}>
-                <View style={styles.emptyStateIcon}>
-                  <FileText size={20} color="#94A3B8" />
+              <View style={[styles.emptyStateCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={[styles.emptyStateIcon, { backgroundColor: theme.headerBtnBg }]}>
+                  <FileText size={20} color={isDark ? "#FFB13B" : "#94A3B8"} />
                 </View>
                 <View style={styles.emptyStateTextCol}>
-                  <Text style={styles.emptyStateTitle}>Nenhum serviço ou proposta no momento</Text>
-                  <Text style={styles.emptyStateSub}>Quando houver, você verá aqui.</Text>
+                  <Text style={[styles.emptyStateTitle, { color: theme.textPrimary }]}>Nenhum serviço ou proposta no momento</Text>
+                  <Text style={[styles.emptyStateSub, { color: theme.textMuted }]}>Quando houver, você verá aqui.</Text>
                 </View>
               </View>
-            )}
-
-            {!carregando && (
-              <TouchableOpacity
-                style={styles.sectionButtonContainer}
-                onPress={() => navigation.navigate("Favoritos")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.sectionButtonContent}>
-                  <Text style={styles.sectionButtonTitle}>Prestadores favoritos</Text>
-                  <Text style={styles.sectionButtonSubtitle}>Acesse rapidamente e contrate novamente</Text>
-                </View>
-                <Text style={styles.sectionButtonArrow}>♥</Text>
-              </TouchableOpacity>
             )}
 
             {!carregando && (
@@ -930,21 +926,21 @@ export default function TelaInicialCliente({ onLogout }: any) {
       <Modal visible={modalVisivel} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, { backgroundColor: theme.surface }]}>
-            <Text style={styles.modalTitle}>Gerenciar Serviço</Text>
+            <Text style={[styles.modalTitle, { color: theme.surfaceTextPrimary }]}>Gerenciar Serviço</Text>
 
             <Text style={styles.modalServicoTitulo}>
               {servicoSelecionado?.estilo || servicoSelecionado?.tipo || "Serviço"}
             </Text>
 
-            <Text style={styles.modalInfo}>
+            <Text style={[styles.modalInfo, { color: theme.surfaceTextMuted }]}>
               {servicoSelecionado?.data || "Data não informada"} • {servicoSelecionado?.local || "Local não informado"}
             </Text>
 
             {servicoSelecionado?.status === "valor_pendente" ? (
               <>
-                <View style={styles.propostaValorBox}>
-                  <Text style={styles.propostaValorLabel}>Valor informado</Text>
-                  <Text style={styles.propostaValorTexto}>
+                <View style={[styles.propostaValorBox, isDark && { backgroundColor: "rgba(22,163,74,0.14)", borderColor: "rgba(134,239,172,0.35)" }]}>
+                  <Text style={[styles.propostaValorLabel, isDark && { color: "#86EFAC" }]}>Valor informado</Text>
+                  <Text style={[styles.propostaValorTexto, isDark && { color: "#86EFAC" }]}>
                     {formatarValor(servicoSelecionado?.valorProposto ?? servicoSelecionado?.valor)}
                   </Text>
                 </View>
@@ -968,7 +964,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                     <Text style={styles.modalProblemText}>Recusar proposta</Text>
                   </TouchableOpacity>
                 </View>
-                <TextInput style={styles.modalInput} value={mensagemProposta} onChangeText={setMensagemProposta} placeholder="Peça uma alteração ou explique sua resposta..." placeholderTextColor="#999" multiline />
+                <TextInput style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.textPrimary }]} value={mensagemProposta} onChangeText={setMensagemProposta} placeholder="Peça uma alteração ou explique sua resposta..." placeholderTextColor={theme.textMuted} multiline />
                 <View style={styles.modalButtonsRow}>
                   <TouchableOpacity style={styles.modalProblemButton} onPress={() => responderPropostaValor("request_change")} disabled={respondendoProposta}>
                     <Text style={styles.modalProblemText}>Solicitar alteração</Text>
@@ -978,11 +974,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
             ) : (
               <>
                 <View style={styles.modalInputContainer}>
-                  <Text style={styles.modalLabel}>Reportar problema (opcional)</Text>
+                  <Text style={[styles.modalLabel, { color: theme.surfaceTextMuted }]}>Reportar problema (opcional)</Text>
                   <TextInput
-                    style={styles.modalInput}
+                    style={[styles.modalInput, { backgroundColor: theme.background, borderColor: theme.border, color: theme.textPrimary }]}
                     placeholder="Descreva o problema..."
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textMuted}
                     value={problemaTexto}
                     onChangeText={setProblemaTexto}
                     multiline
@@ -1126,8 +1122,9 @@ const styles = StyleSheet.create({
   },
 
   topBarTitle: {
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 21,
+    fontWeight: "900",
+    letterSpacing: 0.5,
     color: "#0F2937",
   },
 
@@ -1155,13 +1152,13 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     borderWidth: 2,
     borderColor: "#ffffff",
   },
 
   greetingCard: {
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 24,
     padding: 18,
     marginBottom: 18,
@@ -1211,7 +1208,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 18,
-    marginVertical: 18,
+    marginTop: 4,
+    marginBottom: 18,
   },
 
   searchInput: {
@@ -1237,7 +1235,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: -4,
   },
 
@@ -1385,14 +1383,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
   },
 
   avatarRecomendado: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -1420,7 +1418,7 @@ const styles = StyleSheet.create({
   },
 
   profissaoTexto: {
-    color: "#2563EB",
+    color: "#FF8700",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1438,7 +1436,7 @@ const styles = StyleSheet.create({
   },
 
   botaoChamar: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 16,
@@ -1472,7 +1470,7 @@ const styles = StyleSheet.create({
 
   badgeContainer: {
     marginTop: 10,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 14,
@@ -1528,12 +1526,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 20,
     padding: 18,
     marginVertical: 18,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
     shadowColor: "#0F2937",
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -1560,7 +1558,7 @@ const styles = StyleSheet.create({
 
   sectionButtonArrow: {
     fontSize: 24,
-    color: "#2563EB",
+    color: "#FF8700",
     fontWeight: "700",
     marginLeft: 12,
   },
@@ -1574,13 +1572,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
     shadowColor: "#0F2937",
     shadowOpacity: 0.05,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
   },
 
   servicoAceitoTitulo: {
@@ -1605,7 +1604,7 @@ const styles = StyleSheet.create({
 
   servicoAceitoAcoes: {
     fontSize: 12,
-    color: "#2563EB",
+    color: "#FF8700",
     fontWeight: "700",
   },
 
@@ -1639,7 +1638,7 @@ const styles = StyleSheet.create({
   modalServicoTitulo: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#2563EB",
+    color: "#FF8700",
     marginBottom: 6,
   },
 
@@ -1690,7 +1689,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#0F2937",
     borderWidth: 1,
-    borderColor: "#E8F4FF",
+    borderColor: "#FFF4E5",
   },
 
   modalInputLong: {
@@ -1702,7 +1701,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#E8F4FF",
+    borderColor: "#FFF4E5",
   },
 
   modalButtonsRow: {
@@ -1770,14 +1769,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
   },
 
   prestadorAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -1845,8 +1844,8 @@ const styles = StyleSheet.create({
 
   bottomTabActive: {
     borderTopWidth: 3,
-    borderTopColor: "#2563EB",
-    backgroundColor: "rgba(37, 99, 235, 0.10)",
+    borderTopColor: "#FF8700",
+    backgroundColor: "rgba(255, 135, 0, 0.10)",
   },
 
   bottomTabIcon: {
@@ -1865,7 +1864,7 @@ const styles = StyleSheet.create({
   },
 
   bottomTabLabelActive: {
-    color: "#2563EB",
+    color: "#FF8700",
     fontWeight: "700",
     fontSize: 12,
   },

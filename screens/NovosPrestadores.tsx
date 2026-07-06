@@ -1,4 +1,4 @@
-﻿import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Modal } from "react-native";
 import { ArrowLeft, Clock } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
@@ -109,14 +109,14 @@ export default function NovosPrestadores() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={24} color="#005362" />
+          <ArrowLeft size={24} color="#FF8700" />
         </TouchableOpacity>
         <Text style={styles.titulo}>Novos Prestadores</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.infoSection}>
-        <Clock size={18} color="#005362" />
+        <Clock size={18} color="#FF8700" />
         <Text style={styles.infoText}>
           Confira os trabalhadores recentemente cadastrados
         </Text>
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   profissaoTexto: {
-    color: "#2563EB",
+    color: "#FF8700",
     fontSize: 12,
     fontWeight: "600",
   },

@@ -22,10 +22,10 @@ export function ServiceTimeline({ status, events = [] }: Props) {
       const event = [...events].reverse().find((item) => normalizeServiceStatus(item.status) === step.status);
       return <View key={step.status} style={styles.row}>
         <View style={styles.rail}>
-          <View style={[styles.dot, { backgroundColor: done ? "#2563EB" : theme.card, borderColor: done ? "#2563EB" : theme.border }]}>
+          <View style={[styles.dot, { backgroundColor: done ? "#FF8700" : theme.card, borderColor: done ? "#FF8700" : theme.border }]}>
             {done ? <Check size={12} color="#FFFFFF" /> : <Circle size={10} color={theme.textMuted} />}
           </View>
-          {index < SERVICE_STEPS.length - 1 && <View style={[styles.line, { backgroundColor: index < currentIndex ? "#2563EB" : theme.border }]} />}
+          {index < SERVICE_STEPS.length - 1 && <View style={[styles.line, { backgroundColor: index < currentIndex ? "#FF8700" : theme.border }]} />}
         </View>
         <View style={styles.copy}>
           <Text style={[styles.label, { color: done ? theme.textPrimary : theme.textMuted }]}>{step.label}</Text>

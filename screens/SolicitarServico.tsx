@@ -204,7 +204,7 @@ const estilos = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 24,
     padding: 18,
     marginBottom: 20,
@@ -231,7 +231,7 @@ const estilos = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
     shadowColor: "#0F2937",
     shadowOpacity: 0.05,
     shadowRadius: 16,
@@ -243,7 +243,7 @@ const estilos = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -268,7 +268,7 @@ const estilos = StyleSheet.create({
 
   profissaoBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    backgroundColor: "rgba(255, 135, 0, 0.12)",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 999,
@@ -276,7 +276,7 @@ const estilos = StyleSheet.create({
 
   profissaoTexto: {
     fontSize: 12,
-    color: "#1D4ED8",
+    color: "#E86F00",
     fontWeight: "700",
   },
 
@@ -346,7 +346,7 @@ const estilos = StyleSheet.create({
   },
 
   botaoConfirmar: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
   },
 
   botaoTexto: {

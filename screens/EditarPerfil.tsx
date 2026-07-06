@@ -35,9 +35,9 @@ export default function EditarPerfil() {
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
-  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarTitleColor = isDark ? "#FF8700" : "#0F2937";
   const cardBackground = isDark ? theme.surface : "#FFFFFF";
   const cardBorderColor = isDark ? theme.surfaceBorder : "transparent";
   const inputBackground = isDark ? theme.actionBg : "#F8FAFC";
@@ -136,7 +136,7 @@ export default function EditarPerfil() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
         <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#FF8700" />
           <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>
             Carregando dados...
           </Text>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   botaoSalvarCompleto: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",

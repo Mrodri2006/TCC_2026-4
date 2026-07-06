@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Chamo",
+    "name": "PraOntem",
     "slug": "chamo-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo4.png",
+    "icon": "./assets/logo-nova.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logo4.png",
+      "image": "./assets/logo-nova.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true
@@ -18,8 +18,8 @@
       "package": "com.m2006.firebase",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo4.png",
-        "backgroundColor": "#000000"
+        "foregroundImage": "./assets/logo-nova.png",
+        "backgroundColor": "#FFFFFF"
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -27,7 +27,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/logo8.png"
+      "favicon": "./assets/logo-nova.png"
     },
     "plugins": [
       [

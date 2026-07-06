@@ -9,7 +9,7 @@ import { useTheme } from "../theme/ThemeContext";
 
 export default function PrestadoresPorServico() {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { isDark, theme } = useTheme();
   const route = useRoute() as any;
   const { servico } = route.params || { servico: "" };
 
@@ -119,35 +119,35 @@ export default function PrestadoresPorServico() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: isDark ? theme.card : "#FFF4E5", borderColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={24} color="#0c0c0c" />
+          <ArrowLeft size={24} color={theme.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.titulo}>{servico}</Text>
+        <Text style={[styles.titulo, { color: theme.textPrimary }]}>{servico}</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.infoSection}>
-        <Briefcase size={18} color="#0c0c0c" />
-        <Text style={styles.infoText}>
+      <View style={[styles.infoSection, { backgroundColor: isDark ? theme.card : "#FFF7ED", borderColor: theme.border }]}>
+        <Briefcase size={18} color={isDark ? "#FFB13B" : "#FF8700"} />
+        <Text style={[styles.infoText, { color: isDark ? "#FFB13B" : "#FF8700" }]}>
           Profissionais de {servico.toLowerCase()} em {localizacaoContratante || "sua região"}
         </Text>
       </View>
 
       {carregando ? (
         <View style={styles.carregandoContainer}>
-          <ActivityIndicator size="large" color="#0c0c0c" />
-          <Text style={styles.carregandoTexto}>Carregando profissionais...</Text>
+          <ActivityIndicator size="large" color="#FF8700" />
+          <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando profissionais...</Text>
         </View>
       ) : usuariosPrestadores.length > 0 ? (
         <View style={styles.prestadoresList}>
           {usuariosPrestadores.map((prestador) => (
             <TouchableOpacity
               key={prestador.id}
-              style={styles.prestadorCard}
+              style={[styles.prestadorCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: "#FF8700" }]}
               activeOpacity={0.85}
             >
               <View style={styles.prestadorAvatar}>
@@ -159,7 +159,7 @@ export default function PrestadoresPorServico() {
               <View style={styles.prestadorInfo}>
                 <View style={styles.topRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.prestadorNome}>{prestador.nome}</Text>
+                    <Text style={[styles.prestadorNome, { color: theme.textPrimary }]}>{prestador.nome}</Text>
                     <View style={styles.profissaoBadge}>
                       <Text style={styles.profissaoTexto}>{prestador.profissao}</Text>
                     </View>
@@ -169,14 +169,14 @@ export default function PrestadoresPorServico() {
                 <View style={styles.prestadorRating}>
                   <View style={styles.detalheItem}>
                     <Star size={14} color="#FFD700" fill="#FFD700" />
-                    <Text style={styles.detalheTexto}>
+                    <Text style={[styles.detalheTexto, { color: theme.textSecondary }]}>
                       {prestador.avaliacao.toFixed(1)}
                     </Text>
                   </View>
 
                   <View style={styles.detalheItem}>
-                    <MapPin size={14} color="#0c0c0c" />
-                    <Text style={styles.detalheTexto}> {prestador.distancia}</Text>
+                    <MapPin size={14} color={theme.textMuted} />
+                    <Text style={[styles.detalheTexto, { color: theme.textSecondary }]}> {prestador.distancia}</Text>
                   </View>
                 </View>
 
@@ -184,7 +184,7 @@ export default function PrestadoresPorServico() {
 
               <View style={styles.cardActions}>
                 <TouchableOpacity
-                  style={styles.botaoPerfil}
+                  style={[styles.botaoPerfil, { backgroundColor: isDark ? theme.background : "#F8FAFC" }]}
                   activeOpacity={0.8}
                   onPress={() => handleVerPerfil(prestador)}
                 >
@@ -204,7 +204,7 @@ export default function PrestadoresPorServico() {
         </View>
       ) : (
         <View style={styles.nenhumContainer}>
-          <Text style={styles.nenhumResultado}>
+          <Text style={[styles.nenhumResultado, { color: theme.textMuted }]}>
             Nenhum profissional de {servico} encontrado para a sua região
           </Text>
         </View>
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 22,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 4,
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -250,11 +251,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
+    borderWidth: 1,
   },
 
   infoText: {
     fontSize: 14,
-    color: "#005362",
+    color: "#FF8700",
     fontWeight: "500",
     flex: 1,
     marginLeft: 10,
@@ -288,15 +290,16 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
+    borderWidth: 1,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
   },
 
   prestadorAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
 
   profissaoBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    backgroundColor: "rgba(255, 135, 0, 0.12)",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 999,
@@ -337,7 +340,7 @@ const styles = StyleSheet.create({
 
   profissaoTexto: {
     fontSize: 12,
-    color: "#1D4ED8",
+    color: "#E86F00",
     fontWeight: "700",
   },
 
@@ -369,7 +372,7 @@ const styles = StyleSheet.create({
 
   botaoPerfil: {
     backgroundColor: "#F8FAFC",
-    borderColor: "#2563EB",
+    borderColor: "#FF8700",
     borderWidth: 1,
     width: 64,
     height: 44,
@@ -380,12 +383,12 @@ const styles = StyleSheet.create({
   },
 
   botaoPerfilTexto: {
-    color: "#2563EB",
+    color: "#FF8700",
     fontWeight: "700",
   },
 
   botaoChamar: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     width: 72,
     height: 44,
     borderRadius: 16,

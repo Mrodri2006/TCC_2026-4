@@ -137,7 +137,7 @@ export default function UsuariosAdm() {
   const getRoleInfo = (usuario: any) => {
     if (usuario.admin === true || usuario.tipo === 'admin') return { label: 'Administrador', color: '#9333EA', bg: '#F3E8FF' };
     if (usuario.tipo === 'prestador') return { label: 'Prestador', color: '#16A34A', bg: '#DCFCE7' };
-    return { label: 'Contratante', color: '#2563EB', bg: '#EAF2FF' };
+    return { label: 'Contratante', color: '#FF8700', bg: '#EAF2FF' };
   };
 
   return (
@@ -158,8 +158,8 @@ export default function UsuariosAdm() {
 
         <View style={styles.summaryRow}>
           <View style={[styles.summaryCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <Users size={24} color="#2563EB" />
-            <Text style={[styles.summaryValue, { color: '#2563EB' }]}>{usuarios.length}</Text>
+            <Users size={24} color="#FF8700" />
+            <Text style={[styles.summaryValue, { color: '#FF8700' }]}>{usuarios.length}</Text>
             <Text style={[styles.summaryLabel, { color: mutedColor }]}>Total</Text>
           </View>
           <View style={[styles.summaryCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -196,7 +196,7 @@ export default function UsuariosAdm() {
 
         {carregando ? (
           <View style={[styles.loadingBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#FF8700" />
             <Text style={[styles.loadingText, { color: mutedColor }]}>Carregando usuarios...</Text>
           </View>
         ) : usuariosFiltrados.length > 0 ? (
@@ -232,7 +232,7 @@ export default function UsuariosAdm() {
                   </View>
                   <View style={styles.actions}>
                     <TouchableOpacity style={styles.editButton} onPress={() => abrirEdicao(usuario)}>
-                      <Edit2 size={16} color="#2563EB" />
+                      <Edit2 size={16} color="#FF8700" />
                       <Text style={styles.editText}>Editar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteButton} onPress={() => apagarConta(usuario)}>
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  editText: { color: '#2563EB', fontSize: 12, fontWeight: '900' },
+  editText: { color: '#FF8700', fontSize: 12, fontWeight: '900' },
   deleteButton: {
     height: 40,
     borderRadius: 8,
@@ -480,15 +480,15 @@ const styles = StyleSheet.create({
   outlineButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: '#FF8700',
     borderRadius: 16,
     paddingVertical: 12,
     alignItems: 'center',
   },
-  outlineText: { color: '#2563EB', fontWeight: '900' },
+  outlineText: { color: '#FF8700', fontWeight: '900' },
   saveButton: {
     flex: 1,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF8700',
     borderRadius: 16,
     paddingVertical: 12,
     alignItems: 'center',

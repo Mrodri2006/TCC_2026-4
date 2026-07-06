@@ -155,11 +155,11 @@ export default function PagamentoMensalidade() {
   };
 
   const requestDate = toDate(paymentRequest?.criadoEm);
-  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
   const cardBg = isDark ? theme.surface : "#FFFFFF";
   const cardBorder = isDark ? theme.surfaceBorder : "transparent";
-  const headerBg = isDark ? theme.surface : "#E8F4FB";
+  const headerBg = isDark ? theme.surface : "#FFF4E5";
   const iconBg = isDark ? "rgba(255,255,255,0.06)" : "#D9EEF7";
   const pendingLabel = paymentRequest?.status || status?.statusPagamento || "Pendente";
 
@@ -174,7 +174,7 @@ export default function PagamentoMensalidade() {
           >
             <ArrowLeft size={20} color={topBarIconColor} />
           </TouchableOpacity>
-          <Text style={[styles.topBarTitle, { color: isDark ? "#2563EB" : "#0F2937" }]}>Mensalidade</Text>
+          <Text style={[styles.topBarTitle, { color: isDark ? "#FF8700" : "#0F2937" }]}>Mensalidade</Text>
           <TouchableOpacity
             onPress={async () => {
               await refresh();
@@ -206,7 +206,7 @@ export default function PagamentoMensalidade() {
           </Text>
         </View>
 
-        {(statusLoading || loadingRequest) && <ActivityIndicator style={styles.loading} color="#2563EB" />}
+        {(statusLoading || loadingRequest) && <ActivityIndicator style={styles.loading} color="#FF8700" />}
         {!!(error || statusError || pixError) && <Text style={styles.error}>{error || statusError || pixError}</Text>}
 
         <View style={styles.sectionHeader}>
@@ -293,7 +293,7 @@ export default function PagamentoMensalidade() {
                 ]}
               >
                 <View style={styles.copyHeader}>
-                  <Copy size={18} color="#2563EB" />
+                  <Copy size={18} color="#FF8700" />
                   <Text style={[styles.copyLabel, { color: theme.surfaceTextPrimary }]}>Pix Copia e Cola</Text>
                 </View>
                 <Text style={[styles.copyText, { color: theme.surfaceTextMuted }]} selectable>
@@ -329,7 +329,7 @@ export default function PagamentoMensalidade() {
               }}
               activeOpacity={0.85}
             >
-              <RefreshCw size={18} color="#2563EB" />
+              <RefreshCw size={18} color="#FF8700" />
               <Text style={[styles.secondaryText, { color: theme.surfaceTextPrimary }]}>Atualizar status</Text>
             </TouchableOpacity>
 
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: 6,
   },
   infoCard: {
@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     minHeight: 50,
     marginTop: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingHorizontal: 16,
     borderRadius: 16,
     alignItems: "center",

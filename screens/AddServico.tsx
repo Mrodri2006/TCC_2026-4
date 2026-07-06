@@ -211,7 +211,7 @@ export default function AddServico() {
           ]}
         >
           <View style={[styles.introIcon, isDark && { backgroundColor: theme.headerBtnBg }]}>
-            <BriefcaseBusiness size={23} color="#2563EB" />
+            <BriefcaseBusiness size={23} color="#FF8700" />
           </View>
           <View style={styles.introCopy}>
             <Text style={[styles.introTitle, { color: theme.textPrimary }]}>Mostre o valor do seu trabalho</Text>
@@ -283,7 +283,7 @@ export default function AddServico() {
             activeOpacity={0.75}
           >
             <View style={[styles.uploadIcon, { backgroundColor: theme.headerBtnBg }]}>
-              <ImagePlus size={27} color="#2563EB" />
+              <ImagePlus size={27} color="#FF8700" />
             </View>
             <Text style={[styles.uploadTitle, { color: theme.textPrimary }]}>Adicionar uma imagem</Text>
             <Text style={[styles.uploadText, { color: theme.textMuted }]}>JPG ou PNG de até 5 MB</Text>
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   headerCopy: { flex: 1, alignItems: 'center' },
   headerEyebrow: {
-    color: '#2563EB',
+    color: '#FF8700',
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '800',
@@ -429,9 +429,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF8700',
     borderRadius: 17,
-    shadowColor: '#2563EB',
+    shadowColor: '#FF8700',
     shadowOpacity: 0.22,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 7 },

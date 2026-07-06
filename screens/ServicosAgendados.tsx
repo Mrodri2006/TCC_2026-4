@@ -139,7 +139,7 @@ export default function ServicosAgendados() {
 
         {carregando ? (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#FF8700" />
             <Text style={styles.loadingText}>Carregando...</Text>
           </View>
         ) : (

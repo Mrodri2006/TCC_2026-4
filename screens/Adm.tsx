@@ -473,7 +473,7 @@ export default function Adm() {
   const getRoleInfo = (usuario: any) => {
     if (usuario.admin === true || usuario.tipo === 'admin') return { label: 'Administrador', color: '#9333EA', bg: '#F3E8FF' };
     if (usuario.tipo === 'prestador') return { label: 'Prestador', color: '#16A34A', bg: '#DCFCE7' };
-    return { label: 'Contratante', color: '#2563EB', bg: '#EAF2FF' };
+    return { label: 'Contratante', color: '#FF8700', bg: '#EAF2FF' };
   };
 
   return (
@@ -502,11 +502,11 @@ export default function Adm() {
         <Text style={[styles.sectionTitle, { color: textColor }]}>Resumo geral</Text>
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <View style={[styles.statIcon, { backgroundColor: '#E8F4FF' }]}>
-              <Users size={27} color="#2563EB" />
+            <View style={[styles.statIcon, { backgroundColor: '#FFF4E5' }]}>
+              <Users size={27} color="#FF8700" />
             </View>
             <Text style={[styles.statLabel, { color: mutedColor }]}>Usuários</Text>
-            <Text style={[styles.statValue, { color: '#2563EB' }]}>{totalUsuarios}</Text>
+            <Text style={[styles.statValue, { color: '#FF8700' }]}>{totalUsuarios}</Text>
             <Text style={[styles.statSub, { color: mutedColor }]}>Total de usuários</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -600,12 +600,12 @@ export default function Adm() {
           ))
         )}
 
-        {!!auditLogs.length && <View style={styles.detailsSection}><Text style={[styles.sectionTitle, { color: textColor }]}>Atividade recente</Text>{auditLogs.slice(0, 8).map((log) => <View key={log.id} style={[styles.auditRow, { backgroundColor: cardBg, borderColor: cardBorder }]}><ShieldCheck size={17} color="#2563EB" /><View style={{ flex: 1 }}><Text style={[styles.auditAction, { color: textColor }]}>{log.action || 'Ação do sistema'}</Text><Text style={[styles.auditMeta, { color: mutedColor }]}>{log.category || 'sistema'} • {log.createdAt?.toDate?.().toLocaleString('pt-BR') || 'agora'}</Text></View></View>)}</View>}
+        {!!auditLogs.length && <View style={styles.detailsSection}><Text style={[styles.sectionTitle, { color: textColor }]}>Atividade recente</Text>{auditLogs.slice(0, 8).map((log) => <View key={log.id} style={[styles.auditRow, { backgroundColor: cardBg, borderColor: cardBorder }]}><ShieldCheck size={17} color="#FF8700" /><View style={{ flex: 1 }}><Text style={[styles.auditAction, { color: textColor }]}>{log.action || 'Ação do sistema'}</Text><Text style={[styles.auditMeta, { color: mutedColor }]}>{log.category || 'sistema'} • {log.createdAt?.toDate?.().toLocaleString('pt-BR') || 'agora'}</Text></View></View>)}</View>}
 
         <Text style={[styles.sectionTitle, { color: textColor }]}>Ações rápidas</Text>
         <View style={styles.quickGrid}>
           <TouchableOpacity style={[styles.quickCard, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={() => navigation.navigate('Register')}>
-            <View style={[styles.quickIcon, { backgroundColor: '#2563EB' }]}>
+            <View style={[styles.quickIcon, { backgroundColor: '#FF8700' }]}>
               <UserPlus size={30} color="#FFFFFF" />
             </View>
             <Text style={[styles.quickTitle, { color: textColor }]}>Criar conta</Text>
@@ -662,7 +662,7 @@ export default function Adm() {
 
         {carregandoUsuarios ? (
           <View style={[styles.loadingBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#FF8700" />
             <Text style={[styles.loadingText, { color: mutedColor }]}>Carregando usuarios...</Text>
           </View>
         ) : usersPreview.length > 0 ? (
@@ -722,7 +722,7 @@ export default function Adm() {
                       </View>
                       <View style={styles.accountActions}>
                         <TouchableOpacity style={styles.editOutlineButton} onPress={() => abrirEdicao(u)}>
-                          <Edit2 size={16} color="#2563EB" />
+                          <Edit2 size={16} color="#FF8700" />
                           <Text style={styles.editOutlineText}>Editar</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.deleteOutlineButton} onPress={() => apagarConta(u)}>
@@ -811,8 +811,8 @@ export default function Adm() {
         <View style={[styles.bottomTabs, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           <TouchableOpacity style={[styles.bottomTab, styles.hidden]}>
             <View style={styles.bottomActiveBar} />
-            <LayoutDashboard size={24} color="#2563EB" />
-            <Text style={[styles.bottomTabText, { color: '#2563EB' }]}>Dashboard</Text>
+            <LayoutDashboard size={24} color="#FF8700" />
+            <Text style={[styles.bottomTabText, { color: '#FF8700' }]}>Dashboard</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bottomTab} onPress={() => navigation.navigate('UsuariosAdm')}>
             <Users size={24} color={mutedColor} />
@@ -1236,7 +1236,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   editOutlineText: {
-    color: '#2563EB',
+    color: '#FF8700',
     fontSize: 12,
     fontWeight: '900',
   },
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   smallButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF8700',
     paddingVertical: 11,
     paddingHorizontal: 14,
     borderRadius: 14,
@@ -1357,7 +1357,7 @@ const styles = StyleSheet.create({
     width: '72%',
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF8700',
   },
   bottomTabText: {
     fontSize: 11,
@@ -1405,18 +1405,18 @@ const styles = StyleSheet.create({
   },
   outlineButton: {
     borderWidth: 1,
-    borderColor: '#2563EB',
+    borderColor: '#FF8700',
     paddingVertical: 12,
     borderRadius: 16,
     alignItems: 'center',
     flex: 1,
   },
   outlineButtonText: {
-    color: '#2563EB',
+    color: '#FF8700',
     fontWeight: '900',
   },
   secondaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#FF8700',
     paddingVertical: 12,
     borderRadius: 16,
     alignItems: 'center',

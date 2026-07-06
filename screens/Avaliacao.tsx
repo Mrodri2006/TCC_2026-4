@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 24,
     padding: 18,
     marginBottom: 20,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
     marginBottom: 16,
     shadowColor: "#0F2937",
     shadowOpacity: 0.05,
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
 
   botaoConfirmar: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
   },
 
   botaoTexto: {

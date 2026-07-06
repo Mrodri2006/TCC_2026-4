@@ -130,7 +130,7 @@ export function LocationVisibilityCard() {
           {active ? `Visível até ${expirationText}. A posição exibida é aproximada.` : "Você não está aparecendo para os contratantes."}
         </Text>
         {loading ? (
-          <ActivityIndicator style={styles.loader} color="#2563EB" />
+          <ActivityIndicator style={styles.loader} color="#FF8700" />
         ) : (
           <View style={styles.actions}>
             <TouchableOpacity
@@ -144,7 +144,7 @@ export function LocationVisibilityCard() {
             </TouchableOpacity>
             {active && (
               <TouchableOpacity style={[styles.refreshButton, updating && styles.disabled]} onPress={activate} disabled={updating} accessibilityRole="button">
-                <RefreshCw size={17} color="#2563EB" />
+                <RefreshCw size={17} color="#FF8700" />
               </TouchableOpacity>
             )}
           </View>
@@ -165,9 +165,9 @@ const styles = StyleSheet.create({
   description: { fontSize: 12, lineHeight: 18, marginTop: 5 },
   loader: { alignSelf: "flex-start", marginTop: 13 },
   actions: { flexDirection: "row", gap: 8, marginTop: 13 },
-  primaryButton: { minHeight: 42, flex: 1, paddingHorizontal: 13, borderRadius: 13, backgroundColor: "#2563EB", flexDirection: "row", gap: 7, alignItems: "center", justifyContent: "center" },
+  primaryButton: { minHeight: 42, flex: 1, paddingHorizontal: 13, borderRadius: 13, backgroundColor: "#FF8700", flexDirection: "row", gap: 7, alignItems: "center", justifyContent: "center" },
   hideButton: { backgroundColor: "#DC2626" },
   primaryText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
-  refreshButton: { width: 42, height: 42, borderRadius: 13, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" },
+  refreshButton: { width: 42, height: 42, borderRadius: 13, backgroundColor: "#FFF7ED", alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.6 },
 });

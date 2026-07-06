@@ -9,8 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
-import { Calendar, CircleCheck, Download, Menu, WalletCards } from "lucide-react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { Calendar, CircleCheck, Download, WalletCards } from "lucide-react-native";
 import Svg, { Rect } from "react-native-svg";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { auth, firestore } from "../firebase";
@@ -300,19 +300,7 @@ export default function RelatoriosPrestador() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            style={[styles.headerIcon, { backgroundColor: theme.headerBtnBg }]}
-            onPress={() => {
-              const anyNav = navigation as any;
-              if (typeof anyNav?.openDrawer === "function") {
-                anyNav.openDrawer();
-                return;
-              }
-              anyNav?.dispatch?.(DrawerActions.openDrawer());
-            }}
-          >
-            <Menu size={22} color={theme.textPrimary} />
-          </TouchableOpacity>
+          <View style={{ width: 40, height: 40 }} />
 
           <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Relatórios</Text>
 
@@ -354,7 +342,7 @@ export default function RelatoriosPrestador() {
 
         {carregando ? (
           <View style={styles.loading}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#FF8700" />
             <Text style={[styles.loadingText, { color: theme.textMuted }]}>Calculando desempenho...</Text>
           </View>
         ) : (
@@ -366,7 +354,7 @@ export default function RelatoriosPrestador() {
                 <Text style={[styles.kpiValue, { color: theme.textPrimary }]}>{summary.realizados}</Text>
               </View>
               <View style={[styles.kpiCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <View style={styles.kpiIconMoney}><WalletCards size={18} color="#1D4ED8" /></View>
+                <View style={styles.kpiIconMoney}><WalletCards size={18} color="#E86F00" /></View>
                 <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Ganhos no período</Text>
                 <Text style={[styles.kpiValue, { color: theme.textPrimary }]} numberOfLines={1}>{currencyBRL(summary.ganhos)}</Text>
               </View>
@@ -391,7 +379,7 @@ export default function RelatoriosPrestador() {
                         width={Math.max(8, barW - 12)}
                         height={h}
                         rx={6}
-                        fill={d.count === 0 ? "rgba(37, 99, 235, 0.18)" : "#2563EB"}
+                        fill={d.count === 0 ? "rgba(255, 135, 0, 0.18)" : "#FF8700"}
                       />
                     );
                   })}
@@ -484,14 +472,14 @@ const styles = StyleSheet.create({
   quickButton: {
     marginTop: 10,
     alignSelf: "flex-start",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#FFF7ED",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#FED7AA",
     borderRadius: 10,
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  quickButtonText: { color: "#1D4ED8", fontWeight: "800", fontSize: 12 },
+  quickButtonText: { color: "#E86F00", fontWeight: "800", fontSize: 12 },
 
   loading: { alignItems: "center", paddingVertical: 40 },
   loadingText: { marginTop: 10, color: "#64748B", fontWeight: "700" },
@@ -525,7 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#DBEAFE",
+    backgroundColor: "#FFEDD5",
     marginBottom: 12,
   },
   kpiLabel: { fontSize: 12, color: "#64748B", fontWeight: "800" },
@@ -552,7 +540,7 @@ const styles = StyleSheet.create({
 
   exportBtn: {
     marginTop: 14,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 14,
     borderRadius: 16,
     alignItems: "center",

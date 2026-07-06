@@ -12,7 +12,7 @@ export default function Menu() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   return <Tab.Navigator id="MenuTabs" initialRouteName="Página Inicial" screenOptions={({ route }) => ({
-    headerShown: false, tabBarActiveTintColor: "#2563EB", tabBarInactiveTintColor: theme.textMuted,
+    headerShown: false, tabBarActiveTintColor: "#FF8700", tabBarInactiveTintColor: theme.textMuted,
     tabBarStyle: { position: "absolute", left: 14, right: 14, bottom: Math.max(insets.bottom, 10), height: 64, paddingTop: 7, paddingBottom: 7, backgroundColor: theme.card, borderTopColor: theme.border, borderWidth: 1, borderRadius: 22, elevation: 10, shadowColor: "#0F172A", shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
     tabBarLabelStyle: { fontSize: 10, fontWeight: "800" },
     tabBarIcon: ({ color, size }) => route.name === "Página Inicial" ? <HomeIcon color={color} size={size} /> : route.name === "Buscar" ? <Search color={color} size={size} /> : route.name === "Status de Serviços" ? <ClipboardCheck color={color} size={size} /> : route.name === "Favoritos" ? <Heart color={color} size={size} /> : <MessageCircle color={color} size={size} />,

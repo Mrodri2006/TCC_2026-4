@@ -61,7 +61,7 @@ export default function CadastroServ() {
             })}
             value={formServ.estilo}
             style={styles.input}
-            activeUnderlineColor='#005362'
+            activeUnderlineColor='#FF8700'
           />
 
           <TextInput
@@ -72,7 +72,7 @@ export default function CadastroServ() {
             })}
             value={formServ.local}
             style={styles.input}
-            activeUnderlineColor='#005362'
+            activeUnderlineColor='#FF8700'
           />
 
 
@@ -98,7 +98,7 @@ export default function CadastroServ() {
             })}
             value={formServ.data}
             style={styles.input}
-            activeUnderlineColor='#005362'
+            activeUnderlineColor='#FF8700'
           />
         </View>
 

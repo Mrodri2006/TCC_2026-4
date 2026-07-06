@@ -19,9 +19,9 @@ export default function Perfil() {
   const [historico, setHistorico] = useState<any[]>([]);
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
-  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
-  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarTitleColor = isDark ? "#FF8700" : "#0F2937";
 
   useFocusEffect(
     useCallback(() => {
@@ -165,7 +165,7 @@ export default function Perfil() {
         style={[
           styles.topHeader,
           {
-            backgroundColor: isDark ? theme.surface : "#E8F4FB",
+            backgroundColor: isDark ? theme.surface : "#FFF4E5",
             borderColor: isDark ? theme.surfaceBorder : "transparent",
             borderWidth: isDark ? 1 : 0,
           },
@@ -216,7 +216,7 @@ export default function Perfil() {
             <View
               style={[
                 styles.iconBadge,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#E8F4FB" },
+                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#FFF4E5" },
               ]}
             >
               <Phone size={18} color={theme.surfaceTextPrimary} />
@@ -244,7 +244,7 @@ export default function Perfil() {
             <View
               style={[
                 styles.iconBadge,
-                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#E8F4FB" },
+                { backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#FFF4E5" },
               ]}
             >
               <Mail size={18} color={theme.surfaceTextPrimary} />
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     color: "#0F2937",
   },
   topHeader: {
-    backgroundColor: "#E8F4FB",
+    backgroundColor: "#FFF4E5",
     borderRadius: 28,
     paddingBottom: 26,
     paddingHorizontal: 18,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   viewMoreButton: {
     marginTop: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     borderRadius: 16,
     paddingVertical: 12,
     alignItems: "center",
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: 6,
   },
   sectionHeaderRow: {
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: "#E8F4FB",
+    backgroundColor: "#FFF4E5",
     justifyContent: "center",
     alignItems: "center",
   },

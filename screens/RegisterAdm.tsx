@@ -106,10 +106,11 @@ export default function Register2() {
             <View style={styles.headerSection}>
               <Text style={styles.titulo}>CADASTRO DE USUÁRIOS</Text>
                   <Image
-                    source={require('../assets/logo8.png')}
+                    source={require('../assets/logo-nova.png')}
                     style={{ 
-                      width: 400, 
-                      height: 100, 
+                      width: 168, 
+                      height: 168,
+                      borderRadius: 32,
                       marginVertical: 10, 
                       marginTop: 40, 
                     }}
@@ -277,11 +278,11 @@ export default function Register2() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1 ,
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
   },
   overlay: { 
     flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.55)' 
+    backgroundColor: '#F7F9FC' 
   },
   scroll: { 
     paddingHorizontal: 25, 
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   titulo: { 
     fontSize: 22, 
     fontWeight: 'bold', 
-    color: '#fff', 
+    color: '#071A33', 
     textAlign: 'center',
     marginTop: 10, 
   },
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
   },
   activeTab: { 
     flex: 1, 
-    backgroundColor: '#005362', 
+    backgroundColor: '#FF8700', 
     padding: 12, 
     alignItems: 'center'
   },
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold' 
   },
   inactiveTabText: { 
-    color: '#005362', 
+    color: '#071A33', 
     fontWeight: 'bold' 
   },
   card: { 
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     color: '#555' 
   },
   registerButton: { 
-    backgroundColor: '#005362', 
+    backgroundColor: '#FF8700', 
     padding: 14, 
     borderRadius: 12, 
     alignItems: 'center', 
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   backButtonText: { 
-    color: '#005362', 
+    color: '#FF8700', 
     fontWeight: '600' 
   },
   errorText: { 
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 1,
-    borderColor: '#005362',
+    borderColor: '#FF8700',
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
   },
 
   checkboxChecked: {
-    backgroundColor: '#005362',
+    backgroundColor: '#FF8700',
   },
 
   checkboxMark: {
@@ -406,7 +407,7 @@ const styles = StyleSheet.create({
   },
 
   termosLink: {
-    color: '#005362',
+    color: '#FF8700',
     fontWeight: '600',
   },
 
@@ -441,7 +442,7 @@ const styles = StyleSheet.create({
   },
 
   modalButton: {
-    backgroundColor: '#005362',
+    backgroundColor: '#FF8700',
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',

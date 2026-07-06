@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   BarChart3,
   Bell,
@@ -24,7 +24,6 @@ import {
   Clock,
   FileText,
   MapPin,
-  Menu,
   Plus,
   Settings,
   X,
@@ -45,13 +44,13 @@ export default function HomeTrabalhador() {
   const navigation = useNavigation<any>();
   const { isDark, theme } = useTheme();
 
-  const topBarIconColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
-  const topBarTitleColor = isDark ? "#2563EB" : "#0F2937";
+  const topBarTitleColor = isDark ? "#FF8700" : "#0F2937";
   const cardBackground = isDark ? theme.surface : "#FFFFFF";
-  const sectionBackground = isDark ? theme.surface : "#E8F4FF";
-  const cardBorderColor = isDark ? theme.surfaceBorder : "#2563EB";
-  const neutralBackground = isDark ? "rgba(255,255,255,0.06)" : "rgba(37, 99, 235, 0.08)";
+  const sectionBackground = isDark ? theme.surface : "#FFF4E5";
+  const cardBorderColor = isDark ? theme.surfaceBorder : "#FF8700";
+  const neutralBackground = isDark ? "rgba(255,255,255,0.06)" : "rgba(255, 135, 0, 0.08)";
   const sectionTextColor = theme.textPrimary;
   const mutedTextColor = theme.textMuted;
 
@@ -292,25 +291,13 @@ export default function HomeTrabalhador() {
   return (
     <View style={[styles.screen, { backgroundColor: theme.background }]}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregarServicosSolicitados(); setTimeout(() => setRefreshing(false), 600); }} tintColor="#2563EB" colors={["#2563EB"]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregarServicosSolicitados(); setTimeout(() => setRefreshing(false), 600); }} tintColor="#FF8700" colors={["#FF8700"]} />}
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <TouchableOpacity
-            style={[styles.topBarIcon, { backgroundColor: topBarBtnBg }]}
-            onPress={() => {
-              const anyNav = navigation as any;
-              if (typeof anyNav?.openDrawer === "function") {
-                anyNav.openDrawer();
-                return;
-              }
-              anyNav?.dispatch?.(DrawerActions.openDrawer());
-            }}
-          >
-            <Menu size={24} color={topBarIconColor} />
-          </TouchableOpacity>
+          <View style={{ width: 40, height: 40 }} />
 
           <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Página Inicial</Text>
 
@@ -338,8 +325,8 @@ export default function HomeTrabalhador() {
               <Text style={[styles.hello, { color: sectionTextColor }]}>Olá, prestador!</Text>
               <View style={styles.newRow}>
                 <Text style={[styles.welcome, { color: mutedTextColor }]}>Novos serviços solicitados</Text>
-                <View style={[styles.countBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(37, 99, 235, 0.12)" }]}> 
-                  <Text style={[styles.countBadgeText, { color: isDark ? theme.surfaceTextPrimary : "#1D4ED8" }]}> 
+                <View style={[styles.countBadge, { backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(255, 135, 0, 0.12)" }]}> 
+                  <Text style={[styles.countBadgeText, { color: isDark ? theme.surfaceTextPrimary : "#E86F00" }]}> 
                     {servicosSolicitados.length}
                   </Text>
                 </View>
@@ -360,7 +347,7 @@ export default function HomeTrabalhador() {
 
         {carregando ? (
           <View style={styles.carregandoContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#FF8700" />
             <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando serviços...</Text>
           </View>
         ) : servicosSolicitados.length > 0 ? (
@@ -424,7 +411,7 @@ export default function HomeTrabalhador() {
         ) : (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
-              <ClipboardList size={44} color="#2563EB" />
+              <ClipboardList size={44} color="#FF8700" />
             </View>
             <Text style={[styles.emptyTitle, { color: sectionTextColor }]}> 
               Nenhum serviço solicitado no momento
@@ -455,7 +442,7 @@ export default function HomeTrabalhador() {
             onPress={() => navigation.navigate("Servicos")}
           >
             <View style={[styles.quickIcon, { backgroundColor: "#EAF2FF" }]}>
-              <FileText size={22} color="#2563EB" />
+              <FileText size={22} color="#FF8700" />
             </View>
             <Text style={[styles.quickLabel, { color: sectionTextColor }]}>Meus serviços</Text>
             <Text style={[styles.quickSub, { color: mutedTextColor }]}>Ver todos</Text>
@@ -613,7 +600,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     borderRadius: 24,
     padding: 18,
     marginBottom: 20,
@@ -633,7 +620,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -663,13 +650,13 @@ const styles = StyleSheet.create({
     minWidth: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    backgroundColor: "rgba(255, 135, 0, 0.12)",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 8,
   },
   countBadgeText: {
-    color: "#1D4ED8",
+    color: "#E86F00",
     fontWeight: "800",
     fontSize: 13,
   },
@@ -719,7 +706,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
     shadowColor: "#0F2937",
     shadowOpacity: 0.05,
     shadowRadius: 16,
@@ -739,7 +726,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badgeNovo: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 12,
@@ -774,7 +761,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   clienteInfo: {
-    backgroundColor: "rgba(37, 99, 235, 0.08)",
+    backgroundColor: "rgba(255, 135, 0, 0.08)",
     borderRadius: 14,
     padding: 12,
     marginVertical: 10,
@@ -786,7 +773,7 @@ const styles = StyleSheet.create({
   },
   clienteNome: {
     fontSize: 14,
-    color: "#1D4ED8",
+    color: "#E86F00",
     fontWeight: "700",
     marginTop: 4,
   },
@@ -796,7 +783,7 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     flex: 1,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 12,
     borderRadius: 16,
     justifyContent: "center",
@@ -863,7 +850,7 @@ const styles = StyleSheet.create({
   },
 
   addServiceButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -952,7 +939,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   closeButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 16,
@@ -963,7 +950,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   openButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 16,
@@ -1023,7 +1010,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F2937",

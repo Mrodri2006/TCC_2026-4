@@ -13,14 +13,13 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { DrawerActions, useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { Picker } from "@react-native-picker/picker";
 import {
   Bell,
   Calendar,
   ChevronRight,
   MapPin,
-  Menu,
   Plus,
   Search,
   User,
@@ -95,7 +94,7 @@ function statusPillStyles(status: ServiceStatus) {
     case "pendente":
       return { bg: "#FFF7ED", border: "#FDBA74", text: "#9A3412" };
     case "andamento":
-      return { bg: "#EFF6FF", border: "#93C5FD", text: "#1D4ED8" };
+      return { bg: "#FFF7ED", border: "#93C5FD", text: "#E86F00" };
     case "concluido":
       return { bg: "#ECFDF5", border: "#86EFAC", text: "#166534" };
     case "cancelado":
@@ -108,7 +107,7 @@ function statusIcon(status: ServiceStatus) {
     case "pendente":
       return <Hourglass size={14} color="#9A3412" />;
     case "andamento":
-      return <Loader2 size={14} color="#1D4ED8" />;
+      return <Loader2 size={14} color="#E86F00" />;
     case "concluido":
       return <BadgeCheck size={14} color="#166534" />;
     case "cancelado":
@@ -150,8 +149,8 @@ export default function Servicos() {
   const cardBorder = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.06)";
   const pillTextFallback = theme.textPrimary;
   const metaTextColor = theme.textSecondary;
-  const detailsButtonBg = isDark ? theme.actionBg : "rgba(37, 99, 235, 0.10)";
-  const detailsButtonText = isDark ? theme.textPrimary : "#2563EB";
+  const detailsButtonBg = isDark ? theme.actionBg : "rgba(255, 135, 0, 0.10)";
+  const detailsButtonText = isDark ? theme.textPrimary : "#FF8700";
   const emptyBackground = isDark ? theme.surface : "rgba(255,255,255,0.8)";
   const emptyBorderColor = isDark ? theme.surfaceBorder : "rgba(15, 41, 55, 0.12)";
   const emptyTitleColor = theme.textPrimary;
@@ -420,28 +419,7 @@ export default function Servicos() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <TouchableOpacity
-            style={[styles.topBarIcon, { backgroundColor: theme.headerBtnBg }]}
-            onPress={() => {
-              const anyNav = navigation as any;
-              if (typeof anyNav?.openDrawer === "function") {
-                anyNav.openDrawer();
-                return;
-              }
-
-              const parent = anyNav?.getParent?.();
-              if (typeof parent?.openDrawer === "function") {
-                parent.openDrawer();
-                return;
-              }
-
-              if (typeof parent?.dispatch === "function") {
-                parent.dispatch(DrawerActions.openDrawer());
-              }
-            }}
-          >
-            <Menu size={24} color={topBarIconColor} />
-          </TouchableOpacity>
+          <View style={{ width: 40, height: 40 }} />
 
           <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Serviços</Text>
 
@@ -491,7 +469,7 @@ export default function Servicos() {
 
         {carregando ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#FF8700" />
             <Text style={[styles.emptySubtitle, { color: emptySubtitleColor }]}>Carregando serviços...</Text>
           </View>
         ) : (
@@ -579,7 +557,7 @@ export default function Servicos() {
                       }}
                     >
                       <Text style={[styles.detailsText, { color: detailsButtonText }]}>Conversar</Text>
-                      <ChevronRight size={18} color="#2563EB" />
+                      <ChevronRight size={18} color="#FF8700" />
                     </TouchableOpacity>
 
                     {item.status !== "cancelado" && item.statusFirebase !== "aguardando_confirmacao" && item.statusFirebase !== "realizado" && item.statusFirebase !== "problema" && (
@@ -721,7 +699,7 @@ const styles = StyleSheet.create({
   actionButtons: { flexDirection: "row", gap: 12, marginTop: 18 },
   actionButton: { flex: 1, minHeight: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   actionCancel: { backgroundColor: "rgba(148,163,184,0.15)" },
-  actionConfirm: { backgroundColor: "#2563EB" },
+  actionConfirm: { backgroundColor: "#FF8700" },
   actionConfirmText: { color: "#FFFFFF", fontWeight: "900" },
   screen: { flex: 1 },
   container: { flex: 1 },
@@ -783,7 +761,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
   },
-  tabActive: { backgroundColor: "#2563EB", borderColor: "#2563EB" },
+  tabActive: { backgroundColor: "#FF8700", borderColor: "#FF8700" },
   tabIdle: { backgroundColor: "rgba(255,255,255,0.9)", borderColor: "rgba(15, 41, 55, 0.10)" },
   tabText: { fontSize: 13, fontWeight: "800" },
   tabTextActive: { color: "#fff" },
@@ -815,11 +793,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: "rgba(37, 99, 235, 0.12)",
+    backgroundColor: "rgba(255, 135, 0, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarFallbackText: { color: "#1D4ED8", fontWeight: "900" },
+  avatarFallbackText: { color: "#E86F00", fontWeight: "900" },
   clientName: { fontSize: 15, fontWeight: "900", color: "#0F2937" },
   serviceType: { marginTop: 2, fontSize: 13, color: "#64748B", fontWeight: "600" },
 
@@ -853,12 +831,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(37, 99, 235, 0.10)",
+    backgroundColor: "rgba(255, 135, 0, 0.10)",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 14,
   },
-  detailsText: { fontSize: 13, fontWeight: "900", color: "#2563EB" },
+  detailsText: { fontSize: 13, fontWeight: "900", color: "#FF8700" },
 
   empty: {
     marginTop: 18,
@@ -881,7 +859,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0F2937",
@@ -913,7 +891,7 @@ const styles = StyleSheet.create({
   bottomItem: { alignItems: "center", justifyContent: "center", gap: 4, flex: 1 },
   bottomItemActive: {},
   bottomLabel: { fontSize: 12, color: "#64748B", fontWeight: "700" },
-  bottomLabelActive: { color: "#2563EB", fontWeight: "900" },
+  bottomLabelActive: { color: "#FF8700", fontWeight: "900" },
 
   modalOverlay: {
     flex: 1,

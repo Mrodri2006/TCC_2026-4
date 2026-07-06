@@ -16,7 +16,7 @@ export default function PerfilTrabalhador() {
   const { status: mensalidadeAtual, loading: mensalidadeLoading } = useMensalidadeStatus(30000);
 
   const cardBackground = isDark ? theme.surface : "#FFFFFF";
-  const sectionBackground = isDark ? theme.surface : "#E8F4FB";
+  const sectionBackground = isDark ? theme.surface : "#FFF4E5";
   const borderColor = isDark ? theme.surfaceBorder : "#E0E0E0";
   const textPrimary = theme.textPrimary;
   const textSecondary = theme.textSecondary;
@@ -567,7 +567,7 @@ export default function PerfilTrabalhador() {
         </View>
         <View style={localStyles.chipRow}>
           <View style={localStyles.chip}> 
-            <Briefcase size={14} color="#2563EB" />
+            <Briefcase size={14} color="#FF8700" />
             <Text style={localStyles.chipText}>{usuario.profissao || "Diarista"}</Text>
           </View>
         </View>
@@ -587,12 +587,12 @@ export default function PerfilTrabalhador() {
             onChangeText={setNovaPostagem}
             multiline
           />
-          <TouchableOpacity style={[localStyles.postButton, { backgroundColor: "#2563EB" }]} onPress={publicarPostagem}>
+          <TouchableOpacity style={[localStyles.postButton, { backgroundColor: "#FF8700" }]} onPress={publicarPostagem}>
             <Text style={localStyles.postButtonText}>Publicar</Text>
           </TouchableOpacity>
         </View>
         {postagensCarregando ? (
-          <ActivityIndicator size="small" color="#2563EB" style={{ marginTop: 12 }} />
+          <ActivityIndicator size="small" color="#FF8700" style={{ marginTop: 12 }} />
         ) : postagens.length > 0 ? (
           postagens.map((post) => (
             <View key={post.id} style={[localStyles.postCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
@@ -701,10 +701,10 @@ export default function PerfilTrabalhador() {
         )}
         {avaliacoes.length > LIMITE_AVALIACOES ? (
           <TouchableOpacity
-            style={[localStyles.verMaisButton, { backgroundColor: isDark ? theme.actionBg : "#EFF6FF", borderColor: isDark ? theme.surfaceBorder : "#BFDBFE" }]}
+            style={[localStyles.verMaisButton, { backgroundColor: isDark ? theme.actionBg : "#FFF7ED", borderColor: isDark ? theme.surfaceBorder : "#FED7AA" }]}
             onPress={() => setMostrarTodasAvaliacoes((prev) => !prev)}
           >
-            <Text style={[localStyles.verMaisButtonText, { color: isDark ? theme.textPrimary : "#1D4ED8" }]}> 
+            <Text style={[localStyles.verMaisButtonText, { color: isDark ? theme.textPrimary : "#E86F00" }]}> 
               {mostrarTodasAvaliacoes ? "Ver menos" : "Ver mais"}
             </Text>
           </TouchableOpacity>
@@ -759,7 +759,7 @@ const localStyles = StyleSheet.create({
     marginBottom: 18,
   },
   primaryBlockedButton: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -787,15 +787,15 @@ const localStyles = StyleSheet.create({
   verMaisButton: {
     marginTop: 8,
     alignSelf: "flex-start",
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#FFF7ED",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#FED7AA",
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   verMaisButtonText: {
-    color: "#1D4ED8",
+    color: "#E86F00",
     fontWeight: "700",
     fontSize: 13,
   },
@@ -839,7 +839,7 @@ const localStyles = StyleSheet.create({
     alignItems: "center",
     marginTop: 0,
     marginBottom: 20,
-    backgroundColor: "#E8F4FB",
+    backgroundColor: "#FFF4E5",
     borderRadius: 28,
     paddingVertical: 22,
     paddingHorizontal: 18,
@@ -933,7 +933,7 @@ const localStyles = StyleSheet.create({
     width: 44,
     height: 3,
     borderRadius: 999,
-    backgroundColor: "#0EA5A8",
+    backgroundColor: "#FF9300",
     marginTop: 8,
     marginBottom: 14,
   },
@@ -956,7 +956,7 @@ const localStyles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: "#E8F4FB",
+    backgroundColor: "#FFF4E5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -988,7 +988,7 @@ const localStyles = StyleSheet.create({
   },
   chipText: {
     marginLeft: 6,
-    color: "#2563EB",
+    color: "#FF8700",
     fontSize: 12,
     fontWeight: "700",
   },
@@ -1046,7 +1046,7 @@ const localStyles = StyleSheet.create({
   },
   editServiceButton: {
     flex: 1,
-    backgroundColor: "#0EA5A8",
+    backgroundColor: "#FF9300",
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,

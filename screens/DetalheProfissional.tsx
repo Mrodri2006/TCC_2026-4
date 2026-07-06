@@ -119,7 +119,7 @@ export default function DetalheProfissional() {
   if (carregando) {
     return (
       <View style={[styles.carregandoContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#FF8700" />
         <Text style={styles.carregandoTexto}>Carregando informações...</Text>
       </View>
     );
@@ -132,7 +132,7 @@ export default function DetalheProfissional() {
     >
       <View style={styles.headerDetalhe}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.botaoVoltar}>
-          <ArrowLeft size={24} color="#2563EB" />
+          <ArrowLeft size={24} color="#FF8700" />
         </TouchableOpacity>
         <Text style={{marginTop:40, marginBottom:4, fontSize: 28, fontWeight: "600", color: "#0F2937"}}>Detalhes do Profissional</Text>
         <View style={{ width: 40 }} />
@@ -198,7 +198,7 @@ export default function DetalheProfissional() {
 
       <View style={styles.servicosSection}>
         <View style={styles.sectionHeader}>
-          <Award size={20} color="#2563EB" />
+          <Award size={20} color="#FF8700" />
           <Text style={styles.sectionTitle}>Serviços Oferecidos</Text>
         </View>
 
@@ -228,13 +228,13 @@ export default function DetalheProfissional() {
 
       <View style={styles.postsSection}>
         <View style={styles.sectionHeader}>
-          <Award size={20} color="#2563EB" />
+          <Award size={20} color="#FF8700" />
           <Text style={styles.sectionTitle}>Postagens do Prestador</Text>
         </View>
 
         {postsLoading ? (
           <View style={styles.postsLoading}>
-            <ActivityIndicator size="small" color="#2563EB" />
+            <ActivityIndicator size="small" color="#FF8700" />
             <Text style={styles.postsLoadingText}>Carregando postagens...</Text>
           </View>
         ) : posts.length > 0 ? (
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
 
   headerDetalhe: {
-    backgroundColor: "#E8F4FF",
+    backgroundColor: "#FFF4E5",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
 
   profissaoTextoPrincipal: {
-    color: "#2563EB",
+    color: "#FF8700",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: "#2563EB",
+    borderLeftColor: "#FF8700",
   },
 
   servicoNome: {
@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
 
   servicoAcao: {
     fontSize: 12,
-    color: "#2563EB",
+    color: "#FF8700",
     fontWeight: "600",
     marginTop: 8,
   },
@@ -493,13 +493,13 @@ const styles = StyleSheet.create({
   professionalSection: { marginHorizontal: 16, marginBottom: 16, borderRadius: 18, padding: 16, backgroundColor: "#FFFFFF" },
   professionalText: { color: "#475569", fontSize: 13, lineHeight: 20, marginTop: 7 },
   professionalLabel: { color: "#0F172A", fontWeight: "800" },
-  professionalLink: { color: "#2563EB", fontSize: 12, fontWeight: "800", marginTop: 8 },
+  professionalLink: { color: "#FF8700", fontSize: 12, fontWeight: "800", marginTop: 8 },
   favoriteButton: { marginHorizontal: 16, marginBottom: 8, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   favoriteButtonActive: { backgroundColor: "#FEF2F2" },
   favoriteText: { color: "#B91C1C", fontSize: 13, fontWeight: "800" },
 
   botaoContratar: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   },
 
   botaoChat: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: 10,
     paddingVertical: 12,
     borderRadius: 12,

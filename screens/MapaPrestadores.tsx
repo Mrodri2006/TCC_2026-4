@@ -186,7 +186,7 @@ export default function MapaPrestadores() {
           <TextInput style={[styles.searchInput, { color: theme.textPrimary }]} value={search} onChangeText={setSearch} placeholder="Nome ou profissão" placeholderTextColor={theme.textMuted} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {jobs.map((job) => <TouchableOpacity key={job} style={[styles.chip, { borderColor: selectedJob === job ? "#2563EB" : theme.border, backgroundColor: selectedJob === job ? "#EFF6FF" : theme.card }]} onPress={() => setSelectedJob(job)}><Text style={[styles.chipText, { color: selectedJob === job ? "#1D4ED8" : theme.textSecondary }]}>{job}</Text></TouchableOpacity>)}
+          {jobs.map((job) => <TouchableOpacity key={job} style={[styles.chip, { borderColor: selectedJob === job ? "#FF8700" : theme.border, backgroundColor: selectedJob === job ? "#FFF7ED" : theme.card }]} onPress={() => setSelectedJob(job)}><Text style={[styles.chipText, { color: selectedJob === job ? "#E86F00" : theme.textSecondary }]}>{job}</Text></TouchableOpacity>)}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {[5, 10, 25, 50].map((distance) => <TouchableOpacity key={distance} style={[styles.chip, { borderColor: maxDistance === distance ? "#16A34A" : theme.border }]} onPress={() => setMaxDistance(distance)}><Text style={[styles.chipText, { color: maxDistance === distance ? "#15803D" : theme.textSecondary }]}>{distance} km</Text></TouchableOpacity>)}
@@ -197,7 +197,7 @@ export default function MapaPrestadores() {
 
       <MapView ref={mapRef} style={styles.map} initialRegion={DEFAULT_REGION} showsCompass showsMyLocationButton={false}>
         {userPosition && (
-          <Marker coordinate={userPosition} title="Sua localização" pinColor="#2563EB">
+          <Marker coordinate={userPosition} title="Sua localização" pinColor="#FF8700">
             <View style={styles.userMarker}><Navigation size={17} color="#FFFFFF" /></View>
           </Marker>
         )}
@@ -219,18 +219,18 @@ export default function MapaPrestadores() {
 
       {userPosition && (
         <TouchableOpacity style={styles.locationButton} onPress={centerOnUser} accessibilityLabel="Centralizar na minha localização">
-          <LocateFixed size={22} color="#2563EB" />
+          <LocateFixed size={22} color="#FF8700" />
         </TouchableOpacity>
       )}
 
       {(loading || error || filteredProviders.length === 0) && (
         <View style={[styles.bottomCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           {loading ? (
-            <><ActivityIndicator color="#2563EB" /><Text style={[styles.stateText, { color: theme.textMuted }]}>Buscando profissionais próximos...</Text></>
+            <><ActivityIndicator color="#FF8700" /><Text style={[styles.stateText, { color: theme.textMuted }]}>Buscando profissionais próximos...</Text></>
           ) : error ? (
             <><MapPin size={24} color="#DC2626" /><Text style={[styles.stateText, { color: theme.textPrimary }]}>{error}</Text></>
           ) : (
-            <><MapPin size={24} color="#2563EB" /><Text style={[styles.stateText, { color: theme.textPrimary }]}>Nenhum prestador está compartilhando a localização agora.</Text></>
+            <><MapPin size={24} color="#FF8700" /><Text style={[styles.stateText, { color: theme.textPrimary }]}>Nenhum prestador está compartilhando a localização agora.</Text></>
           )}
         </View>
       )}
@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
   providerMarker: { width: 43, height: 43, borderRadius: 22, backgroundColor: "#16A34A", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 5 },
   clusterMarker: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#7C3AED", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 6 },
   clusterText: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
-  userMarker: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#2563EB", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+  userMarker: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#FF8700", borderWidth: 3, borderColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   callout: { width: 190, backgroundColor: "#FFFFFF", padding: 14, borderRadius: 16, shadowColor: "#000000", shadowOpacity: 0.16, shadowRadius: 12, elevation: 6 },
   calloutName: { color: "#0F172A", fontSize: 15, fontWeight: "800" },
   calloutJob: { color: "#475569", fontSize: 12, marginTop: 3 },
   calloutDistance: { color: "#15803D", fontSize: 11, fontWeight: "700", marginTop: 6 },
-  calloutAction: { color: "#2563EB", fontSize: 11, fontWeight: "800", marginTop: 8 },
+  calloutAction: { color: "#FF8700", fontSize: 11, fontWeight: "800", marginTop: 8 },
   locationButton: { position: "absolute", right: 18, bottom: 28, width: 50, height: 50, borderRadius: 25, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 6, shadowColor: "#000000", shadowOpacity: 0.16, shadowRadius: 10 },
   bottomCard: { position: "absolute", left: 16, right: 80, bottom: 24, minHeight: 58, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 11, elevation: 5, shadowColor: "#000000", shadowOpacity: 0.08, shadowRadius: 12 },
   stateText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" },

@@ -25,7 +25,7 @@ export default function MensalidadeBloqueada() {
 
   const cardBg = isDark ? theme.surface : "#FFFFFF";
   const cardBorder = isDark ? theme.surfaceBorder : "transparent";
-  const headerBg = isDark ? theme.surface : "#E8F4FB";
+  const headerBg = isDark ? theme.surface : "#FFF4E5";
   const iconBg = isDark ? "rgba(255,255,255,0.06)" : "#D9EEF7";
 
   return (
@@ -58,7 +58,7 @@ export default function MensalidadeBloqueada() {
           ]}
         >
           {loading ? (
-            <ActivityIndicator color="#2563EB" />
+            <ActivityIndicator color="#FF8700" />
           ) : (
             <>
               <View style={styles.infoRow}>
@@ -92,7 +92,7 @@ export default function MensalidadeBloqueada() {
           onPress={refresh}
           activeOpacity={0.85}
         >
-          <RefreshCw size={18} color="#2563EB" />
+          <RefreshCw size={18} color="#FF8700" />
           <Text style={[styles.secondaryText, { color: theme.surfaceTextPrimary }]}>Ja paguei, atualizar</Text>
         </TouchableOpacity>
 
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: 6,
   },
   infoCard: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   primaryBtn: {
     minHeight: 50,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     paddingHorizontal: 16,
     borderRadius: 16,
     alignItems: "center",

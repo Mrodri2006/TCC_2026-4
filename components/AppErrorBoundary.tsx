@@ -46,6 +46,6 @@ const styles = StyleSheet.create({
   icon: { width: 64, height: 64, borderRadius: 22, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginBottom: 18 },
   title: { color: "#0F172A", fontSize: 20, fontWeight: "800", textAlign: "center" },
   body: { color: "#64748B", fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 8, marginBottom: 22 },
-  button: { width: "100%", minHeight: 48, borderRadius: 15, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center" },
+  button: { width: "100%", minHeight: 48, borderRadius: 15, backgroundColor: "#FF8700", alignItems: "center", justifyContent: "center" },
   buttonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
 });

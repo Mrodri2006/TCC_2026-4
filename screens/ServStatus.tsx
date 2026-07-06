@@ -88,7 +88,7 @@ export default function ServStatus() {
 
             {loading ? (
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#005362" />
+                    <ActivityIndicator size="large" color="#FF8700" />
                     <Text style={styles.loadingText}>Carregando serviços...</Text>
                 </View>
             ) : servsFinalizados.length === 0 ? (
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     headerCard: {
-        backgroundColor: "#E8F4FF",
+        backgroundColor: "#FFF4E5",
         borderRadius: 24,
         padding: 18,
         marginBottom: 20,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 10 },
         elevation: 3,
         borderLeftWidth: 4,
-        borderLeftColor: "#2563EB",
+        borderLeftColor: "#FF8700",
     },
     cardTopRow: {
         flexDirection: "row",

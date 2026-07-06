@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -101,7 +101,7 @@ export default function Login() {
   return (
     <SafeAreaView style={styles.safe}>
 
-        <LinearGradient colors={["rgba(0,0,0,0.75)", "rgba(0,0,0,0.9)"]} style={styles.overlay} />
+        <LinearGradient colors={["#FFFFFF", "#F7F9FC"]} style={styles.overlay} />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -113,12 +113,12 @@ export default function Login() {
           </View>
 
           <View style={styles.logoRow}>
-            <Image source={require("../assets/logo8.png")} style={styles.logo} resizeMode="contain" />
+            <Image source={require("../assets/logo-nova.png")} style={styles.logo} resizeMode="contain" />
           </View>
 
           <View style={styles.card}>
             <View style={styles.inputWrap}>
-              <Mail size={18} color="#0EA5A8" />
+              <Mail size={18} color="#FF9300" />
               <TextInput
                 placeholder="E-mail"
                 placeholderTextColor="#6B7280"
@@ -135,7 +135,7 @@ export default function Login() {
             {errors.email ? <Text style={styles.error}>{errors.email}</Text> : null}
 
             <View style={styles.inputWrap}>
-              <Lock size={18} color="#0EA5A8" />
+              <Lock size={18} color="#FF9300" />
               <TextInput
                 placeholder="Senha"
                 placeholderTextColor="#6B7280"
@@ -166,7 +166,7 @@ export default function Login() {
 
             <TouchableOpacity style={styles.loginBtnWrap} onPress={logar} disabled={loading} activeOpacity={0.9}>
               <LinearGradient
-                colors={["#0EA5A8", "#0B7280"]}
+                colors={["#FFAA00", "#FF7200"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.loginBtn}
@@ -207,7 +207,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#FFFFFF",
   },
 
   bg: {
@@ -238,14 +238,14 @@ const styles = StyleSheet.create({
   },
 
   headerTitleAqua: {
-    color: "#0EA5A8",
+    color: "#FF9D00",
     fontWeight: "900",
     fontSize: 18,
     letterSpacing: 1.2,
   },
 
   headerTitleWhite: {
-    color: "#E5E7EB",
+    color: "#071A33",
     fontWeight: "900",
     fontSize: 18,
     letterSpacing: 1.2,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#0EA5A8",
+    backgroundColor: "#FF9300",
     marginTop: 10,
     opacity: 0.9,
   },
@@ -266,15 +266,16 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: "100%",
-    height: 200,
+    width: 168,
+    height: 168,
+    borderRadius: 32,
   },
 
   segmented: {
     flexDirection: "row",
-    backgroundColor: "rgba(17, 24, 39, 0.55)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "rgba(255,147,0,0.20)",
     borderRadius: 28,
     overflow: "hidden",
     marginBottom: 18,
@@ -312,15 +313,15 @@ const styles = StyleSheet.create({
   },
 
   segmentedInactiveText: {
-    color: "#D1D5DB",
+    color: "#334155",
     fontWeight: "800",
     fontSize: 15,
   },
 
   card: {
-    backgroundColor: "rgba(17, 24, 39, 0.55)",
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "#DDE4EE",
     padding: 18,
     borderRadius: 26,
     shadowColor: "#000",
@@ -337,15 +338,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "#F7F9FC",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.10)",
+    borderColor: "#DDE4EE",
     marginBottom: 12,
   },
 
   input: {
     flex: 1,
-    color: "#E5E7EB",
+    color: "#071A33",
     fontSize: 15,
     paddingVertical: 0,
   },
@@ -394,11 +395,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "#DDE4EE",
   },
 
   dividerText: {
-    color: "rgba(229, 231, 235, 0.55)",
+    color: "#64748B",
     fontWeight: "800",
   },
 
@@ -410,19 +411,19 @@ const styles = StyleSheet.create({
   },
 
   registerText: {
-    color: "rgba(229,231,235,0.85)",
+    color: "#334155",
     fontWeight: "600",
   },
 
   link: {
-    color: "#0EA5A8",
+    color: "#FF9D00",
     fontWeight: "900",
   },
 
   forgot: {
     textAlign: "center",
     marginTop: 14,
-    color: "#0EA5A8",
+    color: "#FF9D00",
     fontWeight: "700",
   },
 });

@@ -101,7 +101,7 @@ export default function EsqueceuSenha() {
           <Text style={styles.subtitle}>Digite seu e-mail para enviar o link de recuperação.</Text>
 
           <View style={styles.inputWrap}>
-            <Mail size={18} color="#0EA5A8" />
+            <Mail size={18} color="#FF9300" />
             <TextInput
               placeholder="E-mail"
               placeholderTextColor="#6B7280"
@@ -120,7 +120,7 @@ export default function EsqueceuSenha() {
             disabled={loading}
             activeOpacity={0.9}
           >
-            <LinearGradient colors={["#0EA5A8", "#0B7280"]} style={styles.actionButton}>
+            <LinearGradient colors={["#FF9300", "#FF7200"]} style={styles.actionButton}>
               {loading ? (
                 <ActivityIndicator color="#EAFBFF" />
               ) : (

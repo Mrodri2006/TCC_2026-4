@@ -141,7 +141,7 @@ export default function ChatList() {
           </View>
 
           <View style={styles.loadingState}>
-            <ActivityIndicator size="large" color="#2563EB" />
+            <ActivityIndicator size="large" color="#FF8700" />
             <Text style={[styles.loadingText, { color: theme.textMuted }]}>Carregando conversas...</Text>
           </View>
         </View>
@@ -168,7 +168,7 @@ export default function ChatList() {
         {erro ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
-              <MessageCircle size={31} color="#2563EB" />
+              <MessageCircle size={31} color="#FF8700" />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Conversas indisponíveis</Text>
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>{erro}</Text>
@@ -179,7 +179,7 @@ export default function ChatList() {
         ) : chats.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.headerBtnBg }]}>
-              <MessageCircle size={31} color="#2563EB" />
+              <MessageCircle size={31} color="#FF8700" />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Nenhuma conversa ainda</Text>
             <Text style={[styles.emptyText, { color: theme.textMuted }]}>
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
   },
   avatarText: {
     color: "#FFFFFF",
@@ -344,6 +344,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
   },
-  retryButton: { marginTop: 18, minHeight: 44, paddingHorizontal: 20, borderRadius: 14, backgroundColor: "#2563EB", alignItems: "center", justifyContent: "center" },
+  retryButton: { marginTop: 18, minHeight: 44, paddingHorizontal: 20, borderRadius: 14, backgroundColor: "#FF8700", alignItems: "center", justifyContent: "center" },
   retryButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
 });

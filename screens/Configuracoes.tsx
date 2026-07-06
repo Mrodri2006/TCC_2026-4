@@ -103,7 +103,7 @@ export default function Configuracoes() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.topBarBtn, { backgroundColor: theme.headerBtnBg }]} activeOpacity={0.7}>
-            <ArrowLeft size={20} color="#2563EB" />
+            <ArrowLeft size={20} color="#FF8700" />
           </TouchableOpacity>
           <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>Configurações</Text>
           <View style={styles.topBarSpacer} />
@@ -118,7 +118,7 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Bell size={18} color="#2563EB" />
+            <Bell size={18} color="#FF8700" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Notificações</Text>
           </View>
           <Switch
@@ -132,7 +132,7 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Moon size={18} color="#2563EB" />
+            <Moon size={18} color="#FF8700" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Modo escuro</Text>
           </View>
           <Switch
@@ -146,7 +146,7 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Globe size={18} color="#2563EB" />
+            <Globe size={18} color="#FF8700" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Idioma</Text>
           </View>
           <Text style={[styles.itemValue, { color: theme.textMuted }]}>Português (BR)</Text>
@@ -164,7 +164,7 @@ export default function Configuracoes() {
 
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
-            <Shield size={18} color="#2563EB" />
+            <Shield size={18} color="#FF8700" />
             <Text style={[styles.itemText, { color: theme.textSecondary }]}>Perfil visível</Text>
           </View>
           <Switch
@@ -188,14 +188,14 @@ export default function Configuracoes() {
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("SegurancaConta")}
         >
-          <Text style={[styles.actionText, { color: "#2563EB" }]}>Segurança da conta</Text>
+          <Text style={[styles.actionText, { color: "#FF8700" }]}>Segurança da conta</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("EditarPerfil")}
         >
-          <Text style={[styles.actionText, { color: "#2563EB" }]}>Editar perfil</Text>
+          <Text style={[styles.actionText, { color: "#FF8700" }]}>Editar perfil</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#FF8700",
     marginTop: -4,
   },
   section: {
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#005362",
+    color: "#FF8700",
   },
   logoutButton: {
     marginTop: 10,
