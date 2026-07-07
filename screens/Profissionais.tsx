@@ -6,6 +6,7 @@ import { auth, firestore } from "../firebase";
 import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
 import { isSameCity } from "../utils/location";
+import { getProviderRating } from "../services/reviewService";
 
 export default function TelaProfissionais() {
   const navigation = useNavigation<any>();
@@ -46,8 +47,9 @@ export default function TelaProfissionais() {
         .get();
       const profissionaisEncontrados: any[] = [];
 
-      querySnapshot.forEach((userDoc) => {
+      for (const userDoc of querySnapshot.docs) {
         const userData = userDoc.data();
+        const rating = await getProviderRating(userDoc.id, userData);
         const localizacaoPrestador = String(userData?.localizacao || "").trim();
         const mesmaRegiao = isSameCity(localizacaoContratante, localizacaoPrestador);
 
@@ -55,12 +57,12 @@ export default function TelaProfissionais() {
           profissionaisEncontrados.push({
             id: userDoc.id,
             nome: userData.nome,
-            avaliacao: userData.avaliacao || 4.5,
+            ...rating,
             distancia: userData.distancia || "A calcular",
             tipo: userData.profissao || servico,
           });
         }
-      });
+      }
 
       setProfissionais(profissionaisEncontrados);
       setCarregando(false);

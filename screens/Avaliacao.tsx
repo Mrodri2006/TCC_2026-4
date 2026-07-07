@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
-import { auth, firestore, functions } from "../firebase";
+import { auth, firestore } from "../firebase";
+import firebase from "firebase/compat/app";
 import { useTheme } from "../theme/ThemeContext";
 import { ArrowLeft } from "lucide-react-native";
 
@@ -104,16 +105,24 @@ export default function Avaliacao() {
         return;
       }
 
+      const payload = { avaliacaoNota: nota, avaliacaoComentario: comentario.trim().slice(0, 500), avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(), avaliacaoLiberada: true, avaliado: true };
+      const batch = firestore.batch();
+      batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
+      batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
+      await batch.commit();
+
+      // A avaliação principal já foi salva. Esta cópia alimenta as telas
+      // públicas, mas uma regra antiga no servidor não pode bloquear o fluxo.
       try {
-        await functions.httpsCallable("enviarAvaliacaoServico")({ prestadorId, servicoId: servico.id, nota, comentario });
-      } catch (functionError: any) {
-        const code = String(functionError?.code || "");
-        if (!code.includes("not-found") && !code.includes("unavailable") && !code.includes("internal")) throw functionError;
-        const payload = { avaliacaoNota: nota, avaliacaoComentario: comentario, avaliacaoData: new Date(), avaliacaoLiberada: false, avaliado: true };
-        const batch = firestore.batch();
-        batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
-        batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
-        await batch.commit();
+        await firestore.collection("Usuario").doc(prestadorId).collection("Avaliacoes").doc(servico.id).set({
+          servicoId: servico.id, clienteId: servico.clienteId, prestadorId,
+          avaliacaoNota: nota, avaliacaoComentario: comentario.trim().slice(0, 500),
+          avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (publicReviewError: any) {
+        if (String(publicReviewError?.code || "") !== "permission-denied") {
+          console.warn("Não foi possível criar a cópia pública da avaliação:", publicReviewError);
+        }
       }
 
       Alert.alert("Sucesso", "Avaliacao registrada");

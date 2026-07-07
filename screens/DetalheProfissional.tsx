@@ -16,6 +16,7 @@ export default function DetalheProfissional() {
 
   const [servicos, setServicos] = useState<any[]>([]);
   const [usuarioData, setUsuarioData] = useState<any>({});
+  const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [carregando, setCarregando] = useState(true);
@@ -45,9 +46,24 @@ export default function DetalheProfissional() {
     setCarregando(true);
     try {
       const userDoc = await firestore.collection("Usuario").doc(profissional.id).get();
-      if (userDoc.exists) {
-        setUsuarioData(userDoc.data());
+      const dadosUsuario = userDoc.exists ? userDoc.data() || {} : {};
+      let avaliacoesData: any[] = [];
+      try {
+        const avaliacoesSnapshot = await firestore.collection("Usuario").doc(profissional.id)
+          .collection("Avaliacoes").orderBy("avaliacaoData", "desc").limit(20).get();
+        avaliacoesData = avaliacoesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
+      } catch (reviewError: any) {
+        // As informações principais continuam disponíveis enquanto as regras
+        // da coleção pública de avaliações ainda não foram publicadas.
+        if (String(reviewError?.code || "") !== "permission-denied") throw reviewError;
       }
+      setAvaliacoes(avaliacoesData.sort((a, b) => (b.avaliacaoData?.toMillis?.() || 0) - (a.avaliacaoData?.toMillis?.() || 0)));
+      const somaAvaliacoes = avaliacoesData.reduce((total, item) => total + Number(item.avaliacaoNota || 0), 0);
+      setUsuarioData({
+        ...dadosUsuario,
+        avaliacao: avaliacoesData.length ? somaAvaliacoes / avaliacoesData.length : Number(dadosUsuario.avaliacao || 0),
+        numeroAvaliacoes: avaliacoesData.length || Number(dadosUsuario.numeroAvaliacoes || 0),
+      });
 
       const servicosSnapshot = await firestore
         .collection("Usuario")
@@ -153,7 +169,7 @@ export default function DetalheProfissional() {
             <Star size={20} color="#FFD700" />
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Avaliação</Text>
-              <Text style={styles.infoValor}>{profissional.avaliacao} ⭐</Text>
+              <Text style={styles.infoValor}>{Number(usuarioData.avaliacao || 0).toFixed(1)} ⭐ ({Number(usuarioData.numeroAvaliacoes || 0)})</Text>
             </View>
           </View>
 
@@ -188,6 +204,16 @@ export default function DetalheProfissional() {
       </View>
 
       <ReputationCard data={{ ...profissional, ...usuarioData }} />
+
+      <View style={styles.reviewsSection}>
+        <View style={styles.sectionHeader}><Star size={20} color="#F59E0B" /><Text style={styles.sectionTitle}>Avaliações recebidas</Text></View>
+        {avaliacoes.length ? avaliacoes.slice(0, 5).map((item) => (
+          <View key={item.id} style={styles.reviewCard}>
+            <View style={styles.reviewHeader}><Text style={styles.reviewStars}>{"★".repeat(Number(item.avaliacaoNota || 0))}{"☆".repeat(5 - Number(item.avaliacaoNota || 0))}</Text><Text style={styles.reviewDate}>{formatDate(item.avaliacaoData)}</Text></View>
+            {!!item.avaliacaoComentario && <Text style={styles.reviewComment}>{item.avaliacaoComentario}</Text>}
+          </View>
+        )) : <Text style={styles.emptyReviews}>Este profissional ainda não recebeu avaliações.</Text>}
+      </View>
 
       {!!(usuarioData.experiencia || usuarioData.especialidades?.length || usuarioData.certificados?.length || usuarioData.site || usuarioData.portfolio) && <View style={styles.professionalSection}><Text style={styles.sectionTitle}>Perfil profissional</Text>{!!usuarioData.experiencia && <Text style={styles.professionalText}>{usuarioData.experiencia}</Text>}{!!usuarioData.especialidades?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Especialidades: </Text>{usuarioData.especialidades.join(", ")}</Text>}{!!usuarioData.certificados?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Certificados: </Text>{usuarioData.certificados.join(", ")}</Text>}{!!usuarioData.site && <Text style={styles.professionalLink}>{usuarioData.site}</Text>}{!!usuarioData.portfolio && <Text style={styles.professionalLink}>{usuarioData.portfolio}</Text>}</View>}
 
@@ -497,6 +523,13 @@ const styles = StyleSheet.create({
   favoriteButton: { marginHorizontal: 16, marginBottom: 8, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   favoriteButtonActive: { backgroundColor: "#FEF2F2" },
   favoriteText: { color: "#B91C1C", fontSize: 13, fontWeight: "800" },
+  reviewsSection: { marginHorizontal: 16, marginBottom: 16, borderRadius: 18, padding: 16, backgroundColor: "#FFFFFF" },
+  reviewCard: { paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E2E8F0" },
+  reviewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  reviewStars: { color: "#F59E0B", fontSize: 16, letterSpacing: 1 },
+  reviewDate: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
+  reviewComment: { color: "#475569", fontSize: 13, lineHeight: 19, marginTop: 7 },
+  emptyReviews: { color: "#64748B", fontSize: 13, textAlign: "center", paddingVertical: 18 },
 
   botaoContratar: {
     backgroundColor: "#FF8700",

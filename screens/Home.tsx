@@ -172,7 +172,8 @@ export default function TelaInicialCliente({ onLogout }: any) {
           const profissional = {
             id: userDoc.id,
             nome: userData.nome || "Sem nome",
-            avaliacao: userData.avaliacao || 4.5,
+            avaliacao: Number(userData.avaliacao || 0),
+            numeroAvaliacoes: Number(userData.numeroAvaliacoes || 0),
             distancia: userData.distancia || "A calcular",
             tipo: userData.profissao || "Geral",
             profissao: userData.profissao || "Geral",

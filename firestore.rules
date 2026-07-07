@@ -161,6 +161,23 @@ service cloud.firestore {
         allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());
         allow create, update, delete: if isOwner(uid) || isAdmin();
       }
+
+      match /Avaliacoes/{reviewId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && reviewId == request.resource.data.servicoId
+          && request.resource.data.clienteId == request.auth.uid
+          && request.resource.data.prestadorId == uid
+          && request.resource.data.avaliacaoNota is number
+          && request.resource.data.avaliacaoNota >= 1
+          && request.resource.data.avaliacaoNota <= 5
+          && request.resource.data.keys().hasOnly(['servicoId', 'clienteId', 'prestadorId', 'avaliacaoNota', 'avaliacaoComentario', 'avaliacaoData'])
+          && exists(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId))
+          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.clienteId == request.auth.uid
+          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.prestadorId == uid
+          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.status == 'realizado';
+        allow update, delete: if false;
+      }
     }
 
     match /ServicosAdds/{uid}/ServicosOferecidos/{servicoId} {
@@ -197,6 +214,7 @@ service cloud.firestore {
           || (signedIn() && get(/databases/$(database)/documents/ServicosAgendados/$(prestadorId)/ServicoStatus/$(servicoId)).data.clienteId == request.auth.uid);
         allow write: if false;
       }
+
     }
 
     match /ServicosClientes/{clienteId}/ServicoStatus/{servicoId} {

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import MapView, { Callout, Marker, type Region } from "react-native-maps";
 import * as Location from "expo-location";
 import firebase from "firebase/compat/app";
-import { ArrowLeft, LocateFixed, MapPin, Navigation, Search, UserRound } from "lucide-react-native";
+import { ArrowLeft, Filter, LocateFixed, MapPin, Navigation, Search, UserRound, X } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
@@ -39,6 +39,7 @@ export default function MapaPrestadores() {
   const [maxDistance, setMaxDistance] = useState(25);
   const [minimumRating, setMinimumRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -177,23 +178,39 @@ export default function MapaPrestadores() {
             {filteredProviders.length} {filteredProviders.length === 1 ? "disponível" : "disponíveis"} agora
           </Text>
         </View>
-        <View style={styles.headerPlaceholder} />
+        <TouchableOpacity style={[styles.headerButton, { backgroundColor: theme.headerBtnBg }]} onPress={() => setFiltersVisible(true)} accessibilityLabel="Abrir filtros">
+          <Filter size={21} color="#FF8700" />
+        </TouchableOpacity>
       </View>
 
-      <View style={[styles.filters, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View style={[styles.searchBox, { backgroundColor: theme.actionBg, borderColor: theme.border }]}>
-          <Search size={18} color={theme.textMuted} />
-          <TextInput style={[styles.searchInput, { color: theme.textPrimary }]} value={search} onChangeText={setSearch} placeholder="Nome ou profissão" placeholderTextColor={theme.textMuted} />
+      <Modal visible={filtersVisible} transparent animationType="slide" onRequestClose={() => setFiltersVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setFiltersVisible(false)} />
+          <View style={[styles.modalCard, { backgroundColor: theme.card }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <View><Text style={[styles.modalTitle, { color: theme.textPrimary }]}>Filtrar profissionais</Text><Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>{filteredProviders.length} resultado(s) no mapa</Text></View>
+              <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.actionBg }]} onPress={() => setFiltersVisible(false)}><X size={20} color={theme.textPrimary} /></TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
+              <Text style={[styles.filterLabel, { color: theme.textPrimary }]}>Buscar</Text>
+              <View style={[styles.searchBox, { backgroundColor: theme.actionBg, borderColor: theme.border }]}><Search size={18} color={theme.textMuted} /><TextInput style={[styles.searchInput, { color: theme.textPrimary }]} value={search} onChangeText={setSearch} placeholder="Nome ou profissão" placeholderTextColor={theme.textMuted} /></View>
+              <Text style={[styles.filterLabel, { color: theme.textPrimary }]}>Profissão</Text>
+              <View style={styles.chipGrid}>{jobs.map((job) => <TouchableOpacity key={job} style={[styles.chip, { borderColor: selectedJob === job ? "#FF8700" : theme.border, backgroundColor: selectedJob === job ? "#FFF7ED" : theme.card }]} onPress={() => setSelectedJob(job)}><Text style={[styles.chipText, { color: selectedJob === job ? "#E86F00" : theme.textSecondary }]}>{job}</Text></TouchableOpacity>)}</View>
+              <Text style={[styles.filterLabel, { color: theme.textPrimary }]}>Distância máxima</Text>
+              <View style={styles.chipGrid}>{[5, 10, 25, 50].map((distance) => <TouchableOpacity key={distance} style={[styles.chip, { borderColor: maxDistance === distance ? "#16A34A" : theme.border }]} onPress={() => setMaxDistance(distance)}><Text style={[styles.chipText, { color: maxDistance === distance ? "#15803D" : theme.textSecondary }]}>{distance} km</Text></TouchableOpacity>)}</View>
+              <Text style={[styles.filterLabel, { color: theme.textPrimary }]}>Avaliação mínima</Text>
+              <View style={styles.chipGrid}>{[0, 4, 4.5].map((rating) => <TouchableOpacity key={rating} style={[styles.chip, { borderColor: minimumRating === rating ? "#F59E0B" : theme.border }]} onPress={() => setMinimumRating(rating)}><Text style={[styles.chipText, { color: minimumRating === rating ? "#B45309" : theme.textSecondary }]}>{rating ? `★ ${rating}+` : "Todas as notas"}</Text></TouchableOpacity>)}</View>
+              <Text style={[styles.filterLabel, { color: theme.textPrimary }]}>Preço médio</Text>
+              <View style={styles.chipGrid}>{[0, 100, 250, 500].map((price) => <TouchableOpacity key={`price-${price}`} style={[styles.chip, { borderColor: maxPrice === price ? "#7C3AED" : theme.border }]} onPress={() => setMaxPrice(price)}><Text style={[styles.chipText, { color: maxPrice === price ? "#6D28D9" : theme.textSecondary }]}>{price ? `Até R$ ${price}` : "Qualquer preço"}</Text></TouchableOpacity>)}</View>
+            </ScrollView>
+            <View style={[styles.modalActions, { borderTopColor: theme.border }]}>
+              <TouchableOpacity style={styles.clearButton} onPress={() => { setSearch(""); setSelectedJob("Todos"); setMaxDistance(25); setMinimumRating(0); setMaxPrice(0); }}><Text style={styles.clearText}>Limpar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.applyButton} onPress={() => setFiltersVisible(false)}><Text style={styles.applyText}>Ver resultados</Text></TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {jobs.map((job) => <TouchableOpacity key={job} style={[styles.chip, { borderColor: selectedJob === job ? "#FF8700" : theme.border, backgroundColor: selectedJob === job ? "#FFF7ED" : theme.card }]} onPress={() => setSelectedJob(job)}><Text style={[styles.chipText, { color: selectedJob === job ? "#E86F00" : theme.textSecondary }]}>{job}</Text></TouchableOpacity>)}
-        </ScrollView>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {[5, 10, 25, 50].map((distance) => <TouchableOpacity key={distance} style={[styles.chip, { borderColor: maxDistance === distance ? "#16A34A" : theme.border }]} onPress={() => setMaxDistance(distance)}><Text style={[styles.chipText, { color: maxDistance === distance ? "#15803D" : theme.textSecondary }]}>{distance} km</Text></TouchableOpacity>)}
-          {[0, 4, 4.5].map((rating) => <TouchableOpacity key={rating} style={[styles.chip, { borderColor: minimumRating === rating ? "#F59E0B" : theme.border }]} onPress={() => setMinimumRating(rating)}><Text style={[styles.chipText, { color: minimumRating === rating ? "#B45309" : theme.textSecondary }]}>{rating ? `★ ${rating}+` : "Todas as notas"}</Text></TouchableOpacity>)}
-          {[0, 100, 250, 500].map((price) => <TouchableOpacity key={`price-${price}`} style={[styles.chip, { borderColor: maxPrice === price ? "#7C3AED" : theme.border }]} onPress={() => setMaxPrice(price)}><Text style={[styles.chipText, { color: maxPrice === price ? "#6D28D9" : theme.textSecondary }]}>{price ? `Até R$ ${price}` : "Qualquer preço"}</Text></TouchableOpacity>)}
-        </ScrollView>
-      </View>
+      </Modal>
 
       <MapView ref={mapRef} style={styles.map} initialRegion={DEFAULT_REGION} showsCompass showsMyLocationButton={false}>
         {userPosition && (
@@ -265,4 +282,19 @@ const styles = StyleSheet.create({
   locationButton: { position: "absolute", right: 18, bottom: 28, width: 50, height: 50, borderRadius: 25, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", elevation: 6, shadowColor: "#000000", shadowOpacity: 0.16, shadowRadius: 10 },
   bottomCard: { position: "absolute", left: 16, right: 80, bottom: 24, minHeight: 58, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 13, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 11, elevation: 5, shadowColor: "#000000", shadowOpacity: 0.08, shadowRadius: 12 },
   stateText: { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(15,23,42,0.48)", justifyContent: "flex-end" },
+  modalCard: { maxHeight: "86%", borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 10, elevation: 12 },
+  modalHandle: { width: 42, height: 4, borderRadius: 2, backgroundColor: "#CBD5E1", alignSelf: "center", marginBottom: 12 },
+  modalHeader: { paddingHorizontal: 20, paddingBottom: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  modalTitle: { fontSize: 20, fontWeight: "800" },
+  modalSubtitle: { fontSize: 12, fontWeight: "600", marginTop: 3 },
+  closeButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  modalContent: { paddingHorizontal: 20, paddingBottom: 20 },
+  filterLabel: { fontSize: 14, fontWeight: "800", marginTop: 16, marginBottom: 9 },
+  chipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  modalActions: { borderTopWidth: StyleSheet.hairlineWidth, padding: 16, flexDirection: "row", gap: 12 },
+  clearButton: { minHeight: 48, paddingHorizontal: 22, alignItems: "center", justifyContent: "center" },
+  clearText: { color: "#64748B", fontSize: 14, fontWeight: "800" },
+  applyButton: { flex: 1, minHeight: 48, borderRadius: 14, backgroundColor: "#FF8700", alignItems: "center", justifyContent: "center" },
+  applyText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
 });

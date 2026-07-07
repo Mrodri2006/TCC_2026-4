@@ -636,6 +636,7 @@ exports.enviarAvaliacaoServico = functions.https.onCall(async (data, context) =>
   const providerServiceRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId);
   const clientServiceRef = db.collection("ServicosClientes").doc(clienteId).collection("ServicoStatus").doc(servicoId);
   const providerRef = db.collection("Usuario").doc(prestadorId);
+  const publicReviewRef = providerRef.collection("Avaliacoes").doc(servicoId);
 
   await db.runTransaction(async (transaction) => {
     const serviceSnapshot = await transaction.get(providerServiceRef);
@@ -653,8 +654,13 @@ exports.enviarAvaliacaoServico = functions.https.onCall(async (data, context) =>
     }
 
     const provider = providerSnapshot.data() || {};
-    const count = Number(provider.numeroAvaliacoes || 0) + 1;
-    const sum = Number(provider.avaliacaoSoma || 0) + nota;
+    const previousCount = Number(provider.numeroAvaliacoes || 0);
+    const storedSum = Number(provider.avaliacaoSoma);
+    const previousSum = Number.isFinite(storedSum)
+      ? storedSum
+      : Number(provider.avaliacao || 0) * previousCount;
+    const count = previousCount + 1;
+    const sum = previousSum + nota;
     const review = {
       avaliacaoNota: nota,
       avaliacaoComentario: comentario,
@@ -664,6 +670,12 @@ exports.enviarAvaliacaoServico = functions.https.onCall(async (data, context) =>
     };
     transaction.set(providerServiceRef, review, { merge: true });
     transaction.set(clientServiceRef, review, { merge: true });
+    transaction.set(publicReviewRef, {
+      avaliacaoNota: nota,
+      avaliacaoComentario: comentario,
+      avaliacaoData: admin.firestore.FieldValue.serverTimestamp(),
+      servicoId,
+    });
     transaction.set(providerRef, { avaliacaoSoma: sum, numeroAvaliacoes: count, avaliacao: sum / count }, { merge: true });
   });
 

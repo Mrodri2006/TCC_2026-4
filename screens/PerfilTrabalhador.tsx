@@ -29,8 +29,8 @@ export default function PerfilTrabalhador() {
     telefone: "",
     profissao: "",
     fotoPerfil: "",
-    avaliacao: 4.8,
-    numeroAvaliacoes: 45,
+    avaliacao: 0,
+    numeroAvaliacoes: 0,
     localizacao: "São Paulo, SP",
     descricao: "Profissional com experiência em serviços",
   });
@@ -67,6 +67,8 @@ export default function PerfilTrabalhador() {
                 profissao: dados.profissao || "",
                 localizacao: dados.localizacao || prevState.localizacao,
                 fotoPerfil: dados.fotoPerfil || dados.foto || "",
+                avaliacao: Number(dados.avaliacao || 0),
+                numeroAvaliacoes: Number(dados.numeroAvaliacoes || 0),
               }));
             }
 
@@ -136,7 +138,7 @@ export default function PerfilTrabalhador() {
             console.log('setou aval'); 
             setUsuario((prev) => ({
               ...prev,
-              avaliacao: media || prev.avaliacao,
+              avaliacao: media,
               numeroAvaliacoes: qtd,
             }));
             console.log('setou usuario'); 

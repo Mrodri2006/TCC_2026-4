@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { isSameCity } from "../utils/location";
+import { getProviderRating } from "../services/reviewService";
 
 
 export default function PrestadoresPorServico() {
@@ -55,6 +56,7 @@ export default function PrestadoresPorServico() {
 
       for (const userDoc of users.docs) {
         const userData = userDoc.data();
+        const rating = await getProviderRating(userDoc.id, userData);
 
         const localizacaoPrestador = String(userData.localizacao || "").trim();
         const mesmaRegiao = isSameCity(localizacaoUsuario, localizacaoPrestador);
@@ -67,7 +69,7 @@ export default function PrestadoresPorServico() {
             nome: userData.nome || "Sem nome",
             email: userData.email || "",
             profissao: userData.profissao || "Geral",
-            avaliacao: userData.avaliacao || 4.5,
+            ...rating,
             distancia: userData.distancia || "A calcular",
             telefone: userData.fone || "Não informado",
             localizacao: localizacaoPrestador || "Não informada",
@@ -158,7 +160,7 @@ export default function PrestadoresPorServico() {
                   <View style={styles.detalheItem}>
                     <Star size={14} color="#FFD700" fill="#FFD700" />
                     <Text style={[styles.detalheTexto, { color: theme.textSecondary }]}>
-                      {prestador.avaliacao.toFixed(1)}
+                      {prestador.avaliacao.toFixed(1)} ({prestador.numeroAvaliacoes})
                     </Text>
                   </View>
 
