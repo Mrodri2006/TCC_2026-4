@@ -29,6 +29,7 @@ import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import { DEFAULT_MENSALIDADE_VALOR } from "../utils/billingConfig";
 import { getFirebaseErrorMessage } from "../utils/firebaseError";
+import { CityAutocomplete } from "../components/CityAutocomplete";
 
 export default function Register() {
 
@@ -254,7 +255,8 @@ export default function Register() {
           valorMensalidade: DEFAULT_MENSALIDADE_VALOR,
         });
 
-      navigation.replace('PagamentoMensalidade');
+      await auth.currentUser!.sendEmailVerification();
+      navigation.replace('VerificarEmail');
 
     } catch (erro: unknown) {
       if (criouAutenticacao) await auth.currentUser?.delete().catch((): void => undefined);
@@ -359,16 +361,10 @@ export default function Register() {
                 />
               </View>
 
-              <View style={styles.inputWrap}>
-                <MapPin size={18} color="#FF9300" />
-                <TextInput
-                  placeholder="Localização"
-                  placeholderTextColor="#6B7280"
-                  value={formUsuario.localizacao || ""}
-                  onChangeText={(valor) => setFormUsuario({ ...formUsuario, localizacao: valor })}
-                  style={styles.input}
-                />
-              </View>
+              <CityAutocomplete
+                value={formUsuario.localizacao || ""}
+                onChange={(valor) => setFormUsuario((prev) => ({ ...prev, localizacao: valor }))}
+              />
 
               <TouchableOpacity style={styles.locationBtn} onPress={usarLocalizacaoAtual} disabled={localizando}>
                 <Text style={styles.locationBtnText}>
@@ -639,12 +635,12 @@ const styles = StyleSheet.create({
   },
 
   locationBtn: {
-    alignSelf: "flex-start",
-    marginTop: -2,
-    marginBottom: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255,147,0,0.50)",
     backgroundColor: "rgba(255,147,0,0.12)",

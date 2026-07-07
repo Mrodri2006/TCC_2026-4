@@ -81,6 +81,11 @@ export default function Login() {
           return;
         }
 
+        if (!userCredentials.user.emailVerified) {
+          navigation.replace('VerificarEmail');
+          return;
+        }
+
         const tipo = String(userData?.tipo || '').toLowerCase();
         if (tipo === 'prestador') {
           navigation.replace('MenuTrabalhador');

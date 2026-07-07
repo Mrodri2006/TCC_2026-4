@@ -36,6 +36,7 @@ import Favoritos from './screens/Favoritos';
 import Denunciar from './screens/Denunciar';
 import FinanceiroPrestador from './screens/FinanceiroPrestador';
 import SegurancaConta from './screens/SegurancaConta';
+import VerificarEmail from './screens/VerificarEmail';
 
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -88,6 +89,7 @@ const ThemedFavoritos = withThemeScreen(Favoritos);
 const ThemedDenunciar = withThemeScreen(Denunciar);
 const ThemedFinanceiroPrestador = withThemeScreen(FinanceiroPrestador);
 const ThemedSegurancaConta = withThemeScreen(SegurancaConta);
+const ThemedVerificarEmail = withThemeScreen(VerificarEmail);
 
 function AppInner() {
   const { theme } = useTheme();
@@ -109,6 +111,7 @@ function AppInner() {
         <Stack.Screen name='Login'    component={ThemedLogin} options={{ headerShown: false }} /> 
         <Stack.Screen name='Register' component={ThemedRegister} options={{ headerShown: false }} />
         <Stack.Screen name='Register2' component={ThemedRegister2} options={{ headerShown: false }}/>
+        <Stack.Screen name='VerificarEmail' component={ThemedVerificarEmail} options={{ headerShown: false }}/>
         <Stack.Screen name='Menu'     component={ThemedMenu} options={{ headerShown: false }}/>
         <Stack.Screen name="LoginTrabalhador" component={ThemedLoginTrabalhador} options={{ headerShown: false }}/>
         <Stack.Screen name="HomeTrabalhador" component={ThemedHomeTrabalhador} options={{ headerShown: false }}/>

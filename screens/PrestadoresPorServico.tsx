@@ -5,6 +5,7 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import { useState, useCallback } from "react";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { isSameCity } from "../utils/location";
 
 
 export default function PrestadoresPorServico() {
@@ -16,13 +17,6 @@ export default function PrestadoresPorServico() {
   const [usuariosPrestadores, setUsuariosPrestadores] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [localizacaoContratante, setLocalizacaoContratante] = useState("");
-
-  const normalizarLocalizacao = (valor: string) =>
-    (valor || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
 
   const prestadorEstaAtivo = (userData: any) =>
     userData?.contaAtiva !== false && userData?.assinaturaAtiva !== false;
@@ -47,8 +41,6 @@ export default function PrestadoresPorServico() {
       const contratanteDoc = await firestore.collection("Usuario").doc(usuarioId).get();
       const contratanteDados = contratanteDoc.data() || {};
       const localizacaoUsuario = String(contratanteDados.localizacao || "").trim();
-      const localizacaoUsuarioNormalizada =
-        String(contratanteDados.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoUsuario);
 
       setLocalizacaoContratante(localizacaoUsuario);
 
@@ -65,11 +57,7 @@ export default function PrestadoresPorServico() {
         const userData = userDoc.data();
 
         const localizacaoPrestador = String(userData.localizacao || "").trim();
-        const localizacaoPrestadorNormalizada =
-          String(userData.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
-        const mesmaRegiao =
-          !!localizacaoUsuarioNormalizada &&
-          localizacaoPrestadorNormalizada === localizacaoUsuarioNormalizada;
+        const mesmaRegiao = isSameCity(localizacaoUsuario, localizacaoPrestador);
 
         if (
           mesmaRegiao && prestadorEstaAtivo(userData)

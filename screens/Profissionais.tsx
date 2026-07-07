@@ -5,6 +5,7 @@ import { useState, useCallback } from "react";
 import { auth, firestore } from "../firebase";
 import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
+import { isSameCity } from "../utils/location";
 
 export default function TelaProfissionais() {
   const navigation = useNavigation<any>();
@@ -15,13 +16,6 @@ export default function TelaProfissionais() {
   const [searchText, setSearchText] = useState("");
   const [profissionais, setProfissionais] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
-
-  const normalizarLocalizacao = (valor: string) =>
-    (valor || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim()
-      .toLowerCase();
 
   useFocusEffect(
     useCallback(() => {
@@ -42,8 +36,6 @@ export default function TelaProfissionais() {
       const contratanteDoc = await firestore.collection("Usuario").doc(usuarioId).get();
       const contratanteDados = contratanteDoc.data() || {};
       const localizacaoContratante = String(contratanteDados.localizacao || "").trim();
-      const localizacaoContratanteNormalizada =
-        String(contratanteDados.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoContratante);
 
       const querySnapshot = await firestore
         .collection("Usuario")
@@ -57,11 +49,7 @@ export default function TelaProfissionais() {
       querySnapshot.forEach((userDoc) => {
         const userData = userDoc.data();
         const localizacaoPrestador = String(userData?.localizacao || "").trim();
-        const localizacaoPrestadorNormalizada =
-          String(userData?.localizacaoNormalizada || "") || normalizarLocalizacao(localizacaoPrestador);
-        const mesmaRegiao =
-          !!localizacaoContratanteNormalizada &&
-          localizacaoPrestadorNormalizada === localizacaoContratanteNormalizada;
+        const mesmaRegiao = isSameCity(localizacaoContratante, localizacaoPrestador);
 
         if (userData?.nome && mesmaRegiao) {
           profissionaisEncontrados.push({
