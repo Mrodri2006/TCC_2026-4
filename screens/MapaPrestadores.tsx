@@ -9,6 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { distanceInKm, type ProviderPresence } from "../services/locationPresenceService";
+import { getProviderRating } from "../services/reviewService";
 
 type MapProvider = ProviderPresence & {
   nome: string;
@@ -86,11 +87,12 @@ export default function MapaPrestadores() {
                 const userSnapshot = await firestore.collection("Usuario").doc(presence.prestadorId).get();
                 const user = userSnapshot.data();
                 if (!userSnapshot.exists || user?.tipo !== "prestador" || user?.contaAtiva === false || user?.assinaturaAtiva === false || user?.perfilVisivel === false) return null;
+                const rating = await getProviderRating(presence.prestadorId, user);
                 return {
                   ...presence,
                   nome: user?.nome || "Profissional",
                   profissao: user?.profissao || "Serviços gerais",
-                  avaliacao: Number(user?.avaliacao || 0),
+                  ...rating,
                   precoMedio: Number(user?.precoMedio || user?.valorMedio || 0),
                 } as MapProvider;
               })

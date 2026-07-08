@@ -6,13 +6,14 @@ import { auth, firestore } from "../firebase";
 import { setProviderFavorite } from "../services/favoriteService";
 import { useTheme } from "../theme/ThemeContext";
 import { Skeleton, StateView } from "../components/ui";
+import { getProviderRating } from "../services/reviewService";
 
 export default function Favoritos() {
   const navigation = useNavigation<any>(); const { theme } = useTheme();
   const [items, setItems] = useState<any[]>([]); const [loading, setLoading] = useState(true);
   useEffect(() => { const uid = auth.currentUser?.uid; if (!uid) { setLoading(false); return; }
     return firestore.collection("Usuario").doc(uid).collection("Favoritos").onSnapshot(async (snapshot) => {
-      try { const providers = await Promise.all(snapshot.docs.map(async (favorite) => { const saved = favorite.data(); try { const user = await firestore.collection("Usuario").doc(favorite.id).get(); return { id: favorite.id, ...saved, ...(user.exists ? user.data() : {}) }; } catch { return { id: favorite.id, ...saved }; } })); providers.sort((a: any, b: any) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)); setItems(providers); }
+      try { const providers = await Promise.all(snapshot.docs.map(async (favorite) => { const saved = favorite.data(); try { const user = await firestore.collection("Usuario").doc(favorite.id).get(); const userData = user.exists ? user.data() : {}; const rating = await getProviderRating(favorite.id, { ...saved, ...userData }); return { id: favorite.id, ...saved, ...userData, ...rating }; } catch { return { id: favorite.id, ...saved }; } })); providers.sort((a: any, b: any) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)); setItems(providers); }
       finally { setLoading(false); }
     }, () => setLoading(false)); }, []);
   return <View style={[styles.screen, { backgroundColor: theme.background }]}>

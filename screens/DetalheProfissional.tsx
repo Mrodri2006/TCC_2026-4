@@ -7,6 +7,7 @@ import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { ReputationCard } from "../components/ReputationCard";
 import { setProviderFavorite, subscribeProviderFavorite } from "../services/favoriteService";
+import { getProviderRating } from "../services/reviewService";
 
 export default function DetalheProfissional() {
   const navigation = useNavigation<any>();
@@ -47,6 +48,7 @@ export default function DetalheProfissional() {
     try {
       const userDoc = await firestore.collection("Usuario").doc(profissional.id).get();
       const dadosUsuario = userDoc.exists ? userDoc.data() || {} : {};
+      const rating = await getProviderRating(profissional.id, { ...profissional, ...dadosUsuario });
       let avaliacoesData: any[] = [];
       try {
         const avaliacoesSnapshot = await firestore.collection("Usuario").doc(profissional.id)
@@ -58,18 +60,21 @@ export default function DetalheProfissional() {
         if (String(reviewError?.code || "") !== "permission-denied") throw reviewError;
       }
       setAvaliacoes(avaliacoesData.sort((a, b) => (b.avaliacaoData?.toMillis?.() || 0) - (a.avaliacaoData?.toMillis?.() || 0)));
-      const somaAvaliacoes = avaliacoesData.reduce((total, item) => total + Number(item.avaliacaoNota || 0), 0);
-      const numeroAvaliacoesSalvo = Number(dadosUsuario.numeroAvaliacoes || profissional.numeroAvaliacoes || 0);
-      const mediaAvaliacoesSalva = Number(dadosUsuario.avaliacao ?? profissional.avaliacao ?? 0);
+      const notasPublicas = avaliacoesData
+        .map((item) => Number(item.avaliacaoNota))
+        .filter((nota) => Number.isFinite(nota) && nota >= 1 && nota <= 5);
+      const ratingFinal = Number(rating.numeroAvaliacoes || 0) > 0
+        ? rating
+        : notasPublicas.length
+          ? {
+              avaliacao: notasPublicas.reduce((total, nota) => total + nota, 0) / notasPublicas.length,
+              numeroAvaliacoes: notasPublicas.length,
+            }
+          : rating;
       setUsuarioData({
         ...profissional,
         ...dadosUsuario,
-        // A consulta traz somente as 20 avaliações mais recentes; o resumo do
-        // usuário contém a média de todo o histórico.
-        avaliacao: numeroAvaliacoesSalvo > 0
-          ? mediaAvaliacoesSalva
-          : (avaliacoesData.length ? somaAvaliacoes / avaliacoesData.length : 0),
-        numeroAvaliacoes: numeroAvaliacoesSalvo || avaliacoesData.length,
+        ...ratingFinal,
         servicosConcluidos: Number(dadosUsuario.servicosConcluidos ?? profissional.servicosConcluidos ?? 0),
       });
 
@@ -165,22 +170,19 @@ export default function DetalheProfissional() {
       <View style={styles.cardPrincipal}>
         <View style={styles.headerCard}>
           <View>
-            <Text style={styles.nomePrincipal}>{profissional.nome}</Text>
+            <Text style={styles.nomePrincipal}>{usuarioData.nome || profissional.nome}</Text>
             <View style={styles.profissaoBadgePrincipal}>
-              <Text style={styles.profissaoTextoPrincipal}>{profissional.profissao}</Text>
+              <Text style={styles.profissaoTextoPrincipal}>{usuarioData.profissao || profissional.profissao}</Text>
             </View>
+          </View>
+          <View style={styles.ratingSummary}>
+            <Star size={19} color="#F59E0B" fill="#F59E0B" />
+            <Text style={styles.ratingAverage}>{Number(usuarioData.avaliacao || 0).toFixed(1)}</Text>
+            <Text style={styles.ratingCount}>{Number(usuarioData.numeroAvaliacoes || 0)} avaliações</Text>
           </View>
         </View>
 
         <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <Star size={20} color="#FFD700" />
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Média das avaliações</Text>
-              <Text style={styles.infoValor}>{Number(usuarioData.avaliacao || 0).toFixed(1)} de 5 ({Number(usuarioData.numeroAvaliacoes || 0)} avaliações)</Text>
-            </View>
-          </View>
-
           <View style={styles.infoItem}>
             <Award size={20} color="#16A34A" />
             <View style={styles.infoContent}>
@@ -363,6 +365,10 @@ const styles = StyleSheet.create({
   },
 
   headerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
     marginBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
@@ -532,6 +538,19 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 44,
   },
+
+  ratingSummary: {
+    minWidth: 94,
+    alignItems: "center",
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  ratingAverage: { color: "#0F2937", fontSize: 20, fontWeight: "800", marginTop: 2 },
+  ratingCount: { color: "#64748B", fontSize: 10, fontWeight: "600", marginTop: 1 },
   professionalSection: { marginHorizontal: 16, marginBottom: 16, borderRadius: 18, padding: 16, backgroundColor: "#FFFFFF" },
   professionalText: { color: "#475569", fontSize: 13, lineHeight: 20, marginTop: 7 },
   professionalLabel: { color: "#0F172A", fontWeight: "800" },

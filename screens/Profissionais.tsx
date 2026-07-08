@@ -129,7 +129,7 @@ export default function TelaProfissionais() {
 
               <View style={styles.infoLinha}>
                 <Star size={16} color="#FFD700" />
-                <Text style={[styles.infoTexto, { color: theme.surfaceTextMuted }]}>{pro.avaliacao}</Text>
+                <Text style={[styles.infoTexto, { color: theme.surfaceTextMuted }]}>{Number(pro.avaliacao || 0).toFixed(1)} ({Number(pro.numeroAvaliacoes || 0)})</Text>
               </View>
 
               <View style={styles.infoLinha}>

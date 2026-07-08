@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useState, useCallback } from "react";
 import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { getProviderRating } from "../services/reviewService";
 
 export default function NovosPrestadores() {
   const navigation = useNavigation();
@@ -44,6 +45,7 @@ export default function NovosPrestadores() {
             email: userData.email || "",
             profissao: userData.profissao || "Geral",
             avaliacao: userData.avaliacao || 0,
+            numeroAvaliacoes: Number(userData.numeroAvaliacoes || 0),
             distancia: userData.distancia || "A calcular",
             telefone: userData.fone || "Não informado",
             criadoEm: userData.criadoEm,
@@ -52,30 +54,7 @@ export default function NovosPrestadores() {
       }
 
       const prestadoresComAvaliacao = await Promise.all(
-        prestadores.map(async (p: any) => {
-          try {
-            const avalSnapshot = await firestore
-              .collection("ServicosAgendados")
-              .doc(p.id)
-              .collection("ServicoStatus")
-              .where("avaliado", "==", true)
-              .get();
-
-            const notas = avalSnapshot.docs
-              .map((doc) => Number(doc.data().avaliacaoNota || 0))
-              .filter((n) => Number.isFinite(n) && n > 0);
-
-            if (notas.length === 0) {
-              return { ...p, avaliacao: p.avaliacao || 0, numeroAvaliacoes: 0 };
-            }
-
-            const total = notas.reduce((acc, n) => acc + n, 0);
-            const media = Number((total / notas.length).toFixed(1));
-            return { ...p, avaliacao: media, numeroAvaliacoes: notas.length };
-          } catch {
-            return { ...p, avaliacao: p.avaliacao || 0, numeroAvaliacoes: 0 };
-          }
-        })
+        prestadores.map(async (p: any) => ({ ...p, ...(await getProviderRating(p.id, p)) }))
       );
 
       prestadoresComAvaliacao.sort((a, b) => {

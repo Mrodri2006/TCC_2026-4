@@ -197,11 +197,32 @@ export default function Servicos() {
         .collection("ServicoStatus")
         .get();
 
+      const clientesIds = Array.from(new Set(
+        docSnap.docs
+          .map((doc) => String(doc.data()?.clienteId || ""))
+          .filter(Boolean)
+      ));
+      const nomesClientes = new Map<string, string>();
+      await Promise.all(clientesIds.map(async (clienteId) => {
+        try {
+          const clienteSnap = await firestore.collection("Usuario").doc(clienteId).get();
+          const nome = String(clienteSnap.data()?.nome || "").trim();
+          if (nome) nomesClientes.set(clienteId, nome);
+        } catch {
+          // Mantém o nome salvo no serviço somente se o perfil não puder ser lido.
+        }
+      }));
+
       const servicos: ServicoCard[] = docSnap.docs.map((doc) => {
         const data = doc.data() as any;
+        const clienteId = String(data.clienteId || "");
+        const clienteNome = nomesClientes.get(clienteId)
+          || data.nomeCliente
+          || data.clienteNome
+          || "Cliente";
         return {
           firestoreId: doc.id,
-          clienteNome: data.nomeCliente || data.clienteNome || "Cliente",
+          clienteNome,
           tipoServico: data.titulo || data.tipo || data.estilo || "Serviço",
           categoria: data.tipo || "Geral",
           endereco: data.endereco || "Endereço não informado",
@@ -210,7 +231,7 @@ export default function Servicos() {
           distanciaKm: data.distancia || 0,
           status: mapFirebaseStatusToServiceStatus(data.status),
           clienteId: data.clienteId,
-          nomeCliente: data.nomeCliente,
+          nomeCliente: clienteNome,
           titulo: data.titulo,
           tipo: data.tipo,
           statusFirebase: data.status,

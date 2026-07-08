@@ -30,8 +30,10 @@ export default function SolicitarServico() {
       const agenda = disponibilidade.data();
       if (agenda?.enabled !== true || horario < agenda.start || horario >= agenda.end) throw new Error("O prestador não atende nesse dia ou horário");
     }
+    const clienteSnapshot = await firestore.collection("Usuario").doc(usuarioLogado).get();
+    const nomeCliente = String(clienteSnapshot.data()?.nome || auth.currentUser?.displayName || "Cliente").trim();
     const ref = firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc();
-    const payload = { id: ref.id, estilo: servico, tipo: servico, data, horario, local: local.trim(), descricao: descricao.trim(), status: "aguardando", clienteId: usuarioLogado, prestadorId, dataSolicitacao: firebase.firestore.FieldValue.serverTimestamp(), criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
+    const payload = { id: ref.id, estilo: servico, tipo: servico, data, horario, local: local.trim(), descricao: descricao.trim(), status: "aguardando", clienteId: usuarioLogado, nomeCliente, prestadorId, dataSolicitacao: firebase.firestore.FieldValue.serverTimestamp(), criadoEm: firebase.firestore.FieldValue.serverTimestamp() };
     const batch = firestore.batch();
     batch.set(ref, payload);
     batch.set(firestore.collection("ServicosClientes").doc(usuarioLogado).collection("ServicoStatus").doc(ref.id), payload);

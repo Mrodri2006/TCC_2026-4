@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState } from "react";
-import { auth, firestore } from "../firebase";
+import { auth, firestore, functions } from "../firebase";
 import firebase from "firebase/compat/app";
 import { useTheme } from "../theme/ThemeContext";
 import { ArrowLeft } from "lucide-react-native";
@@ -68,7 +68,8 @@ export default function Avaliacao() {
 // atualiza as informações do banco de dados incluindo a aval
     try {
       let prestadorId = servico?.prestadorId;
-      const requestId = servico?.requestId || servico?.id;
+      const servicoId = servico?.firestoreId || servico?.id;
+      const requestId = servico?.requestId || servicoId;
 
       if (!prestadorId && requestId) {
         const snap = await firestore
@@ -84,7 +85,7 @@ export default function Avaliacao() {
         }
       }
 
-      if (!prestadorId) {
+      if (!prestadorId || !servicoId) {
         Alert.alert("Erro", "Nao foi possivel identificar o prestador");
         return;
       }
@@ -98,38 +99,45 @@ export default function Avaliacao() {
         .collection("ServicosClientes")
         .doc(servico.clienteId)
         .collection("ServicoStatus")
-        .doc(servico.id)
+        .doc(servicoId)
         .get();
       if (!servicoSnap.exists || servicoSnap.data()?.status !== "realizado") {
         Alert.alert("Aguarde", "A avaliação só é liberada após confirmar que o serviço foi finalizado");
         return;
       }
 
-      const payload = { avaliacaoNota: nota, avaliacaoComentario: comentario.trim().slice(0, 500), avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(), avaliacaoLiberada: true, avaliado: true };
-      const batch = firestore.batch();
-      batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
-      batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servico.id), payload, { merge: true });
-      await batch.commit();
-
-      // A avaliação principal já foi salva. Esta cópia alimenta as telas
-      // públicas, mas uma regra antiga no servidor não pode bloquear o fluxo.
       try {
-        await firestore.collection("Usuario").doc(prestadorId).collection("Avaliacoes").doc(servico.id).set({
-          servicoId: servico.id, clienteId: servico.clienteId, prestadorId,
-          avaliacaoNota: nota, avaliacaoComentario: comentario.trim().slice(0, 500),
-          avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(),
+        await functions.httpsCallable("enviarAvaliacaoServico")({
+          prestadorId,
+          servicoId,
+          nota,
+          comentario: comentario.trim().slice(0, 500),
         });
-      } catch (publicReviewError: any) {
-        if (String(publicReviewError?.code || "") !== "permission-denied") {
-          console.warn("Não foi possível criar a cópia pública da avaliação:", publicReviewError);
-        }
+      } catch (functionError: any) {
+        const code = String(functionError?.code || "");
+        if (!code.includes("not-found") && !code.includes("unavailable") && !code.includes("internal")) throw functionError;
+
+        // Compatibilidade com ambientes em que a função ainda não foi publicada.
+        const payload = { avaliacaoNota: nota, avaliacaoComentario: comentario.trim().slice(0, 500), avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(), avaliacaoLiberada: false, avaliado: true };
+        const batch = firestore.batch();
+        batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId), payload, { merge: true });
+        batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servicoId), payload, { merge: true });
+        await batch.commit();
       }
 
       Alert.alert("Sucesso", "Avaliacao registrada");
       navigation.goBack();
-    } catch (erro) {
+    } catch (erro: any) {
       console.error("Erro ao salvar avaliacao:", erro);
-      Alert.alert("Erro", "Nao foi possivel salvar a avaliacao");
+      const code = String(erro?.code || "");
+      const mensagem = code.includes("already-exists")
+        ? "Este serviço já foi avaliado."
+        : code.includes("failed-precondition")
+          ? "A avaliação só pode ser enviada após a conclusão do serviço."
+          : code.includes("permission-denied")
+            ? "Você não tem permissão para avaliar este serviço."
+            : "Não foi possível salvar a avaliação.";
+      Alert.alert("Erro", mensagem);
     }
   };
 

@@ -248,6 +248,38 @@ const writeNotification = async (uid, { type, title, body, data }) => {
   await sendExpoPush(uid, { title, body, data }).catch((error) => console.error("Push notification error", error));
 };
 
+exports.obterAvaliacaoPrestador = functions.https.onCall(async (data, context) => {
+  requireAuth(context);
+  const prestadorId = String(data?.prestadorId || "");
+  if (!prestadorId) {
+    throw new functions.https.HttpsError("invalid-argument", "Prestador não informado.");
+  }
+
+  const providerSnapshot = await db.collection("Usuario").doc(prestadorId).get();
+  const provider = providerSnapshot.data() || {};
+  if (!providerSnapshot.exists || provider.tipo !== "prestador") {
+    throw new functions.https.HttpsError("not-found", "Prestador não encontrado.");
+  }
+
+  const servicesSnapshot = await db.collection("ServicosAgendados").doc(prestadorId)
+    .collection("ServicoStatus").where("avaliado", "==", true).get();
+  const ratings = servicesSnapshot.docs
+    .map((document) => Number(document.data()?.avaliacaoNota))
+    .filter((rating) => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+
+  if (!ratings.length) {
+    return {
+      avaliacao: Number(provider.avaliacao || 0),
+      numeroAvaliacoes: Number(provider.numeroAvaliacoes || 0),
+    };
+  }
+
+  return {
+    avaliacao: ratings.reduce((total, rating) => total + rating, 0) / ratings.length,
+    numeroAvaliacoes: ratings.length,
+  };
+});
+
 const recordServiceTransition = async ({ eventId, prestadorId, servicoId, before, after }) => {
   const auditRef = db.collection("AuditLogs").doc(String(eventId));
   const providerRef = db.collection("Usuario").doc(prestadorId);
@@ -396,10 +428,14 @@ exports.onServicoAgendadoWritten = functions.firestore
     }
 
     if (!change.before.exists) {
+      const clientSnapshot = after.clienteId
+        ? await db.collection("Usuario").doc(String(after.clienteId)).get()
+        : null;
+      const clientName = clientSnapshot?.data()?.nome || after.nomeCliente || after.clienteNome || "Um contratante";
       await writeNotification(context.params.prestadorId, {
         type: "service_request",
         title: "Nova solicitação de serviço",
-        body: `${after.estilo || after.tipo || "Serviço"}${after.local ? ` em ${after.local}` : ""}`,
+        body: `${clientName} solicitou ${after.estilo || after.tipo || "um serviço"}${after.local ? ` em ${after.local}` : ""}.`,
         data: { screen: "MenuTrabalhador" },
       });
       return;

@@ -115,7 +115,7 @@ export default function HomeTrabalhador() {
       .doc(usuarioId)
       .collection("ServicoStatus")
       .onSnapshot(
-        (snapshot) => {
+        async (snapshot) => {
           const servicos: any[] = [];
 
           snapshot.forEach((doc) => {
@@ -140,7 +140,29 @@ export default function HomeTrabalhador() {
             }
           });
 
-          setServicosSolicitados(servicos);
+          const clientesIds = Array.from(new Set(
+            servicos.map((servico) => String(servico.clienteId || "")).filter(Boolean)
+          ));
+          const nomesClientes = new Map<string, string>();
+          await Promise.all(clientesIds.map(async (clienteId) => {
+            try {
+              const clienteSnapshot = await firestore.collection("Usuario").doc(clienteId).get();
+              const nome = String(clienteSnapshot.data()?.nome || "").trim();
+              if (nome) nomesClientes.set(clienteId, nome);
+            } catch {
+              // O nome já salvo no serviço continua sendo usado como contingência.
+            }
+          }));
+
+          const servicosComContratante = servicos.map((servico) => ({
+            ...servico,
+            nomeCliente: nomesClientes.get(String(servico.clienteId || ""))
+              || servico.nomeCliente
+              || servico.clienteNome
+              || "Cliente",
+          }));
+
+          setServicosSolicitados(servicosComContratante);
           setCarregando(false);
         },
         (error) => {

@@ -15,6 +15,7 @@ type NotificationItem = {
   title: string;
   body: string;
   type?: string;
+  category?: string;
   lida?: boolean;
   criadoEm?: firebase.firestore.Timestamp;
   data?: Record<string, unknown>;
@@ -51,9 +52,25 @@ export default function Notificacoes() {
   const notificationRef = (id: string) => firestore.collection("Usuario").doc(auth.currentUser!.uid).collection("Notificacoes").doc(id);
 
   const openItem = async (item: NotificationItem) => {
-    if (!item.lida) await notificationRef(item.id).set({ lida: true }, { merge: true }).catch((): void => undefined);
-    const screen = typeof item.data?.screen === "string" ? item.data.screen : null;
-    if (screen) navigation.navigate(screen, item.data?.params);
+    try {
+      if (!item.lida) await notificationRef(item.id).set({ lida: true }, { merge: true });
+      const explicitScreen = typeof item.data?.screen === "string" ? item.data.screen : null;
+      const type = String(item.type || "");
+      const fallbackScreen = type === "service_request"
+        ? "MenuTrabalhador"
+        : type.startsWith("service_")
+          ? "Home"
+          : type.startsWith("chat")
+            ? "ChatList"
+            : type.includes("payment") || type.includes("billing")
+              ? "PagamentoMensalidade"
+              : null;
+      const screen = explicitScreen || fallbackScreen;
+      if (screen && screen !== "Notificacoes") navigation.navigate(screen, item.data?.params);
+      else if (!screen) feedback.show("Notificação marcada como lida.", "success");
+    } catch {
+      feedback.show("Não foi possível abrir esta notificação.", "error");
+    }
   };
 
   const markAllRead = async () => {
@@ -61,12 +78,16 @@ export default function Notificacoes() {
     if (!unread.length) return;
     const batch = firestore.batch();
     unread.forEach((item) => batch.set(notificationRef(item.id), { lida: true }, { merge: true }));
-    await batch.commit();
-    feedback.show(`${unread.length} notificação${unread.length === 1 ? "" : "es"} marcada${unread.length === 1 ? "" : "s"} como lida${unread.length === 1 ? "" : "s"}.`, "success");
+    try {
+      await batch.commit();
+      feedback.show(`${unread.length} notificação${unread.length === 1 ? "" : "es"} marcada${unread.length === 1 ? "" : "s"} como lida${unread.length === 1 ? "" : "s"}.`, "success");
+    } catch {
+      feedback.show("Não foi possível marcar as notificações como lidas.", "error");
+    }
   };
 
   const unreadCount = items.filter((item) => !item.lida).length;
-  const categoryOf = (item: NotificationItem) => item.type?.startsWith("service") ? "servicos" : item.type?.startsWith("chat") ? "chat" : item.type?.includes("payment") || item.type?.includes("billing") ? "pagamentos" : "sistema";
+  const categoryOf = (item: NotificationItem) => item.category || (item.type?.startsWith("service") ? "servicos" : item.type?.startsWith("chat") ? "chat" : item.type?.includes("payment") || item.type?.includes("billing") ? "pagamentos" : "sistema");
   const categoryLabel = (item: NotificationItem) => ({ servicos: "Serviço", chat: "Conversa", pagamentos: "Pagamento", sistema: "Sistema" }[categoryOf(item)]);
   const categoryIcon = (item: NotificationItem) => {
     const iconProps = { size: 19, color: "#FF8700" };

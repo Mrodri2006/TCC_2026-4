@@ -10,6 +10,7 @@ import { Picker } from "@react-native-picker/picker";
 import { useTheme } from "../theme/ThemeContext";
 import { respondServiceProposal } from "../services/serviceService";
 import { smartFilter } from "../utils/smartSearch";
+import { getProviderRating } from "../services/reviewService";
 
 export default function TelaInicialCliente({ onLogout }: any) {
 
@@ -165,6 +166,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
         
         // faz a contagem dos serviços oferecidos por cada profissão
         if (userData.profissao && userData.perfilVisivel !== false && prestadorEstaAtivo(userData)) {
+          const rating = await getProviderRating(userDoc.id, userData);
           const count = (servicosUnicos.get(userData.profissao) || 0) + 1;
           servicosUnicos.set(userData.profissao, count);
           
@@ -172,8 +174,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
           const profissional = {
             id: userDoc.id,
             nome: userData.nome || "Sem nome",
-            avaliacao: Number(userData.avaliacao || 0),
-            numeroAvaliacoes: Number(userData.numeroAvaliacoes || 0),
+            ...rating,
             distancia: userData.distancia || "A calcular",
             tipo: userData.profissao || "Geral",
             profissao: userData.profissao || "Geral",
@@ -900,7 +901,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                             <Text style={styles.prestadorNome}>{prestador.nome}</Text>
                             <Text style={styles.prestadorProfissao}>{prestador.profissao}</Text>
                             <View style={styles.prestadorRating}>
-                              <Text style={styles.prestadorEstrela}>⭐ {prestador.avaliacao}</Text>
+                              <Text style={styles.prestadorEstrela}>⭐ {Number(prestador.avaliacao || 0).toFixed(1)} ({Number(prestador.numeroAvaliacoes || 0)})</Text>
                               <Text style={styles.prestadorDistancia}>📍 {prestador.distancia}</Text>
                             </View>
                           </View>
