@@ -48,6 +48,7 @@ import { usePushNotifications } from './hooks/usePushNotifications';
 import { flushPendingNavigation, navigationRef } from './navigation/navigationRef';
 import { FeedbackProvider } from './components/ui';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { LanguageProvider } from './i18n/LanguageContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -158,7 +159,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}><AppErrorBoundary>
       <ThemeProvider>
-        <FeedbackProvider><AppInner /></FeedbackProvider>
+        <LanguageProvider><FeedbackProvider><AppInner /></FeedbackProvider></LanguageProvider>
       </ThemeProvider>
     </AppErrorBoundary></GestureHandlerRootView>
   );

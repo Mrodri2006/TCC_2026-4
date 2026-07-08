@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
 import { setPushNotificationsEnabled } from "../services/notificationService";
 import { AdvancedPreferences } from "../components/AdvancedPreferences";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export default function ConfiguracoesPrestador() {
   const navigation = useNavigation<any>();
@@ -24,6 +25,7 @@ export default function ConfiguracoesPrestador() {
   const [privacidade, setPrivacidade] = useState(true);
   const { status: mensalidade, loading: carregandoMensalidade, refresh: atualizarMensalidade } = useMensalidadeStatus(30000);
   const { isDark, setIsDark, theme } = useTheme();
+  const { t, languageLabel } = useLanguage();
 
   useEffect(() => {
     const uid = auth.currentUser?.uid;
@@ -134,12 +136,12 @@ export default function ConfiguracoesPrestador() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.topBarBtn, { backgroundColor: theme.headerBtnBg }]} activeOpacity={0.7}>
             <ArrowLeft size={20} color="#FF8700" />
           </TouchableOpacity>
-          <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>Configurações</Text>
+          <Text style={[styles.topBarTitle, { color: theme.textPrimary }]}>{t("settings")}</Text>
           <View style={styles.topBarSpacer} />
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Preferências</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t("preferences")}</Text>
           <View style={styles.sectionUnderline} />
         </View>
 
@@ -150,7 +152,7 @@ export default function ConfiguracoesPrestador() {
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Bell size={18} color="#FF8700" />
-            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Notificações</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>{t("notifications")}</Text>
           </View>
           <Switch
             value={notificacoes}
@@ -164,7 +166,7 @@ export default function ConfiguracoesPrestador() {
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Moon size={18} color="#FF8700" />
-            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Modo escuro</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>{t("darkMode")}</Text>
           </View>
           <Switch
             value={isDark}
@@ -178,14 +180,14 @@ export default function ConfiguracoesPrestador() {
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Globe size={18} color="#FF8700" />
-            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Idioma</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>{t("language")}</Text>
           </View>
-          <Text style={[styles.itemValue, { color: theme.textMuted }]}>Português (BR)</Text>
+          <Text style={[styles.itemValue, { color: theme.textMuted }]}>{languageLabel}</Text>
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Privacidade</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t("privacy")}</Text>
         <View style={styles.sectionUnderline} />
       </View>
 
@@ -194,7 +196,7 @@ export default function ConfiguracoesPrestador() {
         <View style={[styles.item, { borderTopColor: theme.border }]}>
           <View style={styles.itemLeft}>
             <Shield size={18} color="#FF8700" />
-            <Text style={[styles.itemText, { color: theme.textSecondary }]}>Perfil visível</Text>
+            <Text style={[styles.itemText, { color: theme.textSecondary }]}>{t("visibleProfile")}</Text>
           </View>
           <Switch
             value={privacidade}
@@ -207,7 +209,7 @@ export default function ConfiguracoesPrestador() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Pagamento</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t("payment")}</Text>
         <View style={styles.sectionUnderline} />
       </View>
 
@@ -264,7 +266,7 @@ export default function ConfiguracoesPrestador() {
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Conta</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>{t("account")}</Text>
         <View style={styles.sectionUnderline} />
       </View>
 
@@ -274,14 +276,14 @@ export default function ConfiguracoesPrestador() {
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("SegurancaConta")}
         >
-          <Text style={[styles.actionText, { color: "#FF8700" }]}>Segurança da conta</Text>
+          <Text style={[styles.actionText, { color: "#FF8700" }]}>{t("security")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("EditarPerfil")}
         >
-          <Text style={[styles.actionText, { color: "#FF8700" }]}>Editar perfil</Text>
+          <Text style={[styles.actionText, { color: "#FF8700" }]}>{t("editProfile")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -289,14 +291,14 @@ export default function ConfiguracoesPrestador() {
           onPress={handleLogout}
         >
           <LogOut size={18} color="#1e90ff" />
-          <Text style={styles.logoutText}>Sair</Text>
+          <Text style={styles.logoutText}>{t("logout")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.deleteButton, { backgroundColor: theme.actionBg, borderColor: theme.deleteBorder }]}
           onPress={handleDeleteAccount}
         >
-          <Text style={styles.deleteButtonText}>Deletar Conta</Text>
+          <Text style={styles.deleteButtonText}>{t("deleteAccount")}</Text>
         </TouchableOpacity>
       </View>
       </ScrollView>
