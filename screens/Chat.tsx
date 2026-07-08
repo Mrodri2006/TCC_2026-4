@@ -181,11 +181,16 @@ export default function Chat() {
     navigation.navigate("Denunciar", { targetId: otherUserId, chatId });
   };
 
-  const abrirSeguranca = () => Alert.alert("Segurança da conversa", undefined, [
-    { text: "Pesquisar na conversa", onPress: () => setShowSearch(true) },
+  const abrirOpcoesDeProtecao = () => Alert.alert("Bloqueio e denúncia", undefined, [
     { text: bloqueado ? "Desbloquear usuário" : "Bloquear usuário", onPress: bloquearUsuario },
     { text: "Denunciar usuário", onPress: denunciarUsuario },
-    { text: "Cancelar", style: "cancel" },
+    { text: "Voltar", style: "cancel", onPress: abrirSeguranca },
+  ]);
+
+  const abrirSeguranca = () => Alert.alert("Segurança da conversa", undefined, [
+    { text: "Pesquisar na conversa", onPress: () => setShowSearch(true) },
+    { text: "Bloqueio e denúncia", onPress: abrirOpcoesDeProtecao },
+    { text: "Voltar", style: "cancel" },
   ]);
 
   const sendRichMessage = async (preview: string, extra: Record<string, unknown>) => {

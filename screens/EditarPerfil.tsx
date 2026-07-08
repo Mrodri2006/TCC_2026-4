@@ -14,6 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
+import { CityAutocomplete } from "../components/CityAutocomplete";
 
 export default function EditarPerfil() {
   const navigation = useNavigation<any>();
@@ -22,7 +23,7 @@ export default function EditarPerfil() {
     nome: "",
     email: "",
     fone: "",
-    distancia: "",
+    localizacao: "",
     profissao: "",
     experiencia: "",
     especialidades: "",
@@ -34,6 +35,8 @@ export default function EditarPerfil() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tipoUsuario, setTipoUsuario] = useState("");
+  const isPrestador = tipoUsuario === "prestador";
 
   const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
@@ -55,11 +58,12 @@ export default function EditarPerfil() {
 
         if (docSnap.exists) {
           const dados: any = docSnap.data() || {};
+          setTipoUsuario(dados.tipo || "contratante");
           setFormDados({
             nome: dados.nome || "",
             email: usuarioAutenticado.email || "",
             fone: dados.fone || "",
-            distancia: dados.distancia || "",
+            localizacao: dados.localizacao || "",
             profissao: dados.profissao || "",
             experiencia: dados.experiencia || "",
             especialidades: Array.isArray(dados.especialidades) ? dados.especialidades.join(", ") : dados.especialidades || "",
@@ -108,10 +112,17 @@ export default function EditarPerfil() {
       if (usuarioAutenticado) {
         const refUsuario = firestore.collection("Usuario").doc(usuarioAutenticado.uid);
 
-        await refUsuario.update({
+        const localizacao = formDados.localizacao.trim();
+        const dadosPessoais = {
           nome: formDados.nome,
           fone: formDados.fone,
-          distancia: formDados.distancia,
+          localizacao,
+          localizacaoNormalizada: localizacao
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase(),
+        };
+        const dadosProfissionais = isPrestador ? {
           profissao: formDados.profissao,
           experiencia: formDados.experiencia.trim(),
           especialidades: formDados.especialidades.split(",").map((item) => item.trim()).filter(Boolean),
@@ -119,7 +130,9 @@ export default function EditarPerfil() {
           site: formDados.site.trim(),
           redesSociais: formDados.redesSociais.trim(),
           portfolio: formDados.portfolio.trim(),
-        });
+        } : {};
+
+        await refUsuario.update({ ...dadosPessoais, ...dadosProfissionais });
 
         Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
         navigation.goBack();
@@ -244,38 +257,36 @@ export default function EditarPerfil() {
             {errors.fone ? <Text style={styles.errorText}>{errors.fone}</Text> : null}
           </View>
 
+          {isPrestador ? (
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Profissão</Text>
+              <TextInput
+                style={[styles.input, inputThemeStyle]}
+                placeholder="Ex: Eletricista"
+                placeholderTextColor={theme.textMuted}
+                value={formDados.profissao}
+                onChangeText={(valor) => setFormDados({ ...formDados, profissao: valor })}
+                editable={!salvando}
+              />
+            </View>
+          ) : null}
+
           <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Profissao</Text>
-            <TextInput
-              style={[styles.input, inputThemeStyle]}
-              placeholder="Ex: Eletricista"
-              placeholderTextColor={theme.textMuted}
-              value={formDados.profissao}
-              onChangeText={(valor) => setFormDados({ ...formDados, profissao: valor })}
-              editable={!salvando}
+            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Localização</Text>
+            <CityAutocomplete
+              value={formDados.localizacao}
+              onChange={(valor) => setFormDados((prev) => ({ ...prev, localizacao: valor }))}
             />
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>Distancia (km)</Text>
-            <TextInput
-              style={[styles.input, inputThemeStyle]}
-              placeholder="Ex: 2 km"
-              placeholderTextColor={theme.textMuted}
-              value={formDados.distancia}
-              onChangeText={(valor) => setFormDados({ ...formDados, distancia: valor })}
-              editable={!salvando}
-            />
-          </View>
-
-          {([
+          {isPrestador ? ([
             ["experiencia", "Experiência profissional", "Conte sua trajetória e tempo de atuação"],
             ["especialidades", "Especialidades", "Separe por vírgulas"],
             ["certificados", "Certificados", "Cursos e certificados, separados por vírgulas"],
             ["site", "Site", "https://seusite.com.br"],
             ["redesSociais", "Redes sociais", "Instagram, LinkedIn ou outra rede"],
             ["portfolio", "Portfólio", "Link para seu portfólio"],
-          ] as const).map(([key, label, placeholder]) => <View style={styles.fieldGroup} key={key}><Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>{label}</Text><TextInput style={[styles.input, key === "experiencia" && styles.multilineInput, inputThemeStyle]} placeholder={placeholder} placeholderTextColor={theme.textMuted} value={formDados[key]} onChangeText={(value) => setFormDados({ ...formDados, [key]: value })} multiline={key === "experiencia"} editable={!salvando} /></View>)}
+          ] as const).map(([key, label, placeholder]) => <View style={styles.fieldGroup} key={key}><Text style={[styles.label, { color: theme.surfaceTextPrimary }]}>{label}</Text><TextInput style={[styles.input, key === "experiencia" && styles.multilineInput, inputThemeStyle]} placeholder={placeholder} placeholderTextColor={theme.textMuted} value={formDados[key]} onChangeText={(value) => setFormDados({ ...formDados, [key]: value })} multiline={key === "experiencia"} editable={!salvando} /></View>) : null}
 
           <TouchableOpacity
             style={[styles.botaoSalvarCompleto, salvando && styles.botaoDesabilitado]}

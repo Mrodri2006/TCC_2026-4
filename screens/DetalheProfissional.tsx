@@ -59,10 +59,18 @@ export default function DetalheProfissional() {
       }
       setAvaliacoes(avaliacoesData.sort((a, b) => (b.avaliacaoData?.toMillis?.() || 0) - (a.avaliacaoData?.toMillis?.() || 0)));
       const somaAvaliacoes = avaliacoesData.reduce((total, item) => total + Number(item.avaliacaoNota || 0), 0);
+      const numeroAvaliacoesSalvo = Number(dadosUsuario.numeroAvaliacoes || profissional.numeroAvaliacoes || 0);
+      const mediaAvaliacoesSalva = Number(dadosUsuario.avaliacao ?? profissional.avaliacao ?? 0);
       setUsuarioData({
+        ...profissional,
         ...dadosUsuario,
-        avaliacao: avaliacoesData.length ? somaAvaliacoes / avaliacoesData.length : Number(dadosUsuario.avaliacao || 0),
-        numeroAvaliacoes: avaliacoesData.length || Number(dadosUsuario.numeroAvaliacoes || 0),
+        // A consulta traz somente as 20 avaliações mais recentes; o resumo do
+        // usuário contém a média de todo o histórico.
+        avaliacao: numeroAvaliacoesSalvo > 0
+          ? mediaAvaliacoesSalva
+          : (avaliacoesData.length ? somaAvaliacoes / avaliacoesData.length : 0),
+        numeroAvaliacoes: numeroAvaliacoesSalvo || avaliacoesData.length,
+        servicosConcluidos: Number(dadosUsuario.servicosConcluidos ?? profissional.servicosConcluidos ?? 0),
       });
 
       const servicosSnapshot = await firestore
@@ -168,8 +176,16 @@ export default function DetalheProfissional() {
           <View style={styles.infoItem}>
             <Star size={20} color="#FFD700" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Avaliação</Text>
-              <Text style={styles.infoValor}>{Number(usuarioData.avaliacao || 0).toFixed(1)} ⭐ ({Number(usuarioData.numeroAvaliacoes || 0)})</Text>
+              <Text style={styles.infoLabel}>Média das avaliações</Text>
+              <Text style={styles.infoValor}>{Number(usuarioData.avaliacao || 0).toFixed(1)} de 5 ({Number(usuarioData.numeroAvaliacoes || 0)} avaliações)</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoItem}>
+            <Award size={20} color="#16A34A" />
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Serviços concluídos</Text>
+              <Text style={styles.infoValor}>{Number(usuarioData.servicosConcluidos || 0)}</Text>
             </View>
           </View>
 

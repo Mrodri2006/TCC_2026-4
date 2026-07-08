@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet, ActivityIndicator, TextInput } from "react-native";
-import { ArrowLeft, Edit2, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2 } from "lucide-react-native";
+import { ArrowLeft, Edit2, Edit3, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2, Settings, Send, ClipboardList } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
@@ -581,17 +581,36 @@ export default function PerfilTrabalhador() {
           <Text style={[localStyles.sectionMeta, { color: textMuted }]}>{postagens.length} publicações</Text>
         </View>
         <View style={[localStyles.postInputCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
-          <TextInput
-            style={[localStyles.newPostInput, { color: textPrimary, borderColor }]}
-            placeholder="Escreva uma postagem sobre seu trabalho..."
-            placeholderTextColor={textMuted}
-            value={novaPostagem}
-            onChangeText={setNovaPostagem}
-            multiline
-          />
+          <View style={[localStyles.postInputRow, { borderColor }]}> 
+            <Edit3 size={18} color={textMuted} />
+            <TextInput
+              style={[localStyles.newPostInput, { color: textPrimary }]}
+              placeholder="Escreva uma postagem sobre seu trabalho..."
+              placeholderTextColor={textMuted}
+              value={novaPostagem}
+              onChangeText={setNovaPostagem}
+              multiline
+            />
+            <TouchableOpacity
+              style={[localStyles.postSettingsButton, { backgroundColor: iconBackground }]}
+              onPress={() => navigation.navigate("ConfiguracoesPrestador")}
+              accessibilityLabel="Configurações"
+            >
+              <Settings size={20} color={textMuted} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity style={[localStyles.postButton, { backgroundColor: "#FF8700" }]} onPress={publicarPostagem}>
+            <Send size={18} color="#FFFFFF" />
             <Text style={localStyles.postButtonText}>Publicar</Text>
           </TouchableOpacity>
+          {!postagensCarregando && postagens.length === 0 ? (
+            <View style={localStyles.emptyStateRow}>
+              <View style={[localStyles.emptyStateIcon, { backgroundColor: iconBackground }]}>
+                <ClipboardList size={24} color={textMuted} />
+              </View>
+              <Text style={[localStyles.emptyStateText, { color: textMuted }]}>Nenhuma postagem feita ainda.</Text>
+            </View>
+          ) : null}
         </View>
         {postagensCarregando ? (
           <ActivityIndicator size="small" color="#FF8700" style={{ marginTop: 12 }} />
@@ -616,9 +635,7 @@ export default function PerfilTrabalhador() {
               </View>
             </View>
           ))
-        ) : (
-          <Text style={[localStyles.emptyText, { color: textMuted }]}>Nenhuma postagem feita ainda.</Text>
-        )}
+        ) : null}
       </View>
 
       <View style={localStyles.sectionBlock}>
@@ -676,7 +693,12 @@ export default function PerfilTrabalhador() {
             </View>
           ))
         ) : (
-          <Text style={[localStyles.emptyText, { color: textMuted }]}>Nenhum serviço registrado ainda</Text>
+          <View style={[localStyles.emptyServiceCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}> 
+            <View style={[localStyles.emptyStateIcon, { backgroundColor: iconBackground }]}>
+              <Briefcase size={27} color={textMuted} />
+            </View>
+            <Text style={[localStyles.emptyStateText, { color: textMuted }]}>Nenhum serviço registrado ainda</Text>
+          </View>
         )}
       </View>
 
@@ -914,7 +936,7 @@ const localStyles = StyleSheet.create({
     color: "#64748B",
   },
   sectionBlock: {
-    marginBottom: 20,
+    marginBottom: 26,
   },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -923,12 +945,12 @@ const localStyles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     color: "#0F2937",
   },
   sectionMeta: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#64748B",
   },
   sectionUnderline: {
@@ -984,15 +1006,15 @@ const localStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#DDEEFF",
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
   },
   chipText: {
     marginLeft: 6,
     color: "#FF8700",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
   },
   offerCard: {
     backgroundColor: "#FFFFFF",
@@ -1133,28 +1155,84 @@ const localStyles = StyleSheet.create({
     paddingVertical: 16,
   },
   postInputCard: {
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: 12,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
-  newPostInput: {
-    minHeight: 80,
+  postInputRow: {
+    minHeight: 56,
     borderRadius: 14,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 10,
-    textAlignVertical: "top",
+    paddingLeft: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  newPostInput: {
+    flex: 1,
+    minHeight: 54,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: "center",
     fontSize: 14,
     backgroundColor: "transparent",
   },
-  postButton: {
-    paddingVertical: 12,
-    borderRadius: 14,
+  postSettingsButton: {
+    width: 44,
+    height: 44,
+    marginRight: 6,
+    borderRadius: 22,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  postButton: {
+    minHeight: 52,
+    marginTop: 12,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
   },
   postButtonText: {
     color: "#fff",
-    fontWeight: "700",
+    fontWeight: "800",
+    fontSize: 16,
+  },
+  emptyStateRow: {
+    minHeight: 90,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  emptyStateIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  emptyServiceCard: {
+    minHeight: 112,
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+    shadowColor: "#0F2937",
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
   },
   postCard: {
     borderRadius: 16,

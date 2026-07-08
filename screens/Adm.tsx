@@ -1,5 +1,6 @@
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   Modal,
   ScrollView,
@@ -10,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import {
@@ -42,6 +43,8 @@ import firebase from 'firebase/compat/app';
 export default function Adm() {
   const navigation = useNavigation<any>();
   const { isDark, theme } = useTheme();
+  const brandOpacity = useRef(new Animated.Value(0)).current;
+  const brandScale = useRef(new Animated.Value(0.92)).current;
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [carregandoUsuarios, setCarregandoUsuarios] = useState(true);
   const [busca, setBusca] = useState('');
@@ -66,6 +69,24 @@ export default function Adm() {
     admin: false,
     profissao: '',
   });
+
+  useEffect(() => {
+    const entrance = Animated.parallel([
+      Animated.timing(brandOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
+      Animated.spring(brandScale, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }),
+    ]);
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brandScale, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
+        Animated.timing(brandScale, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    entrance.start(({ finished }) => finished && pulse.start());
+    return () => {
+      entrance.stop();
+      pulse.stop();
+    };
+  }, [brandOpacity, brandScale]);
 
   const mensagemErroAdmin = (erro: any) => {
     const codigo = String(erro?.code || erro?.message || '').toLowerCase();
@@ -488,8 +509,14 @@ export default function Adm() {
             <ArrowLeft size={28} color={textColor} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={[styles.screenTitle, { color: textColor }]}>Painel Administrativo</Text>
-            <Text style={[styles.screenSubtitle, { color: mutedColor }]}>Gerenciamento da plataforma</Text>
+            <Animated.Text
+              accessibilityRole="header"
+              style={[styles.screenTitle, { opacity: brandOpacity, transform: [{ scale: brandScale }] }]}
+            >
+              <Text style={{ color: isDark ? '#F8FAFC' : '#071A33' }}>Pra</Text>
+              <Text style={{ color: '#FF8700' }}>Ontem</Text>
+            </Animated.Text>
+            <Text style={[styles.screenSubtitle, { color: mutedColor }]}>Painel Administrativo</Text>
           </View>
           <TouchableOpacity
             style={[styles.topButton, { backgroundColor: cardBg, borderColor: cardBorder }]}

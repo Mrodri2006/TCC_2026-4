@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Alert,
   FlatList,
   Modal,
@@ -46,7 +47,6 @@ export default function HomeTrabalhador() {
 
   const topBarIconColor = isDark ? "#FF8700" : "#0F2937";
   const topBarBtnBg = isDark ? theme.headerBtnBg : "rgba(15, 41, 55, 0.06)";
-  const topBarTitleColor = isDark ? "#FF8700" : "#0F2937";
   const cardBackground = isDark ? theme.surface : "#FFFFFF";
   const sectionBackground = isDark ? theme.surface : "#FFF4E5";
   const cardBorderColor = isDark ? theme.surfaceBorder : "#FF8700";
@@ -67,6 +67,26 @@ export default function HomeTrabalhador() {
   const [enviandoValor, setEnviandoValor] = useState(false);
 
   const unsubscribeRef = useRef<any>(null);
+  const brandOpacity = useRef(new Animated.Value(0)).current;
+  const brandScale = useRef(new Animated.Value(0.92)).current;
+
+  useEffect(() => {
+    const entrance = Animated.parallel([
+      Animated.timing(brandOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
+      Animated.spring(brandScale, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }),
+    ]);
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(brandScale, { toValue: 1.04, duration: 1200, useNativeDriver: true }),
+        Animated.timing(brandScale, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    );
+    entrance.start(({ finished }) => finished && pulse.start());
+    return () => {
+      entrance.stop();
+      pulse.stop();
+    };
+  }, [brandOpacity, brandScale]);
 
   useFocusEffect(
     useCallback(() => {
@@ -299,7 +319,13 @@ export default function HomeTrabalhador() {
         <View style={styles.topBar}>
           <View style={{ width: 40, height: 40 }} />
 
-          <Text style={[styles.topBarTitle, { color: topBarTitleColor }]}>Página Inicial</Text>
+          <Animated.Text
+            accessibilityRole="header"
+            style={[styles.topBarTitle, { opacity: brandOpacity, transform: [{ scale: brandScale }] }]}
+          >
+            <Text style={{ color: isDark ? "#F8FAFC" : "#071A33" }}>Pra</Text>
+            <Text style={{ color: "#FF8700" }}>Ontem</Text>
+          </Animated.Text>
 
           <View style={styles.topBarRight}>
             <TouchableOpacity
