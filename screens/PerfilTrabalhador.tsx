@@ -9,6 +9,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getMensalidadeStatus } from "../services/billingService";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
+import { getProviderRating } from "../services/reviewService";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation<any>();
@@ -130,16 +131,35 @@ export default function PerfilTrabalhador() {
             });
             if(avalLista)
               { console.log('Avaliação puxada'); }
-            const total = avalLista.reduce((acc, item) => acc + Number(item.nota || 0), 0);
-            const qtd = avalLista.length;
-            const media = qtd > 0 ? Number((total / qtd).toFixed(1)) : 0;
+            try {
+              const publicSnapshot = await firestore.collection("Usuario").doc(usuarioAutenticado.uid).collection("Avaliacoes").get();
+              const existingIds = new Set(publicSnapshot.docs.map((doc) => doc.id));
+              const missingReviews = avalSnapshot.docs.filter((doc) => !existingIds.has(doc.id));
+              if (missingReviews.length) {
+                const reviewBatch = firestore.batch();
+                missingReviews.forEach((doc) => {
+                  const data = doc.data();
+                  reviewBatch.set(firestore.collection("Usuario").doc(usuarioAutenticado.uid).collection("Avaliacoes").doc(doc.id), {
+                    servicoId: doc.id,
+                    clienteId: data.clienteId,
+                    prestadorId: usuarioAutenticado.uid,
+                    avaliacaoNota: Number(data.avaliacaoNota),
+                    avaliacaoComentario: String(data.avaliacaoComentario || "").slice(0, 500),
+                    avaliacaoData: data.avaliacaoData || new Date(),
+                  });
+                });
+                await reviewBatch.commit();
+              }
+            } catch (syncError) {
+              console.warn("Não foi possível sincronizar avaliações públicas:", syncError);
+            }
+            const rating = await getProviderRating(usuarioAutenticado.uid);
 
             setAvaliacoes(avalLista);
             console.log('setou aval'); 
             setUsuario((prev) => ({
               ...prev,
-              avaliacao: media,
-              numeroAvaliacoes: qtd,
+              ...rating,
             }));
             console.log('setou usuario'); 
 

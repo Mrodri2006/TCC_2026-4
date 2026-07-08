@@ -48,18 +48,19 @@ export default function DetalheProfissional() {
     try {
       const userDoc = await firestore.collection("Usuario").doc(profissional.id).get();
       const dadosUsuario = userDoc.exists ? userDoc.data() || {} : {};
-      const rating = await getProviderRating(profissional.id, { ...profissional, ...dadosUsuario });
-      let avaliacoesData: any[] = [];
-      try {
-        const avaliacoesSnapshot = await firestore.collection("Usuario").doc(profissional.id)
-          .collection("Avaliacoes").orderBy("avaliacaoData", "desc").limit(20).get();
-        avaliacoesData = avaliacoesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
-      } catch (reviewError: any) {
-        // As informações principais continuam disponíveis enquanto as regras
-        // da coleção pública de avaliações ainda não foram publicadas.
-        if (String(reviewError?.code || "") !== "permission-denied") throw reviewError;
+      const rating: any = await getProviderRating(profissional.id, { ...profissional, ...dadosUsuario });
+      let avaliacoesData: any[] = Array.isArray(rating.avaliacoes) ? rating.avaliacoes : [];
+      if (!avaliacoesData.length) {
+        try {
+          const avaliacoesSnapshot = await firestore.collection("Usuario").doc(profissional.id)
+            .collection("Avaliacoes").orderBy("avaliacaoData", "desc").limit(20).get();
+          avaliacoesData = avaliacoesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
+        } catch (reviewError: any) {
+          if (String(reviewError?.code || "") !== "permission-denied") throw reviewError;
+        }
       }
-      setAvaliacoes(avaliacoesData.sort((a, b) => (b.avaliacaoData?.toMillis?.() || 0) - (a.avaliacaoData?.toMillis?.() || 0)));
+      const reviewMillis = (value: any) => value?.toMillis?.() || (typeof value === "number" ? value : 0);
+      setAvaliacoes(avaliacoesData.sort((a, b) => reviewMillis(b.avaliacaoData) - reviewMillis(a.avaliacaoData)));
       const notasPublicas = avaliacoesData
         .map((item) => Number(item.avaliacaoNota))
         .filter((nota) => Number.isFinite(nota) && nota >= 1 && nota <= 5);
@@ -228,6 +229,7 @@ export default function DetalheProfissional() {
         {avaliacoes.length ? avaliacoes.slice(0, 5).map((item) => (
           <View key={item.id} style={styles.reviewCard}>
             <View style={styles.reviewHeader}><Text style={styles.reviewStars}>{"★".repeat(Number(item.avaliacaoNota || 0))}{"☆".repeat(5 - Number(item.avaliacaoNota || 0))}</Text><Text style={styles.reviewDate}>{formatDate(item.avaliacaoData)}</Text></View>
+            {!!item.servico && <Text style={styles.reviewService}>{item.servico}</Text>}
             {!!item.avaliacaoComentario && <Text style={styles.reviewComment}>{item.avaliacaoComentario}</Text>}
           </View>
         )) : <Text style={styles.emptyReviews}>Este profissional ainda não recebeu avaliações.</Text>}
@@ -563,6 +565,7 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   reviewStars: { color: "#F59E0B", fontSize: 16, letterSpacing: 1 },
   reviewDate: { color: "#94A3B8", fontSize: 11, fontWeight: "600" },
+  reviewService: { color: "#FF8700", fontSize: 11, fontWeight: "700", marginTop: 7 },
   reviewComment: { color: "#475569", fontSize: 13, lineHeight: 19, marginTop: 7 },
   emptyReviews: { color: "#64748B", fontSize: 13, textAlign: "center", paddingVertical: 18 },
 

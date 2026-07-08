@@ -1,4 +1,4 @@
-import { firestore, functions } from "../firebase";
+import { firestore } from "../firebase";
 
 export async function getProviderRating(providerId: string, fallback: any = {}) {
   const fallbackRating = {
@@ -14,28 +14,16 @@ export async function getProviderRating(providerId: string, fallback: any = {}) 
     } : null;
   };
   try {
-    const response = await functions.httpsCallable("obterAvaliacaoPrestador")({ prestadorId: providerId });
-    const data = response?.data as any;
-    const avaliacao = Number(data?.avaliacao);
-    const numeroAvaliacoes = Number(data?.numeroAvaliacoes);
-    if (Number.isFinite(avaliacao) && Number.isFinite(numeroAvaliacoes)) {
-      return { avaliacao, numeroAvaliacoes };
-    }
-  } catch (error: any) {
-    const code = String(error?.code || "");
-    if (!code.includes("not-found") && !code.includes("unavailable") && !code.includes("internal")) throw error;
-  }
-  try {
-    const services = await firestore.collection("ServicosAgendados").doc(providerId)
-      .collection("ServicoStatus").where("avaliado", "==", true).get();
-    const rating = summarize(services.docs);
-    if (rating) return rating;
+    const reviews = await firestore.collection("Usuario").doc(providerId).collection("Avaliacoes").get();
+    const rating = summarize(reviews.docs);
+    if (rating) return { ...rating, avaliacoes: reviews.docs.map((doc) => ({ id: doc.id, ...doc.data() })) };
   } catch (error: any) {
     if (String(error?.code || "") !== "permission-denied") throw error;
   }
   try {
-    const reviews = await firestore.collection("Usuario").doc(providerId).collection("Avaliacoes").get();
-    return summarize(reviews.docs) || fallbackRating;
+    const services = await firestore.collection("ServicosAgendados").doc(providerId)
+      .collection("ServicoStatus").where("avaliado", "==", true).get();
+    return summarize(services.docs) || fallbackRating;
   } catch (error: any) {
     if (String(error?.code || "") !== "permission-denied") throw error;
     return fallbackRating;

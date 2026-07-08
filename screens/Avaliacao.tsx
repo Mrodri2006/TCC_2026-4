@@ -123,6 +123,14 @@ export default function Avaliacao() {
         batch.set(firestore.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId), payload, { merge: true });
         batch.set(firestore.collection("ServicosClientes").doc(servico.clienteId).collection("ServicoStatus").doc(servicoId), payload, { merge: true });
         await batch.commit();
+        await firestore.collection("Usuario").doc(prestadorId).collection("Avaliacoes").doc(servicoId).set({
+          servicoId,
+          clienteId: servico.clienteId,
+          prestadorId,
+          avaliacaoNota: nota,
+          avaliacaoComentario: comentario.trim().slice(0, 500),
+          avaliacaoData: firebase.firestore.FieldValue.serverTimestamp(),
+        });
       }
 
       Alert.alert("Sucesso", "Avaliacao registrada");

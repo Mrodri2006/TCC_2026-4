@@ -263,20 +263,33 @@ exports.obterAvaliacaoPrestador = functions.https.onCall(async (data, context) =
 
   const servicesSnapshot = await db.collection("ServicosAgendados").doc(prestadorId)
     .collection("ServicoStatus").where("avaliado", "==", true).get();
-  const ratings = servicesSnapshot.docs
-    .map((document) => Number(document.data()?.avaliacaoNota))
-    .filter((rating) => Number.isFinite(rating) && rating >= 1 && rating <= 5);
+  const reviews = servicesSnapshot.docs.map((document) => {
+    const service = document.data() || {};
+    const rating = Number(service.avaliacaoNota);
+    const reviewDate = toDate(service.avaliacaoData);
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) return null;
+    return {
+      id: document.id,
+      avaliacaoNota: rating,
+      avaliacaoComentario: String(service.avaliacaoComentario || "").slice(0, 500),
+      avaliacaoData: reviewDate ? reviewDate.getTime() : null,
+      servico: String(service.estilo || service.tipo || "Serviço"),
+    };
+  }).filter(Boolean).sort((a, b) => Number(b.avaliacaoData || 0) - Number(a.avaliacaoData || 0));
+  const ratings = reviews.map((review) => review.avaliacaoNota);
 
   if (!ratings.length) {
     return {
       avaliacao: Number(provider.avaliacao || 0),
       numeroAvaliacoes: Number(provider.numeroAvaliacoes || 0),
+      avaliacoes: [],
     };
   }
 
   return {
     avaliacao: ratings.reduce((total, rating) => total + rating, 0) / ratings.length,
     numeroAvaliacoes: ratings.length,
+    avaliacoes: reviews,
   };
 });
 

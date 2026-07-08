@@ -166,16 +166,26 @@ service cloud.firestore {
         allow read: if signedIn();
         allow create: if signedIn()
           && reviewId == request.resource.data.servicoId
-          && request.resource.data.clienteId == request.auth.uid
           && request.resource.data.prestadorId == uid
           && request.resource.data.avaliacaoNota is number
           && request.resource.data.avaliacaoNota >= 1
           && request.resource.data.avaliacaoNota <= 5
           && request.resource.data.keys().hasOnly(['servicoId', 'clienteId', 'prestadorId', 'avaliacaoNota', 'avaliacaoComentario', 'avaliacaoData'])
-          && exists(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId))
-          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.clienteId == request.auth.uid
-          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.prestadorId == uid
-          && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.status == 'realizado';
+          && (
+            (
+              request.resource.data.clienteId == request.auth.uid
+              && exists(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId))
+              && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.prestadorId == uid
+              && get(/databases/$(database)/documents/ServicosClientes/$(request.auth.uid)/ServicoStatus/$(reviewId)).data.status == 'realizado'
+            )
+            || (
+              isOwner(uid)
+              && exists(/databases/$(database)/documents/ServicosAgendados/$(uid)/ServicoStatus/$(reviewId))
+              && get(/databases/$(database)/documents/ServicosAgendados/$(uid)/ServicoStatus/$(reviewId)).data.avaliado == true
+              && get(/databases/$(database)/documents/ServicosAgendados/$(uid)/ServicoStatus/$(reviewId)).data.clienteId == request.resource.data.clienteId
+              && get(/databases/$(database)/documents/ServicosAgendados/$(uid)/ServicoStatus/$(reviewId)).data.avaliacaoNota == request.resource.data.avaliacaoNota
+            )
+          );
         allow update, delete: if false;
       }
     }
