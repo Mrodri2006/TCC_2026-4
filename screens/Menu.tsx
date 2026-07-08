@@ -7,20 +7,22 @@ import Home from "./Home";
 import HistoricoServicos from "./HistoricoServicos";
 import ChatList from "./ChatList";
 import Favoritos from "./Favoritos";
+import { useLanguage } from "../i18n/LanguageContext";
 const Tab = createBottomTabNavigator();
 export default function Menu() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   return <Tab.Navigator id="MenuTabs" initialRouteName="Página Inicial" screenOptions={({ route }) => ({
     headerShown: false, tabBarActiveTintColor: "#FF8700", tabBarInactiveTintColor: theme.textMuted,
     tabBarStyle: { position: "absolute", left: 14, right: 14, bottom: Math.max(insets.bottom, 10), height: 64, paddingTop: 7, paddingBottom: 7, backgroundColor: theme.card, borderTopColor: theme.border, borderWidth: 1, borderRadius: 22, elevation: 10, shadowColor: "#0F172A", shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
     tabBarLabelStyle: { fontSize: 10, fontWeight: "800" },
     tabBarIcon: ({ color, size }) => route.name === "Página Inicial" ? <HomeIcon color={color} size={size} /> : route.name === "Buscar" ? <Search color={color} size={size} /> : route.name === "Status de Serviços" ? <ClipboardCheck color={color} size={size} /> : route.name === "Favoritos" ? <Heart color={color} size={size} /> : <MessageCircle color={color} size={size} />,
   })}>
-    <Tab.Screen name="Página Inicial" component={Home} options={{ title: "Início" }} />
-    <Tab.Screen name="Buscar" component={Home} initialParams={{ initialTab: "busca" }} />
-    <Tab.Screen name="Status de Serviços" component={HistoricoServicos} options={{ title: "Serviços" }} />
-    <Tab.Screen name="Favoritos" component={Favoritos} />
-    <Tab.Screen name="Conversas" component={ChatList} />
+    <Tab.Screen name="Página Inicial" component={Home} options={{ title: t("home") }} />
+    <Tab.Screen name="Buscar" component={Home} initialParams={{ initialTab: "busca" }} options={{ title: t("search") }} />
+    <Tab.Screen name="Status de Serviços" component={HistoricoServicos} options={{ title: t("services") }} />
+    <Tab.Screen name="Favoritos" component={Favoritos} options={{ title: t("favorites") }} />
+    <Tab.Screen name="Conversas" component={ChatList} options={{ title: t("chats") }} />
   </Tab.Navigator>;
 }

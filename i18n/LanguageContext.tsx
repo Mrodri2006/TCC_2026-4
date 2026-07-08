@@ -10,6 +10,8 @@ const messages = {
     darkMode: "Modo escuro", privacy: "Privacidade", visibleProfile: "Perfil visível", account: "Conta",
     security: "Segurança da conta", editProfile: "Editar perfil", logout: "Sair", deleteAccount: "Deletar Conta",
     payment: "Pagamento", exportBackup: "Exportar backup dos meus dados",
+    home: "Início", search: "Buscar", services: "Serviços", favorites: "Favoritos", chats: "Conversas",
+    reports: "Relatórios", checkingSubscription: "Verificando sua assinatura...",
   },
   en: {
     settings: "Settings", preferences: "Preferences", theme: "Theme", automatic: "Automatic",
@@ -17,6 +19,8 @@ const messages = {
     darkMode: "Dark mode", privacy: "Privacy", visibleProfile: "Visible profile", account: "Account",
     security: "Account security", editProfile: "Edit profile", logout: "Log out", deleteAccount: "Delete Account",
     payment: "Payment", exportBackup: "Export my data backup",
+    home: "Home", search: "Search", services: "Services", favorites: "Favorites", chats: "Chats",
+    reports: "Reports", checkingSubscription: "Checking your subscription...",
   },
   es: {
     settings: "Configuración", preferences: "Preferencias", theme: "Tema", automatic: "Automático",
@@ -24,6 +28,8 @@ const messages = {
     darkMode: "Modo oscuro", privacy: "Privacidad", visibleProfile: "Perfil visible", account: "Cuenta",
     security: "Seguridad de la cuenta", editProfile: "Editar perfil", logout: "Salir", deleteAccount: "Eliminar cuenta",
     payment: "Pago", exportBackup: "Exportar copia de mis datos",
+    home: "Inicio", search: "Buscar", services: "Servicios", favorites: "Favoritos", chats: "Conversaciones",
+    reports: "Informes", checkingSubscription: "Verificando tu suscripción...",
   },
 } as const;
 
