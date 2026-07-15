@@ -473,6 +473,117 @@ const parseBrazilianDate = (value) => {
   return date;
 };
 
+const DEFAULT_AVAILABILITY = [
+  { enabled: false, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 0, slotDuration: 60 },
+  { enabled: true, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 4, slotDuration: 60 },
+  { enabled: true, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 4, slotDuration: 60 },
+  { enabled: true, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 4, slotDuration: 60 },
+  { enabled: true, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 4, slotDuration: 60 },
+  { enabled: true, start: "08:00", end: "18:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 4, slotDuration: 60 },
+  { enabled: false, start: "08:00", end: "13:00", lunchStart: "12:00", lunchEnd: "13:00", dailyLimit: 2, slotDuration: 60 },
+];
+
+const validClock = (value) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
+
+const timeToMinutes = (value) => {
+  if (!validClock(value)) return null;
+  const [hour, minute] = String(value).split(":").map(Number);
+  return hour * 60 + minute;
+};
+
+const minutesToTime = (value) => `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
+
+const normalizeAvailability = (snapshot, dayIndex) => {
+  const base = DEFAULT_AVAILABILITY[dayIndex] || DEFAULT_AVAILABILITY[0];
+  const data = snapshot?.exists ? snapshot.data() || {} : {};
+  const slotDuration = Number(data.slotDuration || data.slotInterval || base.slotDuration);
+  const dailyLimit = Number(data.dailyLimit ?? base.dailyLimit);
+  return {
+    enabled: data.enabled === undefined ? base.enabled : data.enabled === true,
+    start: validClock(data.start) ? String(data.start) : base.start,
+    end: validClock(data.end) ? String(data.end) : base.end,
+    lunchStart: validClock(data.lunchStart) ? String(data.lunchStart) : base.lunchStart,
+    lunchEnd: validClock(data.lunchEnd) ? String(data.lunchEnd) : base.lunchEnd,
+    dailyLimit: Number.isFinite(dailyLimit) ? Math.max(0, Math.min(40, dailyLimit)) : base.dailyLimit,
+    slotDuration: Number.isFinite(slotDuration) ? Math.max(15, Math.min(480, slotDuration)) : base.slotDuration,
+  };
+};
+
+const dateToIso = (date) =>
+  `${String(date.getFullYear()).padStart(4, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const isUnavailableDate = (unavailableSnapshot, isoDate) =>
+  unavailableSnapshot.docs.some((document) => {
+    const item = document.data() || {};
+    return String(item.startDate || "") <= isoDate && String(item.endDate || "") >= isoDate;
+  });
+
+const buildScheduleSlots = (availability) => {
+  if (!availability.enabled) return [];
+  const start = timeToMinutes(availability.start);
+  const end = timeToMinutes(availability.end);
+  const lunchStart = timeToMinutes(availability.lunchStart);
+  const lunchEnd = timeToMinutes(availability.lunchEnd);
+  const slotDuration = Number(availability.slotDuration || 60);
+  if (start === null || end === null || start >= end || !Number.isFinite(slotDuration) || slotDuration < 15) return [];
+
+  const slots = [];
+  for (let current = start; current + slotDuration <= end; current += slotDuration) {
+    const crossesLunch = lunchStart !== null && lunchEnd !== null && lunchStart < lunchEnd && current < lunchEnd && current + slotDuration > lunchStart;
+    if (!crossesLunch) slots.push(minutesToTime(current));
+  }
+  return slots;
+};
+
+exports.obterAgendaPrestador = functions.https.onCall(async (data, context) => {
+  requireAuth(context);
+  const prestadorId = String(data?.prestadorId || "");
+  const dateText = String(data?.data || "").trim();
+  const date = parseBrazilianDate(dateText);
+
+  if (!prestadorId || !date) {
+    throw new functions.https.HttpsError("invalid-argument", "Informe um prestador e uma data validos.");
+  }
+
+  const [providerSnapshot, availabilitySnapshot, unavailableSnapshot, reservationsSnapshot] = await Promise.all([
+    db.collection("Usuario").doc(prestadorId).get(),
+    db.collection("Usuario").doc(prestadorId).collection("Disponibilidade").doc(String(date.getDay())).get(),
+    db.collection("Usuario").doc(prestadorId).collection("Indisponibilidades").get(),
+    db.collection("Usuario").doc(prestadorId).collection("ReservasAgenda").where("data", "==", dateText).get(),
+  ]);
+
+  const provider = providerSnapshot.data() || {};
+  if (!providerSnapshot.exists || provider.tipo !== "prestador" || provider.contaAtiva !== true || provider.assinaturaAtiva === false) {
+    throw new functions.https.HttpsError("failed-precondition", "Este prestador nao esta disponivel para solicitacoes.");
+  }
+
+  const availability = normalizeAvailability(availabilitySnapshot, date.getDay());
+  const isoDate = dateToIso(date);
+  const reservedTimes = new Set(reservationsSnapshot.docs.map((document) => String(document.data()?.horario || "")));
+  const baseSlots = buildScheduleSlots(availability);
+  const blockedByDate = isUnavailableDate(unavailableSnapshot, isoDate);
+  const dailyLimitReached = availability.dailyLimit > 0 && reservationsSnapshot.size >= availability.dailyLimit;
+
+  return {
+    data: dateText,
+    enabled: availability.enabled && !blockedByDate,
+    reason: !availability.enabled ? "fechado" : blockedByDate ? "indisponivel" : dailyLimitReached ? "limite" : null,
+    start: availability.start,
+    end: availability.end,
+    lunchStart: availability.lunchStart,
+    lunchEnd: availability.lunchEnd,
+    dailyLimit: availability.dailyLimit,
+    slotDuration: availability.slotDuration,
+    totalReserved: reservationsSnapshot.size,
+    slots: blockedByDate || !availability.enabled
+      ? []
+      : baseSlots.map((horario) => ({
+          horario,
+          status: reservedTimes.has(horario) ? "ocupado" : dailyLimitReached ? "limite" : "disponivel",
+        })),
+  };
+});
+
 exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) => {
   const clienteId = requireAuth(context);
   const prestadorId = String(data?.prestadorId || "");
@@ -500,6 +611,12 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
   if (!providerSnapshot.exists || provider.tipo !== "prestador" || provider.contaAtiva !== true || provider.assinaturaAtiva === false) {
     throw new functions.https.HttpsError("failed-precondition", "Este prestador não está disponível para solicitações.");
   }
+  const normalizedAvailability = normalizeAvailability(availabilitySnapshot, date.getDay());
+  const allowedSlots = buildScheduleSlots(normalizedAvailability);
+  if (!normalizedAvailability.enabled || !allowedSlots.includes(horario)) {
+    throw new functions.https.HttpsError("failed-precondition", "Escolha um horario disponivel na agenda do prestador.");
+  }
+
   if (availabilitySnapshot.exists) {
     const availability = availabilitySnapshot.data() || {};
     if (availability.enabled !== true || horario < availability.start || horario >= availability.end) {
@@ -533,6 +650,7 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
     nomeCliente: clientSnapshot.data()?.nome || "Cliente",
     prestadorId,
     reservationKey,
+    duracaoMinutos: normalizedAvailability.slotDuration,
     dataSolicitacao: admin.firestore.FieldValue.serverTimestamp(),
     criadoEm: admin.firestore.FieldValue.serverTimestamp(),
   };
@@ -543,11 +661,20 @@ exports.criarSolicitacaoServico = functions.https.onCall(async (data, context) =
     if (reservation.exists) {
       throw new functions.https.HttpsError("already-exists", "Este horário acabou de ser reservado. Escolha outro.");
     }
-    const dailyLimit = Number(availability.dailyLimit || 0);
+    const dailyLimit = Number(normalizedAvailability.dailyLimit || 0);
     if (dailyLimit > 0 && dailyReservations.size >= dailyLimit) {
       throw new functions.https.HttpsError("resource-exhausted", "O prestador atingiu o limite de serviços para esta data.");
     }
-    transaction.create(reservationRef, { serviceId: serviceRef.id, clienteId, data: dateText, horario, criadoEm: admin.firestore.FieldValue.serverTimestamp() });
+    transaction.create(reservationRef, {
+      serviceId: serviceRef.id,
+      clienteId,
+      data: dateText,
+      horario,
+      tipo,
+      duracaoMinutos: normalizedAvailability.slotDuration,
+      status: "reservado",
+      criadoEm: admin.firestore.FieldValue.serverTimestamp(),
+    });
     transaction.create(serviceRef, payload);
     transaction.create(clientServiceRef, payload);
   });
