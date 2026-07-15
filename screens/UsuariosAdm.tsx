@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -13,9 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import { ArrowLeft, Edit2, Search, ShieldCheck, Trash2, UserCog, Users } from 'lucide-react-native';
-import { adminDeleteUsuario, adminListUsuarios, adminUpdateUsuario } from '../services/adminService';
+import { ArrowLeft, Edit2, ExternalLink, FileText, Search, ShieldCheck, Trash2, UserCog, Users } from 'lucide-react-native';
+import { adminDeleteUsuario, adminListUsuarios, adminSetProviderVerification, adminUpdateUsuario } from '../services/adminService';
 import { useTheme } from '../theme/ThemeContext';
+import { ProviderTrustBadge } from '../components/ProviderTrustBadge';
+import { firestore } from '../firebase';
 
 export default function UsuariosAdm() {
   const navigation = useNavigation<any>();
@@ -24,6 +27,8 @@ export default function UsuariosAdm() {
   const [busca, setBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
+  const [documentosVerificacao, setDocumentosVerificacao] = useState<any[]>([]);
+  const [carregandoDocumentos, setCarregandoDocumentos] = useState(false);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [form, setForm] = useState({
@@ -33,6 +38,7 @@ export default function UsuariosAdm() {
     tipo: 'contratante',
     admin: false,
     profissao: '',
+    verificacaoStatus: 'none',
   });
 
   const cardBg = isDark ? theme.surface : '#FFFFFF';
@@ -47,8 +53,8 @@ export default function UsuariosAdm() {
       lista.sort((a: any, b: any) => (a.nome || '').localeCompare(b.nome || ''));
       setUsuarios(lista);
     } catch (erro) {
-      console.error('Erro ao carregar usuarios:', erro);
-      Alert.alert('Usuarios', 'Nao foi possivel carregar os usuarios.');
+      console.error('Erro ao carregar usuários:', erro);
+      Alert.alert('Usuários', 'Não foi possível carregar os usuários.');
     } finally {
       setCarregando(false);
     }
@@ -70,8 +76,25 @@ export default function UsuariosAdm() {
     );
   }, [usuarios, busca]);
 
+  const carregarDocumentosVerificacao = async (uid: string) => {
+    setCarregandoDocumentos(true);
+    try {
+      const snapshot = await firestore.collection('Usuario').doc(uid).collection('DocumentosVerificacao')
+        .orderBy('criadoEm', 'desc')
+        .limit(12)
+        .get();
+      setDocumentosVerificacao(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    } catch (erro) {
+      console.error('Erro ao carregar documentos de verificação:', erro);
+      setDocumentosVerificacao([]);
+    } finally {
+      setCarregandoDocumentos(false);
+    }
+  };
+
   const abrirEdicao = (usuario: any) => {
     setUsuarioSelecionado(usuario);
+    setDocumentosVerificacao([]);
     setForm({
       nome: usuario.nome || '',
       email: usuario.email || '',
@@ -79,13 +102,18 @@ export default function UsuariosAdm() {
       tipo: usuario.tipo || 'contratante',
       admin: usuario.admin === true || usuario.tipo === 'admin',
       profissao: usuario.profissao || '',
+      verificacaoStatus: getAdminVerificationStatus(usuario),
     });
     setModalVisivel(true);
+    if (usuario?.tipo === 'prestador' && !(usuario.admin === true || usuario.tipo === 'admin')) {
+      carregarDocumentosVerificacao(usuario.id);
+    }
   };
 
   const fecharModal = () => {
     setModalVisivel(false);
     setUsuarioSelecionado(null);
+    setDocumentosVerificacao([]);
   };
 
   const salvarAlteracoes = async () => {
@@ -102,18 +130,21 @@ export default function UsuariosAdm() {
         admin: adminFinal,
         profissao: form.profissao || null,
       });
+      if (tipoFinal === 'prestador') {
+        await adminSetProviderVerification(usuarioSelecionado.id, form.verificacaoStatus as any);
+      }
       fecharModal();
       carregarUsuarios();
     } catch (erro) {
-      console.error('Erro ao atualizar usuario:', erro);
-      Alert.alert('Erro', 'Nao foi possivel atualizar o usuario.');
+      console.error('Erro ao atualizar usuário:', erro);
+      Alert.alert('Erro', 'Não foi possível atualizar o usuário.');
     } finally {
       setSalvando(false);
     }
   };
 
   const apagarConta = (usuario: any) => {
-    Alert.alert('Excluir usuario', `Excluir a conta de ${usuario?.nome || 'usuario'}?`, [
+    Alert.alert('Excluir usuário', `Excluir a conta de ${usuario?.nome || 'usuário'}?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Excluir',
@@ -123,8 +154,8 @@ export default function UsuariosAdm() {
             await adminDeleteUsuario(usuario.id);
             carregarUsuarios();
           } catch (erro) {
-            console.error('Erro ao excluir usuario:', erro);
-            Alert.alert('Erro', 'Nao foi possivel excluir o usuario.');
+            console.error('Erro ao excluir usuário:', erro);
+            Alert.alert('Erro', 'Não foi possível excluir o usuário.');
           }
         },
       },
@@ -140,6 +171,22 @@ export default function UsuariosAdm() {
     return { label: 'Contratante', color: '#FF8700', bg: '#EAF2FF' };
   };
 
+  const getAdminVerificationStatus = (usuario: any) => {
+    const status = String(usuario?.verificacaoStatus || '').toLowerCase();
+    if (usuario?.prestadorVerificado === true || usuario?.documentosVerificados === true || status === 'aprovado') return 'approved';
+    if (status === 'pendente') return 'pending';
+    if (status === 'reprovado') return 'rejected';
+    return 'none';
+  };
+
+  const getDocumentLabel = (tipo: string) => {
+    if (tipo === 'identidade') return 'Documento com foto';
+    if (tipo === 'cpf_cnpj') return 'CPF ou CNPJ';
+    if (tipo === 'endereco') return 'Comprovante de endereço';
+    if (tipo === 'certificado') return 'Certificado profissional';
+    return 'Documento';
+  };
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -151,7 +198,7 @@ export default function UsuariosAdm() {
             <ArrowLeft size={26} color={textColor} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={[styles.screenTitle, { color: textColor }]}>Usuarios</Text>
+            <Text style={[styles.screenTitle, { color: textColor }]}>Usuários</Text>
             <Text style={[styles.screenSubtitle, { color: mutedColor }]}>Ver e editar contas cadastradas</Text>
           </View>
         </View>
@@ -197,7 +244,7 @@ export default function UsuariosAdm() {
         {carregando ? (
           <View style={[styles.loadingBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <ActivityIndicator size="small" color="#FF8700" />
-            <Text style={[styles.loadingText, { color: mutedColor }]}>Carregando usuarios...</Text>
+            <Text style={[styles.loadingText, { color: mutedColor }]}>Carregando usuários...</Text>
           </View>
         ) : usuariosFiltrados.length > 0 ? (
           <View style={[styles.accountsCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -226,6 +273,9 @@ export default function UsuariosAdm() {
                         {usuario.fone}
                       </Text>
                     )}
+                    {usuario.tipo === 'prestador' ? (
+                      <ProviderTrustBadge provider={usuario} compact style={styles.accountTrustBadge} />
+                    ) : null}
                   </View>
                   <View style={[styles.roleBadge, { backgroundColor: role.bg }]}>
                     <Text style={[styles.roleBadgeText, { color: role.color }]}>{role.label}</Text>
@@ -245,71 +295,121 @@ export default function UsuariosAdm() {
             })}
           </View>
         ) : (
-          <Text style={[styles.emptyText, { color: mutedColor }]}>Nenhum usuario encontrado.</Text>
+          <Text style={[styles.emptyText, { color: mutedColor }]}>Nenhum usuário encontrado.</Text>
         )}
 
         <Modal visible={modalVisivel} animationType="slide" transparent>
           <View style={styles.modalBackdrop}>
             <View style={[styles.modalCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <Text style={[styles.modalTitle, { color: textColor }]}>Editar conta</Text>
-              <TextInput
-                placeholder="Nome"
-                placeholderTextColor={mutedColor}
-                value={form.nome}
-                onChangeText={(v) => setForm({ ...form, nome: v })}
-                style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
-              />
-              <TextInput
-                placeholder="Email"
-                placeholderTextColor={mutedColor}
-                value={form.email}
-                onChangeText={(v) => setForm({ ...form, email: v })}
-                style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
-                autoCapitalize="none"
-              />
-              <TextInput
-                placeholder="Telefone"
-                placeholderTextColor={mutedColor}
-                value={form.fone}
-                onChangeText={(v) => setForm({ ...form, fone: v })}
-                style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
-              />
-              <TextInput
-                placeholder="Profissao (opcional)"
-                placeholderTextColor={mutedColor}
-                value={form.profissao}
-                onChangeText={(v) => setForm({ ...form, profissao: v })}
-                style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
-              />
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <Text style={[styles.modalTitle, { color: textColor }]}>Editar conta</Text>
+                <TextInput
+                  placeholder="Nome"
+                  placeholderTextColor={mutedColor}
+                  value={form.nome}
+                  onChangeText={(v) => setForm({ ...form, nome: v })}
+                  style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
+                />
+                <TextInput
+                  placeholder="Email"
+                  placeholderTextColor={mutedColor}
+                  value={form.email}
+                  onChangeText={(v) => setForm({ ...form, email: v })}
+                  style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  placeholder="Telefone"
+                  placeholderTextColor={mutedColor}
+                  value={form.fone}
+                  onChangeText={(v) => setForm({ ...form, fone: v })}
+                  style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
+                />
+                <TextInput
+                  placeholder="Profissão (opcional)"
+                  placeholderTextColor={mutedColor}
+                  value={form.profissao}
+                  onChangeText={(v) => setForm({ ...form, profissao: v })}
+                  style={[styles.modalInput, { color: textColor, borderColor: theme.border }]}
+                />
 
-              <Text style={[styles.modalLabel, { color: mutedColor }]}>Tipo de conta</Text>
-              <View style={[styles.pickerBox, { borderColor: theme.border }]}>
-                <Picker selectedValue={form.tipo} onValueChange={(valor) => setForm({ ...form, tipo: valor })}>
-                  <Picker.Item label="Contratante" value="contratante" />
-                  <Picker.Item label="Prestador" value="prestador" />
-                  <Picker.Item label="Admin" value="admin" />
-                </Picker>
-              </View>
+                <Text style={[styles.modalLabel, { color: mutedColor }]}>Tipo de conta</Text>
+                <View style={[styles.pickerBox, { borderColor: theme.border }]}>
+                  <Picker selectedValue={form.tipo} onValueChange={(valor) => setForm({ ...form, tipo: valor })}>
+                    <Picker.Item label="Contratante" value="contratante" />
+                    <Picker.Item label="Prestador" value="prestador" />
+                    <Picker.Item label="Admin" value="admin" />
+                  </Picker>
+                </View>
 
-              <Text style={[styles.modalLabel, { color: mutedColor }]}>Administrador?</Text>
-              <View style={[styles.pickerBox, { borderColor: theme.border }]}>
-                <Picker
-                  selectedValue={form.admin ? 'sim' : 'nao'}
-                  onValueChange={(valor) => setForm({ ...form, admin: valor === 'sim' })}
-                >
-                  <Picker.Item label="Nao" value="nao" />
-                  <Picker.Item label="Sim" value="sim" />
-                </Picker>
-              </View>
+                <Text style={[styles.modalLabel, { color: mutedColor }]}>Administrador?</Text>
+                <View style={[styles.pickerBox, { borderColor: theme.border }]}>
+                  <Picker
+                    selectedValue={form.admin ? 'sim' : 'nao'}
+                    onValueChange={(valor) => setForm({ ...form, admin: valor === 'sim' })}
+                  >
+                    <Picker.Item label="Não" value="nao" />
+                    <Picker.Item label="Sim" value="sim" />
+                  </Picker>
+                </View>
 
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.outlineButton} onPress={fecharModal} disabled={salvando}>
-                  <Text style={styles.outlineText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.saveButton, salvando && styles.disabled]} onPress={salvarAlteracoes} disabled={salvando}>
-                  <Text style={styles.saveText}>{salvando ? 'Salvando...' : 'Salvar'}</Text>
-                </TouchableOpacity>
-              </View>
+                {form.tipo === 'prestador' && !form.admin ? (
+                  <>
+                    <Text style={[styles.modalLabel, { color: mutedColor }]}>Verificação do prestador</Text>
+                    <View style={[styles.pickerBox, { borderColor: theme.border }]}>
+                      <Picker
+                        selectedValue={form.verificacaoStatus}
+                        onValueChange={(valor) => setForm({ ...form, verificacaoStatus: valor })}
+                      >
+                        <Picker.Item label="Sem verificação" value="none" />
+                        <Picker.Item label="Pendente" value="pending" />
+                        <Picker.Item label="Aprovado" value="approved" />
+                        <Picker.Item label="Reprovado" value="rejected" />
+                      </Picker>
+                    </View>
+
+                    <Text style={[styles.modalLabel, { color: mutedColor }]}>Documentos enviados</Text>
+                    <View style={[styles.documentsBox, { borderColor: theme.border }]}>
+                      {carregandoDocumentos ? (
+                        <View style={styles.documentLoading}>
+                          <ActivityIndicator size="small" color="#FF8700" />
+                          <Text style={[styles.documentEmpty, { color: mutedColor }]}>Carregando documentos...</Text>
+                        </View>
+                      ) : documentosVerificacao.length > 0 ? (
+                        documentosVerificacao.map((doc) => (
+                          <View key={doc.id} style={[styles.documentRow, { borderBottomColor: theme.border }]}>
+                            <FileText size={18} color="#FF8700" />
+                            <View style={styles.documentInfo}>
+                              <Text style={[styles.documentTitle, { color: textColor }]} numberOfLines={1}>
+                                {getDocumentLabel(doc.tipo)}
+                              </Text>
+                              <Text style={[styles.documentMeta, { color: mutedColor }]} numberOfLines={1}>
+                                {doc.nomeArquivo || doc.status || 'Arquivo enviado'}
+                              </Text>
+                            </View>
+                            {!!doc.url && (
+                              <TouchableOpacity style={styles.openDocButton} onPress={() => Linking.openURL(doc.url)}>
+                                <ExternalLink size={16} color="#FF8700" />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        ))
+                      ) : (
+                        <Text style={[styles.documentEmpty, { color: mutedColor }]}>Nenhum documento enviado.</Text>
+                      )}
+                    </View>
+                  </>
+                ) : null}
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.outlineButton} onPress={fecharModal} disabled={salvando}>
+                    <Text style={styles.outlineText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.saveButton, salvando && styles.disabled]} onPress={salvarAlteracoes} disabled={salvando}>
+                    <Text style={styles.saveText}>{salvando ? 'Salvando...' : 'Salvar'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -419,6 +519,7 @@ const styles = StyleSheet.create({
   accountName: { fontSize: 16, fontWeight: '900', marginBottom: 3 },
   accountEmail: { fontSize: 13, fontWeight: '700' },
   accountPhone: { marginTop: 2, fontSize: 12, fontWeight: '700' },
+  accountTrustBadge: { marginTop: 7 },
   roleBadge: {
     borderRadius: 10,
     paddingVertical: 8,
@@ -460,6 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
+    maxHeight: '88%',
   },
   modalTitle: { fontSize: 18, fontWeight: '900', marginBottom: 12 },
   modalInput: {
@@ -475,6 +577,54 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 10,
     overflow: 'hidden',
+  },
+  documentsBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  documentLoading: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  documentRow: {
+    minHeight: 58,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  documentInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  documentTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  documentMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  openDocButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF7ED',
+  },
+  documentEmpty: {
+    padding: 14,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
   },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
   outlineButton: {

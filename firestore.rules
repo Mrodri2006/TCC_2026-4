@@ -46,6 +46,49 @@ service cloud.firestore {
       ]);
     }
 
+    function touchesVerificationFields() {
+      return request.resource.data.diff(resource.data).changedKeys().hasAny([
+        'prestadorVerificado',
+        'documentosVerificados',
+        'verificado',
+        'verified',
+        'verificacaoStatus',
+        'verificacaoSolicitadaEm',
+        'verificacaoAprovadaEm',
+        'verificacaoReprovadaEm',
+        'verificacaoAtualizadaEm',
+        'verificacaoObservacao'
+      ]);
+    }
+
+    function validVerificationCreate() {
+      return !request.resource.data.keys().hasAny([
+        'prestadorVerificado',
+        'documentosVerificados',
+        'verificado',
+        'verified',
+        'verificacaoAprovadaEm',
+        'verificacaoReprovadaEm',
+        'verificacaoAtualizadaEm',
+        'verificacaoObservacao'
+      ])
+      && (
+        !request.resource.data.keys().hasAny(['verificacaoStatus'])
+        || request.resource.data.verificacaoStatus in ['', 'none', 'pendente']
+      );
+    }
+
+    function validVerificationRequest() {
+      return resource.data.tipo == 'prestador'
+        && resource.data.prestadorVerificado != true
+        && resource.data.documentosVerificados != true
+        && request.resource.data.verificacaoStatus == 'pendente'
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'verificacaoStatus',
+          'verificacaoSolicitadaEm'
+        ]);
+    }
+
     function validReviewUpdate() {
       return signedIn()
         && resource.data.clienteId == request.auth.uid
@@ -75,6 +118,7 @@ service cloud.firestore {
     match /Usuario/{uid} {
       allow create: if isOwner(uid)
         && request.resource.data.tipo in ['prestador', 'contratante']
+        && validVerificationCreate()
         && (
           !request.resource.data.keys().hasAny(['admin'])
           || request.resource.data.admin == false
@@ -102,6 +146,10 @@ service cloud.firestore {
           isOwner(uid)
           && !touchesBillingFields()
           && !touchesReviewFields()
+          && (
+            !touchesVerificationFields()
+            || validVerificationRequest()
+          )
           && !request.resource.data.diff(resource.data).changedKeys().hasAny(['admin', 'tipo'])
         );
 
@@ -187,6 +235,21 @@ service cloud.firestore {
             )
           );
         allow update, delete: if false;
+      }
+
+      match /DocumentosVerificacao/{documentoId} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid)
+          && request.resource.data.tipo is string
+          && request.resource.data.url is string
+          && request.resource.data.storagePath is string
+          && request.resource.data.status == 'enviado';
+        allow update, delete: if isAdmin() || isOwner(uid);
+      }
+
+      match /Portfolio/{portfolioId} {
+        allow read: if signedIn() && (isOwner(uid) || activePrestador(uid) || isAdmin());
+        allow create, update, delete: if isOwner(uid) || isAdmin();
       }
     }
 
@@ -359,6 +422,15 @@ service cloud.firestore {
         && request.resource.data.reporterId == request.auth.uid
         && request.resource.data.status == 'pendente';
       allow read: if isAdmin() || (signedIn() && resource.data.reporterId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /SolicitacoesSuporte/{ticketId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'aberto'
+        && request.resource.data.mensagem is string;
       allow update, delete: if isAdmin();
     }
 

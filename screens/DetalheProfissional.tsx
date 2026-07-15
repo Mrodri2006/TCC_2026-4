@@ -1,11 +1,12 @@
 
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, Image } from "react-native";
 import { Star, MapPin, Phone, Mail, ArrowLeft, Award, Heart } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
 import { firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { ReputationCard } from "../components/ReputationCard";
+import { ProviderTrustBadge, ProviderTrustCard } from "../components/ProviderTrustBadge";
 import { setProviderFavorite, subscribeProviderFavorite } from "../services/favoriteService";
 import { getProviderRating } from "../services/reviewService";
 
@@ -19,7 +20,9 @@ export default function DetalheProfissional() {
   const [usuarioData, setUsuarioData] = useState<any>({});
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
+  const [portfolioFotos, setPortfolioFotos] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [availabilitySummary, setAvailabilitySummary] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [favorito, setFavorito] = useState(false);
   const [salvandoFavorito, setSalvandoFavorito] = useState(false);
@@ -29,6 +32,14 @@ export default function DetalheProfissional() {
     if (typeof value.toDate === "function") return value.toDate().toLocaleDateString("pt-BR");
     const date = value instanceof Date ? value : new Date(value);
     return isNaN(date.getTime()) ? "" : date.toLocaleDateString("pt-BR");
+  };
+  const formatPriceRange = (data: any) => {
+    const min = Number(data?.precoMinimo);
+    const max = Number(data?.precoMaximo);
+    if (Number.isFinite(min) && Number.isFinite(max) && min > 0 && max >= min) return `R$ ${min.toFixed(0)} a R$ ${max.toFixed(0)}`;
+    if (Number.isFinite(min) && min > 0) return `A partir de R$ ${min.toFixed(0)}`;
+    if (Number.isFinite(max) && max > 0) return `Até R$ ${max.toFixed(0)}`;
+    return "";
   };
 
   useEffect(() => {
@@ -108,8 +119,33 @@ export default function DetalheProfissional() {
         });
       });
 
+      const portfolioSnapshot = await firestore
+        .collection("Usuario")
+        .doc(profissional.id)
+        .collection("Portfolio")
+        .orderBy("createdAt", "desc")
+        .limit(12)
+        .get();
+      const portfolioData = portfolioSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+      const availabilitySnapshot = await firestore
+        .collection("Usuario")
+        .doc(profissional.id)
+        .collection("Disponibilidade")
+        .get();
+      const week = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+      const availabilityText = availabilitySnapshot.docs
+        .map((doc) => ({ index: Number(doc.id), ...(doc.data() || {}) }))
+        .filter((item: any) => item.enabled === true)
+        .sort((a: any, b: any) => a.index - b.index)
+        .slice(0, 4)
+        .map((item: any) => `${week[item.index] || "Dia"} ${item.start || ""}-${item.end || ""}`)
+        .join(", ");
+
       setServicos(servicosData);
       setPosts(postsData);
+      setPortfolioFotos(portfolioData);
+      setAvailabilitySummary(availabilityText);
       setCarregando(false);
       setPostsLoading(false);
     } catch (erro) {
@@ -172,6 +208,7 @@ export default function DetalheProfissional() {
         <View style={styles.headerCard}>
           <View>
             <Text style={styles.nomePrincipal}>{usuarioData.nome || profissional.nome}</Text>
+            <ProviderTrustBadge provider={{ ...profissional, ...usuarioData }} compact style={styles.trustBadge} />
             <View style={styles.profissaoBadgePrincipal}>
               <Text style={styles.profissaoTextoPrincipal}>{usuarioData.profissao || profissional.profissao}</Text>
             </View>
@@ -223,6 +260,7 @@ export default function DetalheProfissional() {
       </View>
 
       <ReputationCard data={{ ...profissional, ...usuarioData }} />
+      <ProviderTrustCard provider={{ ...profissional, ...usuarioData }} />
 
       <View style={styles.reviewsSection}>
         <View style={styles.sectionHeader}><Star size={20} color="#F59E0B" /><Text style={styles.sectionTitle}>Avaliações recebidas</Text></View>
@@ -236,6 +274,29 @@ export default function DetalheProfissional() {
       </View>
 
       {!!(usuarioData.experiencia || usuarioData.especialidades?.length || usuarioData.certificados?.length || usuarioData.site || usuarioData.portfolio) && <View style={styles.professionalSection}><Text style={styles.sectionTitle}>Perfil profissional</Text>{!!usuarioData.experiencia && <Text style={styles.professionalText}>{usuarioData.experiencia}</Text>}{!!usuarioData.especialidades?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Especialidades: </Text>{usuarioData.especialidades.join(", ")}</Text>}{!!usuarioData.certificados?.length && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Certificados: </Text>{usuarioData.certificados.join(", ")}</Text>}{!!usuarioData.site && <Text style={styles.professionalLink}>{usuarioData.site}</Text>}{!!usuarioData.portfolio && <Text style={styles.professionalLink}>{usuarioData.portfolio}</Text>}</View>}
+
+      {!!(usuarioData.tempoExperiencia || formatPriceRange(usuarioData) || availabilitySummary) && (
+        <View style={styles.professionalSection}>
+          <Text style={styles.sectionTitle}>Informações de contratação</Text>
+          {!!usuarioData.tempoExperiencia && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Experiência: </Text>{usuarioData.tempoExperiencia}</Text>}
+          {!!formatPriceRange(usuarioData) && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Faixa de preço: </Text>{formatPriceRange(usuarioData)}</Text>}
+          {!!availabilitySummary && <Text style={styles.professionalText}><Text style={styles.professionalLabel}>Disponibilidade: </Text>{availabilitySummary}</Text>}
+        </View>
+      )}
+
+      {portfolioFotos.length > 0 && (
+        <View style={styles.portfolioSection}>
+          <View style={styles.sectionHeader}>
+            <Award size={20} color="#FF8700" />
+            <Text style={styles.sectionTitle}>Portfólio</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.portfolioList}>
+            {portfolioFotos.map((foto) => (
+              <Image key={foto.id} source={{ uri: foto.url }} style={styles.portfolioImage} />
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <TouchableOpacity style={[styles.favoriteButton, favorito && styles.favoriteButtonActive]} onPress={alternarFavorito} disabled={salvandoFavorito}>
         {salvandoFavorito ? <ActivityIndicator color="#EF4444" /> : <Heart size={20} color="#EF4444" fill={favorito ? "#EF4444" : "transparent"} />}
@@ -397,6 +458,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
+  trustBadge: {
+    marginBottom: 8,
+  },
 
   infoSection: {
     gap: 12,
@@ -557,6 +621,9 @@ const styles = StyleSheet.create({
   professionalText: { color: "#475569", fontSize: 13, lineHeight: 20, marginTop: 7 },
   professionalLabel: { color: "#0F172A", fontWeight: "800" },
   professionalLink: { color: "#FF8700", fontSize: 12, fontWeight: "800", marginTop: 8 },
+  portfolioSection: { paddingHorizontal: 16, paddingVertical: 14 },
+  portfolioList: { gap: 10, paddingRight: 16 },
+  portfolioImage: { width: 132, height: 100, borderRadius: 14, backgroundColor: "#E2E8F0" },
   favoriteButton: { marginHorizontal: 16, marginBottom: 8, minHeight: 48, borderRadius: 14, borderWidth: 1, borderColor: "#FCA5A5", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
   favoriteButtonActive: { backgroundColor: "#FEF2F2" },
   favoriteText: { color: "#B91C1C", fontSize: 13, fontWeight: "800" },

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PraOntem",
-    "slug": "chamo-app",
+    "slug": "praontem",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo-nova.png",
@@ -12,10 +12,13 @@
       "backgroundColor": "#FFFFFF"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Permita o acesso à localização para encontrar profissionais próximos ou aparecer voluntariamente no mapa."
+      }
     },
     "android": {
-      "package": "com.m2006.firebase",
+      "package": "com.mrodri.praontem",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-nova.png",

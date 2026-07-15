@@ -24,9 +24,26 @@ service firebase.storage {
         && request.resource.contentType.matches('(image|video|audio|application)/.*');
     }
 
+    function validVerificationFile() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('(image|application/pdf).*');
+    }
+
     match /servicos/{uid}/{fileName} {
       allow read: if signedIn();
       allow create, update: if isOwner(uid) && validImage();
+      allow delete: if isOwner(uid);
+    }
+
+    match /portfolio/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isOwner(uid) && validImage();
+      allow delete: if isOwner(uid);
+    }
+
+    match /verificacao/{uid}/{fileName} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validVerificationFile();
       allow delete: if isOwner(uid);
     }
 

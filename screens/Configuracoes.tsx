@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Switch, ScrollView, Alert } from "react-native";
-import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut } from "lucide-react-native";
+import { ArrowLeft, Bell, Shield, Moon, Globe, LogOut, LifeBuoy } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
@@ -201,6 +201,16 @@ export default function Configuracoes() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder, marginTop: 10 }]}
+          onPress={() => navigation.navigate("AjudaSuporte")}
+        >
+          <View style={styles.actionInline}>
+            <LifeBuoy size={18} color="#FF8700" />
+            <Text style={[styles.actionText, { color: "#FF8700" }]}>Ajuda e suporte</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={handleLogout}
         >
@@ -315,6 +325,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FF8700",
+  },
+  actionInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   logoutButton: {
     marginTop: 10,

@@ -7,6 +7,7 @@ import styles from "../estilo";
 import { useTheme } from "../theme/ThemeContext";
 import { isSameCity } from "../utils/location";
 import { getProviderRating } from "../services/reviewService";
+import { ProviderTrustBadge } from "../components/ProviderTrustBadge";
 
 export default function TelaProfissionais() {
   const navigation = useNavigation<any>();
@@ -60,6 +61,17 @@ export default function TelaProfissionais() {
             ...rating,
             distancia: userData.distancia || "A calcular",
             tipo: userData.profissao || servico,
+            profissao: userData.profissao || servico,
+            fone: userData.fone || "",
+            localizacao: localizacaoPrestador,
+            fotoPerfil: userData.fotoPerfil || userData.foto || "",
+            experiencia: userData.experiencia || "",
+            especialidades: userData.especialidades || [],
+            certificados: userData.certificados || [],
+            servicosConcluidos: Number(userData.servicosConcluidos || 0),
+            verificacaoStatus: userData.verificacaoStatus || "",
+            prestadorVerificado: userData.prestadorVerificado === true,
+            documentosVerificados: userData.documentosVerificados === true,
           });
         }
       }
@@ -83,6 +95,12 @@ export default function TelaProfissionais() {
   };
 
   const handleChamar = (profissional: any) => {
+    navigation.navigate("SolicitarServico", {
+      prestadorId: profissional.id,
+      prestadorNome: profissional.nome,
+      servico: servico || profissional.profissao || profissional.tipo,
+    });
+    return;
     alert(`Você solicitou ${profissional.nome} para ${servico}`);
   };
 
@@ -126,6 +144,7 @@ export default function TelaProfissionais() {
           <View key={pro.id} style={[styles.profissionalCard, surfaceStyle]}>
             <View style={styles.profissionalInfo}>
               <Text style={[styles.nomeProfissional, { color: theme.surfaceTextPrimary }]}>{pro.nome}</Text>
+              <ProviderTrustBadge provider={pro} compact style={{ marginTop: 4, marginBottom: 8 }} />
 
               <View style={styles.infoLinha}>
                 <Star size={16} color="#FFD700" />

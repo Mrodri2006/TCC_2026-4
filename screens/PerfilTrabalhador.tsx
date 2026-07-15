@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert, Image, StyleSheet, ActivityIndicator, TextInput } from "react-native";
-import { ArrowLeft, Edit2, Edit3, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2, Settings, Send, ClipboardList } from "lucide-react-native";
+import { ArrowLeft, Edit2, Edit3, Star, MapPin, Phone, Mail, Briefcase, Camera, ArrowRight, Trash2, Settings, Send, ClipboardList, ImagePlus } from "lucide-react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import { auth, firestore, storage } from "../firebase";
@@ -10,6 +10,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getMensalidadeStatus } from "../services/billingService";
 import { useMensalidadeStatus } from "../hooks/useMensalidadeStatus";
 import { getProviderRating } from "../services/reviewService";
+import { ProviderTrustBadge, ProviderTrustCard } from "../components/ProviderTrustBadge";
+import { getProviderTrustSummary } from "../utils/providerTrust";
 
 export default function PerfilTrabalhador() {
   const navigation = useNavigation<any>();
@@ -32,6 +34,13 @@ export default function PerfilTrabalhador() {
     fotoPerfil: "",
     avaliacao: 0,
     numeroAvaliacoes: 0,
+    experiencia: "",
+    especialidades: [] as string[],
+    certificados: [] as string[],
+    servicosConcluidos: 0,
+    verificacaoStatus: "",
+    prestadorVerificado: false,
+    documentosVerificados: false,
     localizacao: "São Paulo, SP",
     descricao: "Profissional com experiência em serviços",
   });
@@ -41,8 +50,10 @@ export default function PerfilTrabalhador() {
   const [mostrarTodasAvaliacoes, setMostrarTodasAvaliacoes] = useState(false);
   const [verificandoPagamento, setVerificandoPagamento] = useState(false);
   const [postagens, setPostagens] = useState<any[]>([]);
+  const [portfolioFotos, setPortfolioFotos] = useState<any[]>([]);
   const [novaPostagem, setNovaPostagem] = useState("");
   const [postagensCarregando, setPostagensCarregando] = useState(false);
+  const [portfolioCarregando, setPortfolioCarregando] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,6 +81,13 @@ export default function PerfilTrabalhador() {
                 fotoPerfil: dados.fotoPerfil || dados.foto || "",
                 avaliacao: Number(dados.avaliacao || 0),
                 numeroAvaliacoes: Number(dados.numeroAvaliacoes || 0),
+                experiencia: dados.experiencia || "",
+                especialidades: Array.isArray(dados.especialidades) ? dados.especialidades : [],
+                certificados: Array.isArray(dados.certificados) ? dados.certificados : [],
+                servicosConcluidos: Number(dados.servicosConcluidos || 0),
+                verificacaoStatus: dados.verificacaoStatus || "",
+                prestadorVerificado: dados.prestadorVerificado === true,
+                documentosVerificados: dados.documentosVerificados === true,
               }));
             }
 
@@ -123,7 +141,7 @@ export default function PerfilTrabalhador() {
                   id: doc.id,
                   nota: data.avaliacaoNota ?? 0,
                   data: dataAvaliacao ? dataAvaliacao.toLocaleDateString("pt-BR") : "Data não informada",
-                  servico: data.estilo || data.tipo || "Servico",
+                  servico: data.estilo || data.tipo || "Serviço",
                 };
               } catch (error) {
                 console.error('Erro ao processar avaliação:', error);
@@ -175,6 +193,13 @@ export default function PerfilTrabalhador() {
               ...doc.data(),
             }));
             setPostagens(postsLista);
+            const portfolioSnapshot = await firestore
+              .collection("Usuario")
+              .doc(usuarioAutenticado.uid)
+              .collection("Portfolio")
+              .orderBy("createdAt", "desc")
+              .get();
+            setPortfolioFotos(portfolioSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
             setPostagensCarregando(false);
           }
         } catch (erro) {
@@ -203,6 +228,7 @@ export default function PerfilTrabalhador() {
   const avaliacoesVisiveis = mostrarTodasAvaliacoes
     ? avaliacoes
     : avaliacoes.slice(0, LIMITE_AVALIACOES);
+  const trustSummary = getProviderTrustSummary(usuario);
 
   const verificarConfirmacaoPagamento = async () => {
     try {
@@ -225,6 +251,35 @@ export default function PerfilTrabalhador() {
       Alert.alert("Erro", "Não foi possível verificar o pagamento agora.");
     } finally {
       setVerificandoPagamento(false);
+    }
+  };
+
+  const solicitarVerificacao = async () => {
+    const usuarioAutenticado = auth.currentUser;
+    if (!usuarioAutenticado) {
+      Alert.alert("Erro", "Usuario nao autenticado.");
+      return;
+    }
+
+    const resumo = getProviderTrustSummary(usuario);
+    if (resumo.score < 84) {
+      Alert.alert("Complete o perfil", "Preencha foto, telefone, localização, experiência e especialidades antes de solicitar a verificação.");
+      return;
+    }
+
+    try {
+      await firestore.collection("Usuario").doc(usuarioAutenticado.uid).set(
+        {
+          verificacaoStatus: "pendente",
+          verificacaoSolicitadaEm: new Date(),
+        },
+        { merge: true }
+      );
+      setUsuario((prev) => ({ ...prev, verificacaoStatus: "pendente" }));
+      Alert.alert("Verificação solicitada", "O administrador poderá revisar seu perfil e liberar o selo.");
+    } catch (erro) {
+      console.log("Erro ao solicitar verificação:", erro);
+      Alert.alert("Erro", "Não foi possível solicitar a verificação agora.");
     }
   };
 
@@ -391,6 +446,48 @@ export default function PerfilTrabalhador() {
     }
   };
 
+  const adicionarFotoPortfolio = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert("Erro", "Usuario nao autenticado.");
+        return;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissao necessaria", "Precisamos de acesso a galeria para adicionar fotos ao portfolio.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        quality: 0.85,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (!uri) return;
+
+      setPortfolioCarregando(true);
+      const caminho = `portfolio/${userId}/${Date.now()}.jpg`;
+      const { url } = await uploadImageUri(uri, caminho);
+      const novoItem = {
+        url,
+        storagePath: caminho,
+        createdAt: new Date(),
+      };
+      const ref = await firestore.collection("Usuario").doc(userId).collection("Portfolio").add(novoItem);
+      setPortfolioFotos((prev) => [{ id: ref.id, ...novoItem }, ...prev]);
+      Alert.alert("Portfólio", "Foto adicionada ao perfil público.");
+    } catch (erro) {
+      console.log("Erro ao adicionar foto ao portfolio:", erro);
+      Alert.alert("Erro", "Não foi possível adicionar a foto.");
+    } finally {
+      setPortfolioCarregando(false);
+    }
+  };
+
   const handleDeletePostagem = (post: any) => {
     Alert.alert(
       "Excluir postagem",
@@ -404,7 +501,7 @@ export default function PerfilTrabalhador() {
             try {
               const userId = auth.currentUser?.uid;
               if (!userId || !post?.id) {
-                Alert.alert("Erro", "Nao foi possivel identificar a postagem.");
+                Alert.alert("Erro", "Não foi possível identificar a postagem.");
                 return;
               }
 
@@ -419,7 +516,7 @@ export default function PerfilTrabalhador() {
               Alert.alert("Sucesso", "Postagem excluida com sucesso.");
             } catch (erro) {
               console.log("Erro ao excluir postagem:", erro);
-              Alert.alert("Erro", "Nao foi possivel excluir a postagem.");
+              Alert.alert("Erro", "Não foi possível excluir a postagem.");
             }
           },
         },
@@ -429,8 +526,8 @@ export default function PerfilTrabalhador() {
 
   const handleDeleteServico = (item: any) => {
     Alert.alert(
-      "Excluir servico",
-      `Deseja excluir "${item?.servico || "este servico"}"?`,
+      "Excluir serviço",
+      `Deseja excluir "${item?.servico || "este serviço"}"?`,
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -440,7 +537,7 @@ export default function PerfilTrabalhador() {
             try {
               const userId = auth.currentUser?.uid;
               if (!userId || !item?.id) {
-                Alert.alert("Erro", "Nao foi possivel identificar o servico.");
+                Alert.alert("Erro", "Não foi possível identificar o serviço.");
                 return;
               }
 
@@ -464,10 +561,10 @@ export default function PerfilTrabalhador() {
               }
 
               setHistorico((prev) => prev.filter((serv) => serv.id !== item.id));
-              Alert.alert("Sucesso", "Servico excluido com sucesso.");
+              Alert.alert("Sucesso", "Serviço excluído com sucesso.");
             } catch (erro) {
-              console.log("Erro ao excluir servico:", erro);
-              Alert.alert("Erro", "Nao foi possivel excluir o servico.");
+              console.log("Erro ao excluir serviço:", erro);
+              Alert.alert("Erro", "Não foi possível excluir o serviço.");
             }
           },
         },
@@ -547,6 +644,7 @@ export default function PerfilTrabalhador() {
 
             <View style={localStyles.profileInfo}>
               <Text style={[localStyles.profileName, { color: textPrimary }]}>{usuario.nome || "Diarista 2"}</Text>
+              <ProviderTrustBadge provider={usuario} compact style={localStyles.profileTrustBadge} />
               <View style={localStyles.metaRow}>
                 <MapPin size={14} color={textMuted} />
                 <Text style={[localStyles.metaText, { color: textMuted }]}>{usuario.localizacao}</Text>
@@ -559,6 +657,13 @@ export default function PerfilTrabalhador() {
             </View>
           </View>
         </View>
+
+        <ProviderTrustCard
+          provider={usuario}
+          style={localStyles.trustCard}
+          actionLabel={!trustSummary.verified ? "Enviar documentos" : undefined}
+          onAction={() => navigation.navigate("VerificacaoPrestador")}
+        />
 
       <View style={localStyles.sectionBlock}>
         <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Contato</Text>
@@ -656,6 +761,33 @@ export default function PerfilTrabalhador() {
             </View>
           ))
         ) : null}
+      </View>
+
+      <View style={localStyles.sectionBlock}>
+        <View style={localStyles.sectionHeaderRow}>
+          <Text style={[localStyles.sectionTitle, { color: textPrimary }]}>Portfólio</Text>
+          <Text style={[localStyles.sectionMeta, { color: textMuted }]}>{portfolioFotos.length} fotos</Text>
+        </View>
+        <View style={[localStyles.postInputCard, { backgroundColor: cardBackground, borderColor, borderWidth: isDark ? 1 : 0 }]}>
+          <TouchableOpacity style={[localStyles.postButton, { backgroundColor: "#FF8700" }]} onPress={adicionarFotoPortfolio} disabled={portfolioCarregando}>
+            {portfolioCarregando ? <ActivityIndicator color="#FFFFFF" /> : <ImagePlus size={18} color="#FFFFFF" />}
+            <Text style={localStyles.postButtonText}>{portfolioCarregando ? "Enviando..." : "Adicionar foto"}</Text>
+          </TouchableOpacity>
+          {portfolioFotos.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={localStyles.portfolioList}>
+              {portfolioFotos.map((foto) => (
+                <Image key={foto.id} source={{ uri: foto.url }} style={localStyles.portfolioImage} />
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={localStyles.emptyStateRow}>
+              <View style={[localStyles.emptyStateIcon, { backgroundColor: iconBackground }]}>
+                <ImagePlus size={24} color={textMuted} />
+              </View>
+              <Text style={[localStyles.emptyStateText, { color: textMuted }]}>Adicione fotos dos serviços para valorizar seu perfil.</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={localStyles.sectionBlock}>
@@ -928,6 +1060,13 @@ const localStyles = StyleSheet.create({
     color: "#0F2937",
     textAlign: "center",
     marginBottom: 8,
+  },
+  profileTrustBadge: {
+    alignSelf: "center",
+    marginBottom: 10,
+  },
+  trustCard: {
+    marginHorizontal: 0,
   },
   metaRow: {
     flexDirection: "row",
@@ -1275,6 +1414,17 @@ const localStyles = StyleSheet.create({
   postTimestamp: {
     fontSize: 12,
     color: "#64748B",
+  },
+  portfolioList: {
+    gap: 10,
+    paddingTop: 14,
+    paddingRight: 8,
+  },
+  portfolioImage: {
+    width: 132,
+    height: 100,
+    borderRadius: 14,
+    backgroundColor: "#E2E8F0",
   },
   deletePostButton: {
     width: 36,

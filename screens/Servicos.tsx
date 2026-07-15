@@ -57,6 +57,7 @@ type ServicoCard = {
   statusFirebase?: string;
   avaliacaoContratanteFeita?: boolean;
   timeline?: ServiceTimelineEvent[];
+  prestadorId?: string;
 };
 
 const TABS: { key: ServiceStatus; label: string }[] = [
@@ -127,7 +128,7 @@ function mapFirebaseStatusToServiceStatus(status: string): ServiceStatus {
   if (s === "a fazer" || s === "aceito" || s === "aguardando") return "pendente";
 
   // Demais status que indicam execução do serviço
-  if (s === "em andamento" || s === "andamento" || s === "iniciado" || s === "aguardando_confirmacao") return "andamento";
+  if (s === "em andamento" || s === "andamento" || s === "iniciado" || s === "a_caminho" || s === "execucao" || s === "aguardando_confirmacao") return "andamento";
 
   return "pendente";
 }
@@ -237,6 +238,7 @@ export default function Servicos() {
           statusFirebase: data.status,
           avaliacaoContratanteFeita: data.avaliacaoContratanteFeita === true,
           timeline: Array.isArray(data.timeline) ? data.timeline : [],
+          prestadorId: usuarioId,
         };
       });
 
@@ -571,13 +573,14 @@ export default function Servicos() {
                     <TouchableOpacity
                       activeOpacity={0.9}
                       style={[styles.detailsButton, { backgroundColor: detailsButtonBg }]}
-                      onPress={() => {
-                        if (item.clienteId) {
-                          handleAbrirChatCliente(item);
-                        }
-                      }}
+                      onPress={() => navigation.navigate("DetalheServico", {
+                        servico: item,
+                        servicoId: item.firestoreId,
+                        prestadorId: item.prestadorId,
+                        clienteId: item.clienteId,
+                      })}
                     >
-                      <Text style={[styles.detailsText, { color: detailsButtonText }]}>Conversar</Text>
+                      <Text style={[styles.detailsText, { color: detailsButtonText }]}>Detalhes</Text>
                       <ChevronRight size={18} color="#FF8700" />
                     </TouchableOpacity>
 

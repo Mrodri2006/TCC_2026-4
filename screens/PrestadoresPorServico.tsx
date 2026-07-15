@@ -2,11 +2,13 @@
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { ArrowLeft, MapPin, Star, Briefcase } from "lucide-react-native";
 import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
-import { useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { isSameCity } from "../utils/location";
 import { getProviderRating } from "../services/reviewService";
+import { ProviderTrustBadge } from "../components/ProviderTrustBadge";
+import { getProviderVerificationStatus } from "../utils/providerTrust";
 
 
 export default function PrestadoresPorServico() {
@@ -18,6 +20,7 @@ export default function PrestadoresPorServico() {
   const [usuariosPrestadores, setUsuariosPrestadores] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [localizacaoContratante, setLocalizacaoContratante] = useState("");
+  const [filtros, setFiltros] = useState({ verificados: false, melhores: false, comPreco: false, disponivelHoje: false });
 
   const prestadorEstaAtivo = (userData: any) =>
     userData?.contaAtiva !== false && userData?.assinaturaAtiva !== false;
@@ -64,6 +67,14 @@ export default function PrestadoresPorServico() {
         if (
           mesmaRegiao && prestadorEstaAtivo(userData)
         ) {
+          const disponibilidadeHoje = await firestore
+            .collection("Usuario")
+            .doc(userDoc.id)
+            .collection("Disponibilidade")
+            .doc(String(new Date().getDay()))
+            .get()
+            .then((doc) => doc.data()?.enabled === true)
+            .catch(() => false);
           prestadores.push({
             id: userDoc.id,
             nome: userData.nome || "Sem nome",
@@ -73,6 +84,18 @@ export default function PrestadoresPorServico() {
             distancia: userData.distancia || "A calcular",
             telefone: userData.fone || "Não informado",
             localizacao: localizacaoPrestador || "Não informada",
+            fone: userData.fone || "",
+            fotoPerfil: userData.fotoPerfil || userData.foto || "",
+            experiencia: userData.experiencia || "",
+            especialidades: userData.especialidades || [],
+            certificados: userData.certificados || [],
+            servicosConcluidos: Number(userData.servicosConcluidos || 0),
+            precoMinimo: userData.precoMinimo ?? null,
+            precoMaximo: userData.precoMaximo ?? null,
+            disponivelHoje: disponibilidadeHoje,
+            verificacaoStatus: userData.verificacaoStatus || "",
+            prestadorVerificado: userData.prestadorVerificado === true,
+            documentosVerificados: userData.documentosVerificados === true,
             criadoEm: userData.criadoEm,
           });
         }
@@ -106,6 +129,17 @@ export default function PrestadoresPorServico() {
     });
   };
 
+  const usuariosFiltrados = useMemo(() => {
+    let lista = [...usuariosPrestadores];
+    if (filtros.verificados) lista = lista.filter((item) => getProviderVerificationStatus(item) === "approved");
+    if (filtros.comPreco) lista = lista.filter((item) => Number(item.precoMinimo || item.precoMaximo || 0) > 0);
+    if (filtros.disponivelHoje) lista = lista.filter((item) => item.disponivelHoje === true);
+    if (filtros.melhores) {
+      lista.sort((a, b) => Number(b.avaliacao || 0) - Number(a.avaliacao || 0) || Number(b.numeroAvaliacoes || 0) - Number(a.numeroAvaliacoes || 0));
+    }
+    return lista;
+  }, [usuariosPrestadores, filtros]);
+
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -127,14 +161,35 @@ export default function PrestadoresPorServico() {
         </Text>
       </View>
 
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+        {([
+          ["verificados", "Verificados"],
+          ["melhores", "Melhores avaliações"],
+          ["comPreco", "Com preço"],
+          ["disponivelHoje", "Disponíveis hoje"],
+        ] as const).map(([key, label]) => {
+          const active = filtros[key];
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              onPress={() => setFiltros((prev) => ({ ...prev, [key]: !prev[key] }))}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
       {carregando ? (
         <View style={styles.carregandoContainer}>
           <ActivityIndicator size="large" color="#FF8700" />
           <Text style={[styles.carregandoTexto, { color: theme.textMuted }]}>Carregando profissionais...</Text>
         </View>
-      ) : usuariosPrestadores.length > 0 ? (
+      ) : usuariosFiltrados.length > 0 ? (
         <View style={styles.prestadoresList}>
-          {usuariosPrestadores.map((prestador) => (
+          {usuariosFiltrados.map((prestador) => (
             <TouchableOpacity
               key={prestador.id}
               style={[styles.prestadorCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: "#FF8700" }]}
@@ -150,9 +205,16 @@ export default function PrestadoresPorServico() {
                 <View style={styles.topRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.prestadorNome, { color: theme.textPrimary }]}>{prestador.nome}</Text>
+                    <ProviderTrustBadge provider={prestador} compact style={styles.trustBadge} />
                     <View style={styles.profissaoBadge}>
                       <Text style={styles.profissaoTexto}>{prestador.profissao}</Text>
                     </View>
+                    {!!Number(prestador.precoMinimo || prestador.precoMaximo || 0) && (
+                      <Text style={[styles.priceHint, { color: theme.textSecondary }]}>
+                        {prestador.precoMinimo ? `A partir de R$ ${Number(prestador.precoMinimo).toFixed(0)}` : `Até R$ ${Number(prestador.precoMaximo).toFixed(0)}`}
+                      </Text>
+                    )}
+                    {prestador.disponivelHoje && <Text style={styles.availableHint}>Disponível hoje</Text>}
                   </View>
                 </View>
 
@@ -267,6 +329,32 @@ const styles = StyleSheet.create({
   prestadoresList: {
     marginBottom: 24,
   },
+  filtersRow: {
+    gap: 8,
+    paddingBottom: 14,
+  },
+  filterChip: {
+    minHeight: 38,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterChipActive: {
+    backgroundColor: "#FF8700",
+    borderColor: "#FF8700",
+  },
+  filterChipText: {
+    color: "#64748B",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  filterChipTextActive: {
+    color: "#FFFFFF",
+  },
 
   prestadorCard: {
     flexDirection: "row",
@@ -318,6 +406,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F2937",
     marginBottom: 6,
+  },
+  trustBadge: {
+    marginBottom: 7,
+  },
+  priceHint: {
+    marginTop: 7,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  availableHint: {
+    marginTop: 5,
+    color: "#047857",
+    fontSize: 11,
+    fontWeight: "900",
   },
 
   profissaoBadge: {

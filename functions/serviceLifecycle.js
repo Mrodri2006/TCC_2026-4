@@ -1,7 +1,10 @@
 const aliases = {
   "a fazer": "aceito",
   agendado: "aceito",
+  "a caminho": "a_caminho",
   "em andamento": "andamento",
+  "em execucao": "execucao",
+  "em execução": "execucao",
   finalizado: "realizado",
   concluido: "realizado",
   concluído: "realizado",
@@ -12,17 +15,19 @@ const aliases = {
 const transitions = {
   aguardando: ["valor_pendente", "rejeitado", "cancelado"],
   valor_pendente: ["aceito", "rejeitado", "cancelado"],
-  aceito: ["andamento", "aguardando_confirmacao", "cancelado", "problema"],
-  andamento: ["aguardando_confirmacao", "cancelado", "problema"],
+  aceito: ["a_caminho", "andamento", "aguardando_confirmacao", "cancelado", "problema"],
+  a_caminho: ["andamento", "execucao", "aguardando_confirmacao", "cancelado", "problema"],
+  andamento: ["execucao", "aguardando_confirmacao", "cancelado", "problema"],
+  execucao: ["aguardando_confirmacao", "cancelado", "problema"],
   aguardando_confirmacao: ["realizado", "problema"],
-  problema: ["andamento", "realizado", "cancelado"],
+  problema: ["a_caminho", "andamento", "execucao", "realizado", "cancelado"],
   realizado: [],
   rejeitado: [],
   cancelado: [],
 };
 
 const actorTransitions = {
-  prestador: new Set(["valor_pendente", "rejeitado", "andamento", "aguardando_confirmacao", "cancelado", "problema"]),
+  prestador: new Set(["valor_pendente", "rejeitado", "a_caminho", "andamento", "execucao", "aguardando_confirmacao", "cancelado", "problema"]),
   contratante: new Set(["aceito", "rejeitado", "realizado", "cancelado", "problema"]),
   admin: new Set(Object.keys(transitions)),
 };

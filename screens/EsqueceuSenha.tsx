@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   container: {
     flex: 1,

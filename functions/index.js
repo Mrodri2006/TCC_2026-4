@@ -875,19 +875,50 @@ exports.atualizarStatusServico = functions.https.onCall(async (data, context) =>
   }
   const callerSnapshot = await db.collection("Usuario").doc(uid).get();
   const caller = callerSnapshot.data() || {};
-  const actor = caller.admin === true || caller.tipo === "admin" ? "admin" : uid === prestadorId ? "prestador" : uid === clienteId ? "contratante" : "";
-  if (!actor) throw new functions.https.HttpsError("permission-denied", "Você não participa deste serviço.");
+  const callerIsAdmin = caller.admin === true || caller.tipo === "admin";
 
   const providerRef = db.collection("ServicosAgendados").doc(prestadorId).collection("ServicoStatus").doc(servicoId);
   const clientRef = db.collection("ServicosClientes").doc(clienteId).collection("ServicoStatus").doc(servicoId);
   await db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(providerRef);
-    if (!snapshot.exists) throw new functions.https.HttpsError("not-found", "Serviço não encontrado.");
-    const service = snapshot.data() || {};
+    const [providerSnapshot, clientSnapshot] = await Promise.all([
+      transaction.get(providerRef),
+      transaction.get(clientRef),
+    ]);
+    if (!providerSnapshot.exists && !clientSnapshot.exists) {
+      throw new functions.https.HttpsError("not-found", "Serviço não encontrado.");
+    }
+
+    const service = (providerSnapshot.exists ? providerSnapshot.data() : clientSnapshot.data()) || {};
+    const resolvedPrestadorId = String(service.prestadorId || prestadorId);
+    const resolvedClienteId = String(service.clienteId || clienteId);
+    if (resolvedPrestadorId !== prestadorId || resolvedClienteId !== clienteId) {
+      throw new functions.https.HttpsError("permission-denied", "Este serviço não pertence aos participantes informados.");
+    }
+
+    const actor = callerIsAdmin ? "admin" : uid === resolvedPrestadorId ? "prestador" : uid === resolvedClienteId ? "contratante" : "";
+    if (!actor) throw new functions.https.HttpsError("permission-denied", "Você não participa deste serviço.");
+
     if (!canTransitionService(service.status, nextStatus, actor)) {
       throw new functions.https.HttpsError("failed-precondition", "Esta mudança de status não é permitida.");
     }
-    const update = { status: nextStatus, dataAtualizacao: admin.firestore.FieldValue.serverTimestamp(), atualizadoPor: uid };
+    const update = {
+      ...service,
+      id: service.id || servicoId,
+      prestadorId: resolvedPrestadorId,
+      clienteId: resolvedClienteId,
+      status: nextStatus,
+      dataAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+      atualizadoPor: uid,
+      timeline: admin.firestore.FieldValue.arrayUnion({
+        status: nextStatus,
+        actor,
+        actorId: uid,
+        at: admin.firestore.Timestamp.now(),
+      }),
+      ...(nextStatus === "realizado"
+        ? { dataFinalizado: admin.firestore.FieldValue.serverTimestamp(), avaliacaoLiberada: true }
+        : {}),
+    };
     transaction.set(providerRef, update, { merge: true });
     transaction.set(clientRef, update, { merge: true });
   });

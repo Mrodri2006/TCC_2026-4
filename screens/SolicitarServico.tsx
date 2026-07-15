@@ -112,7 +112,7 @@ export default function SolicitarServico() {
   const route = useRoute() as any;
   const { prestadorId, prestadorNome, servico } = route.params || {};
   const { theme } = useTheme();
-  const serviceTitle = String(servico || "Servico");
+  const serviceTitle = String(servico || "Serviço");
 
   const dateOptions = useMemo(
     () =>
@@ -156,7 +156,7 @@ export default function SolicitarServico() {
   const carregarAgendaLocal = async (selectedDate: string, originalError?: any) => {
     const date = parseBrazilianDate(selectedDate);
     if (!prestadorId || !date) {
-      applySlots([], "Nao foi possivel carregar os horarios.", true);
+      applySlots([], "Não foi possível carregar os horários.", true);
       return;
     }
 
@@ -179,11 +179,11 @@ export default function SolicitarServico() {
 
       applySlots(
         buildSlots(availability).map((time) => ({ horario: time, status: "disponivel" })),
-        canFallbackFromFunction(originalError) ? "Horarios ocupados serao confirmados ao solicitar." : "",
+        canFallbackFromFunction(originalError) ? "Horários ocupados serão confirmados ao solicitar." : "",
         true
       );
     } catch {
-      applySlots([], "Nao foi possivel carregar a agenda do prestador.", true);
+      applySlots([], "Não foi possível carregar a agenda do prestador.", true);
     }
   };
 
@@ -200,14 +200,14 @@ export default function SolicitarServico() {
           : result.reason === "indisponivel"
             ? "Este prestador bloqueou essa data."
             : result.reason === "limite"
-              ? "Limite de servicos atingido nessa data."
+              ? "Limite de serviços atingido nessa data."
               : "";
       applySlots(nextSlots, message, false);
     } catch (error: any) {
       if (canFallbackFromFunction(error)) {
         await carregarAgendaLocal(selectedDate, error);
       } else {
-        applySlots([], error?.message?.replace(/^.*?:\s*/, "") || "Nao foi possivel carregar a agenda.", false);
+        applySlots([], error?.message?.replace(/^.*?:\s*/, "") || "Não foi possível carregar a agenda.", false);
       }
     } finally {
       setCarregandoAgenda(false);
@@ -216,9 +216,9 @@ export default function SolicitarServico() {
 
   const salvarSemFunctions = async () => {
     const usuarioLogado = auth.currentUser?.uid;
-    if (!usuarioLogado) throw new Error("Usuario nao autenticado");
+    if (!usuarioLogado) throw new Error("Usuário não autenticado");
     const date = parseBrazilianDate(data);
-    if (!date || !validTime(horario)) throw new Error("Informe data e horario validos");
+    if (!date || !validTime(horario)) throw new Error("Informe data e horário válidos");
 
     const [availabilityDoc, unavailableSnapshot, clienteSnapshot] = await Promise.all([
       firestore.collection("Usuario").doc(prestadorId).collection("Disponibilidade").doc(String(date.getDay())).get(),
@@ -235,7 +235,7 @@ export default function SolicitarServico() {
     });
 
     if (blocked || !availability.enabled || !allowedSlots.includes(horario)) {
-      throw new Error("Escolha um horario disponivel na agenda do prestador");
+      throw new Error("Escolha um horário disponível na agenda do prestador");
     }
 
     const nomeCliente = String(clienteSnapshot.data()?.nome || auth.currentUser?.displayName || "Cliente").trim();
@@ -267,13 +267,13 @@ export default function SolicitarServico() {
 
   const salvarSolicitacao = async () => {
     if (!data || !horario || !local.trim()) {
-      Alert.alert("Erro", "Escolha data, horario e informe o local.");
+      Alert.alert("Erro", "Escolha data, horário e informe o local.");
       return;
     }
 
     const selectedSlot = slots.find((slot) => slot.horario === horario);
     if (selectedSlot && selectedSlot.status !== "disponivel") {
-      Alert.alert("Horario indisponivel", "Escolha um horario livre.");
+      Alert.alert("Horário indisponível", "Escolha um horário livre.");
       return;
     }
 
@@ -294,12 +294,12 @@ export default function SolicitarServico() {
         await salvarSemFunctions();
       }
 
-      Alert.alert("Sucesso!", `Servico solicitado com sucesso para ${prestadorNome}`, [
+      Alert.alert("Sucesso!", `Serviço solicitado com sucesso para ${prestadorNome}`, [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (erro: any) {
-      console.error("Erro ao solicitar servico:", erro);
-      Alert.alert("Nao foi possivel solicitar", erro?.message?.replace(/^.*?:\s*/, "") || "Tente novamente.");
+      console.error("Erro ao solicitar serviço:", erro);
+      Alert.alert("Não foi possível solicitar", erro?.message?.replace(/^.*?:\s*/, "") || "Tente novamente.");
     } finally {
       setCarregando(false);
     }
@@ -318,7 +318,7 @@ export default function SolicitarServico() {
         <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
           <ArrowLeft size={24} color="#0F2937" />
         </TouchableOpacity>
-        <Text style={styles.titulo}>Solicitar Servico</Text>
+        <Text style={styles.titulo}>Solicitar Serviço</Text>
         <View style={{ width: 42 }} />
       </View>
 
@@ -360,7 +360,7 @@ export default function SolicitarServico() {
 
         <View style={styles.sectionHeader}>
           <Clock size={17} color="#FF8700" />
-          <Text style={styles.sectionTitle}>Horarios</Text>
+          <Text style={styles.sectionTitle}>Horários</Text>
           {!carregandoAgenda && <Text style={styles.sectionCounter}>{availableCount} livres</Text>}
         </View>
 
@@ -401,7 +401,7 @@ export default function SolicitarServico() {
           </View>
         ) : (
           <View style={styles.emptyAgenda}>
-            <Text style={styles.emptyTitle}>{agendaMessage || "Nenhum horario disponivel"}</Text>
+            <Text style={styles.emptyTitle}>{agendaMessage || "Nenhum horário disponível"}</Text>
           </View>
         )}
 
@@ -411,7 +411,7 @@ export default function SolicitarServico() {
 
         <View style={styles.campoGrupo}>
           <Text style={styles.label}>
-            <MapPin size={16} color="#0F2937" /> Local do Servico *
+            <MapPin size={16} color="#0F2937" /> Local do Serviço *
           </Text>
           <TextInput
             style={styles.input}
@@ -429,7 +429,7 @@ export default function SolicitarServico() {
           </Text>
           <TextInput
             style={[styles.input, styles.inputLongo]}
-            placeholder="Descreva detalhes do servico desejado..."
+            placeholder="Descreva detalhes do serviço desejado..."
             placeholderTextColor="#94A3B8"
             value={descricao}
             onChangeText={setDescricao}
@@ -441,7 +441,7 @@ export default function SolicitarServico() {
 
         <View style={styles.summary}>
           <Text style={styles.summaryText}>Data: {data || "-"}</Text>
-          <Text style={styles.summaryText}>Horario: {horario || "-"}</Text>
+          <Text style={styles.summaryText}>Horário: {horario || "-"}</Text>
         </View>
 
         <View style={styles.botoes}>
@@ -455,7 +455,7 @@ export default function SolicitarServico() {
             disabled={carregando}
           >
             <Text style={[styles.botaoTexto, styles.botaoTextoConfirmar]}>
-              {carregando ? "Solicitando..." : "Solicitar Servico"}
+              {carregando ? "Solicitando..." : "Solicitar Serviço"}
             </Text>
           </TouchableOpacity>
         </View>

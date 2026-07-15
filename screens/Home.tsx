@@ -11,6 +11,7 @@ import { useTheme } from "../theme/ThemeContext";
 import { respondServiceProposal } from "../services/serviceService";
 import { smartFilter } from "../utils/smartSearch";
 import { getProviderRating } from "../services/reviewService";
+import { ProviderTrustBadge } from "../components/ProviderTrustBadge";
 
 export default function TelaInicialCliente({ onLogout }: any) {
 
@@ -178,6 +179,17 @@ export default function TelaInicialCliente({ onLogout }: any) {
             distancia: userData.distancia || "A calcular",
             tipo: userData.profissao || "Geral",
             profissao: userData.profissao || "Geral",
+            fone: userData.fone || "",
+            telefone: userData.fone || "",
+            localizacao: userData.localizacao || "",
+            fotoPerfil: userData.fotoPerfil || userData.foto || "",
+            experiencia: userData.experiencia || "",
+            especialidades: userData.especialidades || [],
+            certificados: userData.certificados || [],
+            servicosConcluidos: Number(userData.servicosConcluidos || 0),
+            verificacaoStatus: userData.verificacaoStatus || "",
+            prestadorVerificado: userData.prestadorVerificado === true,
+            documentosVerificados: userData.documentosVerificados === true,
           };
           profissionais.push(profissional);
         }
@@ -283,6 +295,11 @@ export default function TelaInicialCliente({ onLogout }: any) {
     const numero = Number(valor);
     if (Number.isNaN(numero)) return "Valor não informado";
     return `R$ ${numero.toFixed(2).replace(".", ",")}`;
+  };
+
+  const formatarDataCurta = (valor: any) => {
+    const data = valor?.toDate?.() || (valor ? new Date(valor) : null);
+    return data && !Number.isNaN(data.getTime()) ? data.toLocaleDateString("pt-BR") : "";
   };
 
   const abrirModalArea = () => {
@@ -772,7 +789,16 @@ export default function TelaInicialCliente({ onLogout }: any) {
                   <TouchableOpacity
                     key={`${serv.id}-${serv.prestadorId}`}
                     style={[styles.servicoAceitoCard, { backgroundColor: theme.card, borderColor: theme.border, borderLeftColor: "#FF8700" }]}
-                    onPress={() => abrirModal(serv)}
+                    onPress={() =>
+                      serv.status === "valor_pendente"
+                        ? abrirModal(serv)
+                        : navigation.navigate("DetalheServico", {
+                            servico: serv,
+                            servicoId: serv.id,
+                            prestadorId: serv.prestadorId,
+                            clienteId: serv.clienteId,
+                          })
+                    }
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.servicoAceitoTitulo, { color: theme.textPrimary }]}>
@@ -789,7 +815,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                     <Text style={styles.servicoAceitoAcoes}>
                       {serv.status === "valor_pendente"
                         ? "Toque para aceitar ou recusar"
-                        : "Toque para gerenciar"}
+                        : "Toque para acompanhar"}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -900,6 +926,7 @@ export default function TelaInicialCliente({ onLogout }: any) {
                           <View style={styles.prestadorInfo}>
                             <Text style={styles.prestadorNome}>{prestador.nome}</Text>
                             <Text style={styles.prestadorProfissao}>{prestador.profissao}</Text>
+                            <ProviderTrustBadge provider={prestador} compact style={styles.prestadorTrustBadge} />
                             <View style={styles.prestadorRating}>
                               <Text style={styles.prestadorEstrela}>⭐ {Number(prestador.avaliacao || 0).toFixed(1)} ({Number(prestador.numeroAvaliacoes || 0)})</Text>
                               <Text style={styles.prestadorDistancia}>📍 {prestador.distancia}</Text>
@@ -946,6 +973,38 @@ export default function TelaInicialCliente({ onLogout }: any) {
                     {formatarValor(servicoSelecionado?.valorProposto ?? servicoSelecionado?.valor)}
                   </Text>
                 </View>
+
+                {servicoSelecionado?.currentProposal ? (
+                  <View style={[styles.propostaDetalhesBox, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                    {([
+                      ["Mao de obra", servicoSelecionado.currentProposal.laborAmount],
+                      ["Materiais", servicoSelecionado.currentProposal.materialsAmount],
+                      ["Deslocamento", servicoSelecionado.currentProposal.travelFee],
+                      ["Desconto", servicoSelecionado.currentProposal.discount],
+                    ] as const).map(([label, value]) => (
+                      <View key={label} style={styles.propostaDetalheLinha}>
+                        <Text style={[styles.propostaDetalheLabel, { color: theme.textMuted }]}>{label}</Text>
+                        <Text style={[styles.propostaDetalheValor, { color: theme.textPrimary }]}>{formatarValor(value)}</Text>
+                      </View>
+                    ))}
+                    <View style={styles.propostaDetalheLinha}>
+                      <Text style={[styles.propostaDetalheLabel, { color: theme.textMuted }]}>Prazo</Text>
+                      <Text style={[styles.propostaDetalheValor, { color: theme.textPrimary }]}>
+                        {Number(servicoSelecionado.currentProposal.deadlineDays || 0)} dia(s)
+                      </Text>
+                    </View>
+                    {!!formatarDataCurta(servicoSelecionado.currentProposal.validUntil) && (
+                      <Text style={[styles.propostaObservacao, { color: theme.textMuted }]}>
+                        Valida ate {formatarDataCurta(servicoSelecionado.currentProposal.validUntil)}
+                      </Text>
+                    )}
+                    {!!servicoSelecionado.currentProposal.notes && (
+                      <Text style={[styles.propostaObservacao, { color: theme.textMuted }]}>
+                        {servicoSelecionado.currentProposal.notes}
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
 
                 <View style={styles.modalButtonsRow}>
                   <TouchableOpacity
@@ -1671,6 +1730,33 @@ const styles = StyleSheet.create({
     color: "#166534",
     fontWeight: "800",
   },
+  propostaDetalhesBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
+  },
+  propostaDetalheLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 8,
+  },
+  propostaDetalheLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  propostaDetalheValor: {
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  propostaObservacao: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: "600",
+    marginTop: 4,
+  },
 
   modalInputContainer: {
     marginBottom: 14,
@@ -1805,6 +1891,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#64748B",
     marginBottom: 6,
+  },
+  prestadorTrustBadge: {
+    marginBottom: 8,
   },
 
   prestadorRating: {

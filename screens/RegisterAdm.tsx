@@ -242,14 +242,14 @@ export default function Register2() {
                   <Text style={styles.modalTitle}>Termos de uso</Text>
                   <ScrollView style={styles.modalContent}>
                     <Text style={styles.modalText}>
-                      1. Ao criar a conta, voce declara que as informacoes fornecidas sao verdadeiras.
+                      1. Ao criar a conta, você declara que as informações fornecidas são verdadeiras.
                       {"\n\n"}
-                      2. O app conecta contratantes e prestadores. Nao garantimos a execucao do servico.
+                      2. O app conecta contratantes e prestadores. Não garantimos a execução do serviço.
                       {"\n\n"}
-                      3. Conteudos ofensivos, fraudulentos ou ilegais podem resultar em bloqueio da conta.
+                      3. Conteúdos ofensivos, fraudulentos ou ilegais podem resultar em bloqueio da conta.
                     </Text>
 
-                    <Text style={styles.modalTitle}>Especificacoes do app</Text>
+                    <Text style={styles.modalTitle}>Especificações do app</Text>
                     <Text style={styles.modalText}>
                       1. O app utiliza seus dados de cadastro para criar seu perfil e facilitar contatos.
                       {"\n\n"}
