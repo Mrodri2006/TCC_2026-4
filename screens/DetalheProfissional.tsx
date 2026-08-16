@@ -3,12 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator
 import { Star, MapPin, Phone, Mail, ArrowLeft, Award, Heart } from "lucide-react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useState, useEffect } from "react";
-import { firestore } from "../firebase";
+import { auth, firestore } from "../firebase";
 import { useTheme } from "../theme/ThemeContext";
 import { ReputationCard } from "../components/ReputationCard";
 import { ProviderTrustBadge, ProviderTrustCard } from "../components/ProviderTrustBadge";
 import { setProviderFavorite, subscribeProviderFavorite } from "../services/favoriteService";
 import { getProviderRating } from "../services/reviewService";
+
+const isPermissionDenied = (error: any) =>
+  String(error?.code || "").toLowerCase() === "permission-denied";
+
+const warnOptionalReadDenied = (label: string, providerId?: string) => {
+  console.warn(`Sem permissao para carregar ${label} do profissional ${providerId || ""}.`);
+};
 
 export default function DetalheProfissional() {
   const navigation = useNavigation<any>();
@@ -44,7 +51,7 @@ export default function DetalheProfissional() {
 
   useEffect(() => {
     buscarDetalhes();
-    if (!profissional?.id) return;
+    if (!profissional?.id || !auth.currentUser) return;
     return subscribeProviderFavorite(profissional.id, setFavorito);
   }, [profissional?.id]);
 
@@ -56,9 +63,29 @@ export default function DetalheProfissional() {
 
   const buscarDetalhes = async () => {
     setCarregando(true);
+    setPostsLoading(true);
+    if (!profissional?.id) {
+      setUsuarioData(profissional || {});
+      setServicos([]);
+      setAvaliacoes([]);
+      setPosts([]);
+      setPortfolioFotos([]);
+      setAvailabilitySummary("");
+      setPostsLoading(false);
+      setCarregando(false);
+      return;
+    }
+
     try {
-      const userDoc = await firestore.collection("Usuario").doc(profissional.id).get();
-      const dadosUsuario = userDoc.exists ? userDoc.data() || {} : {};
+      let dadosUsuario: any = {};
+      try {
+        const userDoc = await firestore.collection("Usuario").doc(profissional.id).get();
+        dadosUsuario = userDoc.exists ? userDoc.data() || {} : {};
+      } catch (userError: any) {
+        if (!isPermissionDenied(userError)) throw userError;
+        warnOptionalReadDenied("dados principais", profissional.id);
+      }
+
       const rating: any = await getProviderRating(profissional.id, { ...profissional, ...dadosUsuario });
       let avaliacoesData: any[] = Array.isArray(rating.avaliacoes) ? rating.avaliacoes : [];
       if (!avaliacoesData.length) {
@@ -67,7 +94,8 @@ export default function DetalheProfissional() {
             .collection("Avaliacoes").orderBy("avaliacaoData", "desc").limit(20).get();
           avaliacoesData = avaliacoesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as any));
         } catch (reviewError: any) {
-          if (String(reviewError?.code || "") !== "permission-denied") throw reviewError;
+          if (!isPermissionDenied(reviewError)) throw reviewError;
+          warnOptionalReadDenied("avaliacoes", profissional.id);
         }
       }
       const reviewMillis = (value: any) => value?.toMillis?.() || (typeof value === "number" ? value : 0);
@@ -90,66 +118,88 @@ export default function DetalheProfissional() {
         servicosConcluidos: Number(dadosUsuario.servicosConcluidos ?? profissional.servicosConcluidos ?? 0),
       });
 
-      const servicosSnapshot = await firestore
-        .collection("Usuario")
-        .doc(profissional.id)
-        .collection("Serv")
-        .get();
-
       const servicosData: any[] = [];
-      servicosSnapshot.forEach((doc) => {
-        servicosData.push({
-          id: doc.id,
-          ...doc.data(),
-        });
-      });
+      try {
+        const servicosSnapshot = await firestore
+          .collection("Usuario")
+          .doc(profissional.id)
+          .collection("Serv")
+          .get();
 
-      const postsSnapshot = await firestore
-        .collection("Usuario")
-        .doc(profissional.id)
-        .collection("Posts")
-        .orderBy("createdAt", "desc")
-        .get();
+        servicosSnapshot.forEach((doc) => {
+          servicosData.push({
+            id: doc.id,
+            ...doc.data(),
+          });
+        });
+      } catch (servicesError: any) {
+        if (!isPermissionDenied(servicesError)) throw servicesError;
+        warnOptionalReadDenied("servicos", profissional.id);
+      }
 
       const postsData: any[] = [];
-      postsSnapshot.forEach((doc) => {
-        postsData.push({
-          id: doc.id,
-          ...doc.data(),
+      try {
+        const postsSnapshot = await firestore
+          .collection("Usuario")
+          .doc(profissional.id)
+          .collection("Posts")
+          .orderBy("createdAt", "desc")
+          .get();
+
+        postsSnapshot.forEach((doc) => {
+          postsData.push({
+            id: doc.id,
+            ...doc.data(),
+          });
         });
-      });
+      } catch (postsError: any) {
+        if (!isPermissionDenied(postsError)) throw postsError;
+        warnOptionalReadDenied("postagens", profissional.id);
+      }
 
-      const portfolioSnapshot = await firestore
-        .collection("Usuario")
-        .doc(profissional.id)
-        .collection("Portfolio")
-        .orderBy("createdAt", "desc")
-        .limit(12)
-        .get();
-      const portfolioData = portfolioSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      let portfolioData: any[] = [];
+      try {
+        const portfolioSnapshot = await firestore
+          .collection("Usuario")
+          .doc(profissional.id)
+          .collection("Portfolio")
+          .orderBy("createdAt", "desc")
+          .limit(12)
+          .get();
+        portfolioData = portfolioSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } catch (portfolioError: any) {
+        if (!isPermissionDenied(portfolioError)) throw portfolioError;
+        warnOptionalReadDenied("portfolio", profissional.id);
+      }
 
-      const availabilitySnapshot = await firestore
-        .collection("Usuario")
-        .doc(profissional.id)
-        .collection("Disponibilidade")
-        .get();
       const week = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
-      const availabilityText = availabilitySnapshot.docs
-        .map((doc) => ({ index: Number(doc.id), ...(doc.data() || {}) }))
-        .filter((item: any) => item.enabled === true)
-        .sort((a: any, b: any) => a.index - b.index)
-        .slice(0, 4)
-        .map((item: any) => `${week[item.index] || "Dia"} ${item.start || ""}-${item.end || ""}`)
-        .join(", ");
+      let availabilityText = "";
+      try {
+        const availabilitySnapshot = await firestore
+          .collection("Usuario")
+          .doc(profissional.id)
+          .collection("Disponibilidade")
+          .get();
+        availabilityText = availabilitySnapshot.docs
+          .map((doc) => ({ index: Number(doc.id), ...(doc.data() || {}) }))
+          .filter((item: any) => item.enabled === true)
+          .sort((a: any, b: any) => a.index - b.index)
+          .slice(0, 4)
+          .map((item: any) => `${week[item.index] || "Dia"} ${item.start || ""}-${item.end || ""}`)
+          .join(", ");
+      } catch (availabilityError: any) {
+        if (!isPermissionDenied(availabilityError)) throw availabilityError;
+        warnOptionalReadDenied("disponibilidade", profissional.id);
+      }
 
       setServicos(servicosData);
       setPosts(postsData);
       setPortfolioFotos(portfolioData);
       setAvailabilitySummary(availabilityText);
-      setCarregando(false);
-      setPostsLoading(false);
     } catch (erro) {
       console.error("Erro ao buscar detalhes:", erro);
+      setUsuarioData((current: any) => Object.keys(current || {}).length ? current : profissional);
+    } finally {
       setPostsLoading(false);
       setCarregando(false);
     }

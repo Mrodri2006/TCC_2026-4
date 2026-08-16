@@ -184,7 +184,7 @@ export default function Configuracoes() {
         <View style={styles.sectionUnderline} />
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.card, borderColor: theme.border }]}>
+      <View style={[styles.section, styles.accountSection, { backgroundColor: theme.card, borderColor: theme.border }]}>
 
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
@@ -201,7 +201,7 @@ export default function Configuracoes() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder, marginTop: 10 }]}
+          style={[styles.actionButton, { backgroundColor: theme.actionBg, borderColor: theme.actionBorder }]}
           onPress={() => navigation.navigate("AjudaSuporte")}
         >
           <View style={styles.actionInline}>
@@ -284,6 +284,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 3,
   },
+  accountSection: {
+    gap: 10,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -316,8 +319,11 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: "#fff",
     paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 46,
     borderRadius: 10,
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
@@ -325,17 +331,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FF8700",
+    flexShrink: 1,
+    textAlign: "center",
   },
   actionInline: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
+    width: "100%",
   },
   logoutButton: {
-    marginTop: 10,
     backgroundColor: "#fff",
     paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 46,
     borderRadius: 10,
     alignItems: "center",
     flexDirection: "row",
@@ -350,9 +360,10 @@ const styles = StyleSheet.create({
     color: "#1e90ff",
   },
   deleteButton: {
-    marginTop: 10,
     backgroundColor: "#fff",
     paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 46,
     borderRadius: 10,
     alignItems: "center",
     borderWidth: 1,

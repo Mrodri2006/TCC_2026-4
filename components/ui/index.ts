@@ -6,3 +6,4 @@ export * from "./AppInput";
 export * from "./FeedbackProvider";
 export * from "./ScreenHeader";
 export * from "./BottomSheet";
+export * from "./LiquidTabBar";
