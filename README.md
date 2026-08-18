@@ -6,7 +6,6 @@ Este repositório contém o app (React Native/Expo) e as Cloud Functions (Fireba
 - tolerância de 3 dias após vencimento,
 - bloqueio automático,
 - reativação automática após pagamento confirmado,
-- webhook do Mercado Pago + validação server-side,
 - notificações (via coleção `Usuario/{uid}/Notificacoes`).
 
 ## Firestore (modelo)
@@ -34,21 +33,10 @@ Arquivo: `functions/index.js`
 Exports principais:
 
 - `onUsuarioCreateInitBilling`: inicializa dados de cobrança quando um prestador é criado.
-- `createMensalidade` (callable): cria fatura do período e gera PIX/link (Mercado Pago).
+- `createMensalidade` (callable): cria fatura do período e gera PIX/link 
 - `getMensalidadeStatus` (callable): retorna status atual (fonte de verdade).
 - `mercadoPagoWebhook` (HTTP): recebe confirmação de pagamento (consulta o MP e atualiza Firestore).
 - `checkMensalidadesDaily` (scheduler): roda diariamente, envia avisos e bloqueia após tolerância.
-
-### Variáveis/Config
-
-Configure o token do Mercado Pago (produção) no backend:
-
-- `MERCADO_PAGO_ACCESS_TOKEN` (ou `MP_ACCESS_TOKEN`)
-- `MENSALIDADE_VALOR` (opcional, default `29.9`)
-- `MP_NOTIFICATION_URL` (opcional, URL pública do webhook do Firebase)
-- `MP_WEBHOOK_SECRET` (opcional, reforço de segurança)
-
-Também é possível usar `firebase functions:config:set mercadopago.token="..."`.
 
 ## App (frontend)
 
