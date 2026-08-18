@@ -1,4 +1,4 @@
-# TCC 2026 — Mensalidade de Prestadores (Firebase + Mercado Pago)
+# TCC 2026 — Aplicativo mobile de intermediação entre prestadores e contratantes de serviços.
 
 Este repositório contém o app (React Native/Expo) e as Cloud Functions (Firebase) para cobrança de mensalidade de prestadores com:
 
